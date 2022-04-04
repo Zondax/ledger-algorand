@@ -5,3 +5,5 @@
 *.swp
 /src/glyphs.*
 /tests/build
+cli/__pycache__/
+ledger/
