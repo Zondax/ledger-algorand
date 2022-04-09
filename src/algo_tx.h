@@ -75,13 +75,13 @@ struct state_schema {
   uint64_t num_byteslice;
 };
 
-#define MAX_ACCT 2
+#define MAX_ACCT 4
 typedef uint8_t accounts_t[MAX_ACCT][32];
 
-#define MAX_ARG 2
+#define MAX_ARG 16
 #define MAX_ARGLEN 32
-#define MAX_FOREIGN_APPS 1
-#define MAX_FOREIGN_ASSETS 1
+#define MAX_FOREIGN_APPS 8
+#define MAX_FOREIGN_ASSETS 8
 #define MAX_APPROV_LEN 128
 #define MAX_CLEAR_LEN 32
 
