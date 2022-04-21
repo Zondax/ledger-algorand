@@ -15,7 +15,7 @@ typedef struct {
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #define TNX_BUFFER_SIZE 2048
 #else
-#define TNX_BUFFER_SIZE 900
+#define TNX_BUFFER_SIZE 700
 #endif
 extern uint8_t msgpack_buf[TNX_BUFFER_SIZE];
 extern unsigned int msgpack_next_off;
