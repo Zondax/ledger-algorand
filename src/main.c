@@ -24,6 +24,8 @@ unsigned int msgpack_next_off;
 
 struct pubkey_s public_key;
 
+char blind_signing_flag;
+
 void user_approval_denied(void)
 {
   G_io_apdu_buffer[0] = 0x69;
@@ -46,6 +48,7 @@ static void init_globals(void) {
   explicit_bzero(&current_txn, sizeof(current_txn));
   explicit_bzero(&public_key, sizeof(public_key));
   msgpack_next_off = 0;
+  blind_signing_flag = BLIND_SIGNING_DISABLED;
 }
 
 static void handle_sign_payment(uint8_t ins)

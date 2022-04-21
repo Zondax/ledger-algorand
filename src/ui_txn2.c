@@ -128,7 +128,13 @@ UX_STEP_NOCB(
       "Review",
       "Transaction",
     });
-
+UX_STEP_NOCB(
+    ux_warning_blind_signing_data_step,
+    bn,
+    {
+      "Blind signing",
+      "requested",
+    });
 UX_STEP_INIT(
     ux_init_upper_border,
     NULL,
@@ -171,6 +177,14 @@ UX_FLOW_DEF_VALID(
       "Transaction"
     });
 
+UX_STEP_NOCB(
+    ux_txn_blind_signing_error_step,
+    bnnn_paging,
+    {
+      "Blind Signing",
+      "Required but disabled in Settings"
+    });
+
 UX_FLOW(ux_txn_flow,
   &ux_confirm_tx_init_flow_step,
 
@@ -182,7 +196,33 @@ UX_FLOW(ux_txn_flow,
   &ux_reject_tx_flow_step
 );
 
+UX_FLOW(ux_txn_blind_signing_flow,
+  &ux_confirm_tx_init_flow_step,
+  &ux_warning_blind_signing_data_step,
+
+  &ux_init_upper_border,
+  &ux_variable_display,
+  &ux_init_lower_border,
+
+  &ux_confirm_tx_finalize_step,
+  &ux_reject_tx_flow_step
+);
+
+UX_FLOW(ux_txn_blind_signing_error_flow,
+  &ux_txn_blind_signing_error_step,
+  &ux_reject_tx_flow_step
+);
+
+static inline bool should_blind_sign() {
+  return  (current_txn.type == APPLICATION) &&
+          ((current_txn.application.num_accounts > 2) ||
+          (current_txn.application.num_foreign_assets > 1) ||
+          (current_txn.application.num_foreign_apps > 1) ||
+          (current_txn.application.num_app_args > 2));
+}
+
 void ui_txn(void) {
+  bool blind_signing_required = false;
   PRINTF("Transaction:\n");
   PRINTF("  Type: %d\n", current_txn.type);
   PRINTF("  Sender: %.*h\n", 32, current_txn.sender);
@@ -214,5 +254,11 @@ void ui_txn(void) {
   if (G_ux.stack_count == 0) {
     ux_stack_push(); 
   }
-  ux_flow_init(0, ux_txn_flow, NULL);
+  blind_signing_required = should_blind_sign();
+  if ((blind_signing_flag == BLIND_SIGNING_DISABLED) && blind_signing_required)
+    ux_flow_init(0, ux_txn_blind_signing_error_flow, NULL);
+  else if ((blind_signing_flag == BLIND_SIGNING_ENABLED) && should_blind_sign())
+    ux_flow_init(0, ux_txn_blind_signing_flow, NULL);
+  else
+    ux_flow_init(0, ux_txn_flow, NULL);
 }
