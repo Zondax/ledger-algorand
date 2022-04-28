@@ -155,14 +155,14 @@ def test_sign_msgpack_call_app_more_than_eight_foreign_apps(dongle, app_call_txn
     decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
     with pytest.raises(speculos.CommException) as excinfo:
         dongle.exchange(txn_utils.sign_algo_txn(dongle, decoded_txn))
-        
+
     assert excinfo.value.sw == 0x6e00
 
-
-def test_sign_msgpack_call_app_more_than_one_foreign_asset(dongle, app_call_txn):
+def test_sign_msgpack_call_app_more_than_eight_foreign_assets(dongle, app_call_txn):
     """
     """
-    app_call_txn.foreign_assets.append(6547014)
+    for x in range(8):
+        app_call_txn.foreign_assets.append(6547014+x)
     decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
     with pytest.raises(speculos.CommException) as excinfo:
         dongle.exchange(txn_utils.sign_algo_txn(dongle, decoded_txn))
