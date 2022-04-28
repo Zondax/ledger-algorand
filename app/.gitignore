@@ -47,5 +47,5 @@ debug/
 bin/app.sha256
 bin/app.apdu
 
-\output/app.*
+output/app*
 pkg/installer_*.sh
