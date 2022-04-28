@@ -135,7 +135,6 @@ DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-DEFINES       += HAVE_UX_FLOW
 else
 # Assume Nano X/S+
 DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=300
@@ -200,9 +199,9 @@ include $(BOLOS_SDK)/Makefile.glyphs
 
 APP_SOURCE_PATH += $(MY_DIR)/src
 APP_SOURCE_PATH += $(MY_DIR)/glyphs
-# APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/include
-# APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/src
-# APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/app/common
+APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/include
+APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/src
+APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/app/common
 
 # SDK_SOURCE_PATH += lib_stusb lib_stusb_impl lib_u2f lib_ux
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
