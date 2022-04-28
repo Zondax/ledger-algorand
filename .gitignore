@@ -5,3 +5,4 @@
 *.swp
 /src/glyphs.*
 /tests/build
+.vscode
