@@ -24,7 +24,6 @@ const defaultOptions = {
   logging: true,
   custom: `-s "${APP_SEED}"`,
   X11: false,
-  startText: 'is ready',
 }
 
 const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
