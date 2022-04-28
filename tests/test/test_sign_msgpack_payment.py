@@ -181,7 +181,7 @@ def test_sign_msgpack_differnet_chunk_size(dongle, payment_txn, chunk_size):
 def test_sign_txn_larger_then_internal_buffer(dongle, payment_txn):
     """
     """
-    INTERNAL_BUFFER_SIZE = 900
+    INTERNAL_BUFFER_SIZE = 700
     decoded_txn = base64.b64decode(algosdk.encoding.msgpack_encode(payment_txn))
 
     payment_txn.note = ("1"*(INTERNAL_BUFFER_SIZE - len(decoded_txn) + len(payment_txn.note))).encode()  
@@ -201,7 +201,7 @@ def test_sign_txn_long_field(dongle, payment_txn):
     with pytest.raises(speculos.CommException) as excinfo:
         dongle.exchange(txn_utils.sign_algo_txn(dongle, decoded_txn))
         
-    assert excinfo.value.sw == 0x6e00
+    assert excinfo.value.sw == 0x6700
 
 
 @pytest.mark.parametrize('account_id', [0, 1, 3, 7, 10, 42, 12345])
