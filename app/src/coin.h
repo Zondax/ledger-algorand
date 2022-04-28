@@ -15,4 +15,42 @@
 ********************************************************************************/
 #pragma once
 
-// Nothing here yet
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define CLA                             0x80
+
+#include <stdint.h>
+#include <stddef.h>
+
+#define HDPATH_LEN_DEFAULT   5
+
+#define HDPATH_0_DEFAULT     (0x80000000u | 0x2cu)
+#define HDPATH_1_DEFAULT     (0x80000000u | 0x1cdu)
+#define HDPATH_2_DEFAULT     (0x80000000u | 0u)
+#define HDPATH_3_DEFAULT     (0u)
+#define HDPATH_4_DEFAULT     (0u)
+
+#define HDPATH_0_TESTNET     (0x80000000u | 0x2cu)
+#define HDPATH_1_TESTNET     (0x80000000u | 0x1u)
+
+#define SECP256K1_PK_LEN            65u
+
+// typedef enum {
+//     addr_secp256k1 = 0,
+// } address_kind_e;
+
+// #define VIEW_ADDRESS_OFFSET_SECP256K1       (SECP256K1_PK_LEN + ADDRESS_PROTOCOL_SECP256K1_PAYLOAD_LEN + ADDRESS_PROTOCOL_LEN + 2)
+
+// #define COIN_AMOUNT_DECIMAL_PLACES 18
+
+#define MENU_MAIN_APP_LINE1 "Algorand"
+#define MENU_MAIN_APP_LINE2 "Ready"
+#define MENU_MAIN_APP_LINE2_SECRET          "???"
+#define APPVERSION_LINE1 "Version"
+#define APPVERSION_LINE2 "v" APPVERSION
+
+#ifdef __cplusplus
+}
+#endif
