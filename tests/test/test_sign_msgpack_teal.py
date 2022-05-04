@@ -294,3 +294,73 @@ def test_sign_msgpack_group_id_validate_display(dongle, app_call_txn, app_create
 
     verify_key = nacl.signing.VerifyKey(pubKey)
     verify_key.verify(smessage=b'TX' + decoded_txn, signature=txnSig)
+
+txn_blind_signing_error_labels = {
+    'blind signing', 'cancel'
+}
+
+def get_expected_messages_for_blind_signing_error():
+    messages =  [['blind signing', 'required but disabled in settings'],
+                 ['cancel', 'transaction']]
+
+    return messages
+
+def test_cancel_sign_msgpack_call_with_more_than_one_app_validate_display(dongle, app_call_txn):
+    """
+    """
+    app_call_txn.foreign_apps.append(81)
+    decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
+    with dongle.screen_event_handler(ui_interaction.confirm_on_lablel, txn_blind_signing_error_labels, 'cancel'):
+        logging.info(decoded_txn)
+        with pytest.raises(speculos.CommException) as excinfo:
+            _ = txn_utils.sign_algo_txn(dongle, decoded_txn)
+        assert excinfo.value.sw == 0x6985
+        messages = dongle.get_messages()
+    logging.info(messages)
+    logging.info(get_expected_messages_for_blind_signing_error())
+    assert get_expected_messages_for_blind_signing_error() == messages
+
+def test_cancel_sign_msgpack_call_with_more_than_one_foreign_asset_validate_display(dongle, app_call_txn):
+    """
+    """
+    app_call_txn.foreign_assets.append(6547014)
+    decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
+    with dongle.screen_event_handler(ui_interaction.confirm_on_lablel, txn_blind_signing_error_labels, 'cancel'):
+        logging.info(decoded_txn)
+        with pytest.raises(speculos.CommException) as excinfo:
+            _ = txn_utils.sign_algo_txn(dongle, decoded_txn)
+        assert excinfo.value.sw == 0x6985
+        messages = dongle.get_messages()
+    logging.info(messages)
+    logging.info(get_expected_messages_for_blind_signing_error())
+    assert get_expected_messages_for_blind_signing_error() == messages
+
+def test_cancel_sign_msgpack_call_with_more_than_two_foreign_accounts_validate_display(dongle, app_call_txn):
+    """
+    """
+    app_call_txn.accounts.append('R4DCCBODM4L7C6CKVOV5NYDPEYS2G5L7KC7LUYPLUCKBCOIZMYJPFUDTKE')
+    decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
+    with dongle.screen_event_handler(ui_interaction.confirm_on_lablel, txn_blind_signing_error_labels, 'cancel'):
+        logging.info(decoded_txn)
+        with pytest.raises(speculos.CommException) as excinfo:
+            _ = txn_utils.sign_algo_txn(dongle, decoded_txn)
+        assert excinfo.value.sw == 0x6985
+        messages = dongle.get_messages()
+    logging.info(messages)
+    logging.info(get_expected_messages_for_blind_signing_error())
+    assert get_expected_messages_for_blind_signing_error() == messages
+
+def test_cancel_sign_msgpack_call_with_more_than_two_app_args_validate_display(dongle, app_call_txn):
+    """
+    """
+    app_call_txn.app_args.append(b'\x01\x01\x01\x01')
+    decoded_txn= base64.b64decode(algosdk.encoding.msgpack_encode(app_call_txn))
+    with dongle.screen_event_handler(ui_interaction.confirm_on_lablel, txn_blind_signing_error_labels, 'cancel'):
+        logging.info(decoded_txn)
+        with pytest.raises(speculos.CommException) as excinfo:
+            _ = txn_utils.sign_algo_txn(dongle, decoded_txn)
+        assert excinfo.value.sw == 0x6985
+        messages = dongle.get_messages()
+    logging.info(messages)
+    logging.info(get_expected_messages_for_blind_signing_error())
+    assert get_expected_messages_for_blind_signing_error() == messages
