@@ -16,7 +16,15 @@
 export const CLA = 0x80;
 export const INS = {
   GET_VERSION: 0x00,
-  GET_ADDR_SECP256K1: 0x04,
   SIGN_SECP256K1: 0x02,
+  GET_PUBLIC_KEY: 0x03,
+
+  SIGN_PAYMENT_V2: 0x04,
+  SIGN_PAYMENT_V3: 0x06,
+
+  SIGN_KEYREG_V2: 0x05,
+  SIGN_KEYREG_V3: 0x07,
+
+  SIGN_MSGPACK: 0x08,
 };
 export const PKLEN = 33;
