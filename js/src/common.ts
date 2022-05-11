@@ -178,7 +178,6 @@ export function serializePath(path: string | number[]): any {
       }
 
       const pathArray = path.split('/');
-
       if (pathArray.length !== 6) {
         throw new Error("Invalid path. . It should be a BIP44 path (e.g \"m/44'/1'/5'/0/3\")");
       }
@@ -203,6 +202,7 @@ export function serializePath(path: string | number[]): any {
           throw new Error(`Invalid path : ${value} is not a number. (e.g "m/44'/1'/5'/0/3")`);
         }
         numericPath.push(value)
+        buf.writeUInt32LE(value, 4 * (i - 1));
       }
       break;
     }
