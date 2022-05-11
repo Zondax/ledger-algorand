@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2020 Zondax GmbH
+*   (c) 2018 - 2022 Zondax GmbH
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -20,16 +20,14 @@
 extern "C" {
 #endif
 
-// /// Return the number of items in the address view
-// zxerr_t addr_getNumItems(uint8_t *num_items);
+// Return the number of items in the address view
+zxerr_t addr_getNumItems(uint8_t *num_items);
 
-// /// Gets an specific item from the address view (including paging)
-// zxerr_t addr_getItem(int8_t displayIdx,
-//                      char *outKey, uint16_t outKeyLen,
-//                      char *outValue, uint16_t outValueLen,
-//                      uint8_t pageIdx, uint8_t *pageCount);
-
-// zxerr_t addr_to_textual(char *s, uint16_t max, const char *text, uint16_t textLen);
+// Gets an specific item from the address view (including paging)
+zxerr_t addr_getItem(int8_t displayIdx,
+                     char *outKey, uint16_t outKeyLen,
+                     char *outValue, uint16_t outValueLen,
+                     uint8_t pageIdx, uint8_t *pageCount);
 
 #ifdef __cplusplus
 }
