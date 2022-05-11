@@ -208,23 +208,32 @@ export default class AlgorandApp {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getAddressAndPubKey(path: string | number[], bech32Prefix: string): Promise<ResponseAddress> {
-    const serializedPath = serializePath(path);
-    const data = Buffer.concat([AlgorandApp.serializeHRP(bech32Prefix), serializedPath]);
+  // async getAddressAndPubKey(path: string | number[]): Promise<ResponseAddress> {
+  //   const data = serializePath(path);
+
+  //   return this.transport
+  //     .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.ONLY_RETRIEVE, 0, data, [0x9000])
+  //     .then(processGetAddrResponse, processErrorResponse);
+  // }
+
+  // async showAddressAndPubKey(path: string | number[], bech32Prefix: string): Promise<ResponseAddress> {
+  //   const data = serializePath(path);
+  //   // const data = Buffer.concat([AlgorandApp.serializeHRP(bech32Prefix), serializedPath]);
+
+  //   return this.transport
+  //     .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.SHOW_ADDRESS_IN_DEVICE, 0, data, [
+  //       LedgerError.NoErrors
+  //     ])
+  //     .then(processGetAddrResponse, processErrorResponse);
+  // }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getPublicKey(path: string | number[], requireConfirmation = false): Promise<ResponseAddress> {
+    const data = serializePath(path);
+    const p1_value = requireConfirmation ? P1_VALUES.SHOW_ADDRESS_IN_DEVICE : P1_VALUES.ONLY_RETRIEVE
 
     return this.transport
-      .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.ONLY_RETRIEVE, 0, data, [0x9000])
-      .then(processGetAddrResponse, processErrorResponse);
-  }
-
-  async showAddressAndPubKey(path: string | number[], bech32Prefix: string): Promise<ResponseAddress> {
-    const serializedPath = serializePath(path);
-    const data = Buffer.concat([AlgorandApp.serializeHRP(bech32Prefix), serializedPath]);
-
-    return this.transport
-      .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.SHOW_ADDRESS_IN_DEVICE, 0, data, [
-        LedgerError.NoErrors
-      ])
+      .send(CLA, INS.GET_PUBLIC_KEY, p1_value, 0, data, [0x9000])
       .then(processGetAddrResponse, processErrorResponse);
   }
 
