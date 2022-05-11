@@ -1,11 +1,10 @@
 #include "command_handler.h"
-#include "apdu_protocol_defines.h"
 #include "algo_ui.h"
 #include "algo_addr.h"
 #include "algo_keys.h"
 
-
-
+// #include "apdu_protocol_defines.h"
+#include "app_main.h"
 
 /*
 * this function validated the input of the APDU command buffer.
@@ -13,56 +12,45 @@
 * if the input doesn't contain an account id, the returend account id is 0
 */
 
-int parse_input_for_get_public_key_command(const uint8_t* buffer, const uint32_t buffer_len, uint32_t* output_account_id)
+zxerr_t parse_input_for_get_public_key_command(const uint8_t* buffer, const uint32_t buffer_len, uint32_t* output_account_id)
 {
   *output_account_id = 0;
 
-  if (buffer_len <= OFFSET_LC)
+  if (buffer_len <= OFFSET_DATA_LEN)
   {
     PRINTF("using default account id 0 ");
-    return 0;
+    return zxerr_ok;
   }
 
-  uint8_t lc = buffer[OFFSET_LC];
+  uint8_t lc = buffer[OFFSET_DATA_LEN];
   if (lc == 0)
   {
     PRINTF("using default account id 0 ");
-    return 0;
+    return zxerr_ok;
   }
 
   if (lc < sizeof(uint32_t))
   {
-    return 0x6a86;
+    //{FT} check this error code
+    // return 0x6a86;
+    return zxerr_encoding_failed;
   }
 
-  if (buffer_len < lc + OFFSET_CDATA)
+  if (buffer_len < lc + OFFSET_DATA)
   {
-    return 0x6a87;
+    //{FT} check this error code
+    // return 0x6a87;
+    return zxerr_encoding_failed;
   }
-  *output_account_id = U4BE(buffer, OFFSET_CDATA);
+  *output_account_id = U4BE(buffer, OFFSET_DATA);
 
-  return 0;
+  return zxerr_ok;
 }
 
-
 /*
-* This function takes a binary 32 bytes public key, converts it to Algorand address,
-* and send it to the UI.
-* this function fails if the public_key buffer is smaller than 32 bytes.
-*/
-void send_address_to_ui(const struct pubkey_s *public_key)
-{
-  char public_address[65];
-  explicit_bzero(public_address, 65);
-  convert_to_public_address(public_key->data, public_address);
-  ui_text_put(public_address);
-}
-
-
-/*
-* This function parses the input buffer (from the application) and tries to construct 
+* This function parses the input buffer (from the application) and tries to construct
 * the txn_output.
-* this function might be called multiple times. each time the function will fill the 
+* this function might be called multiple times. each time the function will fill the
 * current_txn_buffer untill the end of the input.
 * the function will throw 0x9000 when more data is needed to decode the transaction.
 * if a decode error occucrs the fuction returns non null value.
@@ -73,14 +61,14 @@ int parse_input_for_msgpack_command(const uint8_t* data_buffer, const uint32_t b
                                     uint32_t *current_txn_buffer_offset, txn_t* txn_output,
                                     char **error_msg)
 {
-  const uint8_t *cdata = data_buffer + OFFSET_CDATA;
-  uint8_t lc = data_buffer[OFFSET_LC];
+  const uint8_t *cdata = data_buffer + OFFSET_DATA;
+  uint8_t lc = data_buffer[OFFSET_DATA_LEN];
 
   if (lc == 0) {
     return 0x6a84;
   }
 
-  if (buffer_len < lc + OFFSET_CDATA) {
+  if (buffer_len < lc + OFFSET_DATA) {
     return 0x6a85;
   }
 
@@ -99,19 +87,19 @@ int parse_input_for_msgpack_command(const uint8_t* data_buffer, const uint32_t b
   }
 
   if (*current_txn_buffer_offset + lc > current_txn_buffer_size) {
-    return 0x6700;
+    return APDU_CODE_WRONG_LENGTH;
   }
 
-  memmove(current_txn_buffer + *current_txn_buffer_offset, cdata, lc);
+  MEMMOVE(current_txn_buffer + *current_txn_buffer_offset, cdata, lc);
   *current_txn_buffer_offset += lc;
 
   switch (data_buffer[OFFSET_P2]) {
     case P2_LAST:
       break;
     case P2_MORE:
-      return 0x9000;
+      return APDU_CODE_OK;
     default:
-      return 0x6B00;
+      return APDU_CODE_INVALIDP1P2;
   }
 
   *error_msg = tx_decode(current_txn_buffer, *current_txn_buffer_offset, txn_output);
