@@ -26,8 +26,8 @@ const defaultOptions = {
   X11: false,
 }
 
-const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
-const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
+// Derivation path. First 3 items are automatically hardened!
+const path = "m/44'/283'/5'/0'/0"
 
 jest.setTimeout(60000)
 
@@ -70,6 +70,48 @@ describe('Standard', function () {
       expect(resp).toHaveProperty('major')
       expect(resp).toHaveProperty('minor')
       expect(resp).toHaveProperty('patch')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  // test.each(models)('get public key', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     const app = new AlgorandApp(sim.getTransport())
+
+  //     const resp = await app.getPublicKey(path)
+  //     console.log(resp)
+
+  //     expect(resp.return_code).toEqual(0x9000)
+  //     expect(resp.error_message).toEqual('No errors')
+
+  //     // expect(resp.address).toEqual(expected_address)
+  //     // expect(resp.pubKey).toEqual(expected_pk)
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
+
+
+  test.each(models)('show address - reject', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const respRequest = app.getPublicKey(path, true)
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+
+      await sim.navigateAndCompareUntilText('.', `${m.prefix.toLowerCase()}-show_pubkey_reject`, 'REJECT')
+
+      const resp = await respRequest
+      console.log(resp)
+
+      expect(resp.return_code).toEqual(0x6986)
+      expect(resp.error_message).toEqual('Transaction rejected')
     } finally {
       await sim.close()
     }
