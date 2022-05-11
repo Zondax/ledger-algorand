@@ -16,8 +16,8 @@
 #pragma once
 
 #include <stdint.h>
-// #include "crypto.h"
-// #include "tx.h"
+#include "crypto.h"
+#include "tx.h"
 #include "apdu_codes.h"
 #include <os_io_seproxyhal.h>
 #include "coin.h"
@@ -25,38 +25,19 @@
 
 extern uint16_t action_addrResponseLen;
 
-// __Z_INLINE void app_set_hrp(char *p) {
-//     crypto_set_hrp(p);
-// }
+__Z_INLINE zxerr_t app_fill_address() {
+    // Put data directly in the apdu buffer
+    MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
 
-// __Z_INLINE void app_sign() {
-//     uint16_t replyLen = 0;
+    action_addrResponseLen = 0;
+    zxerr_t err = crypto_fillAddress(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 2, &action_addrResponseLen);
 
-//     MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
-//     zxerr_t err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, &replyLen);
+    if (err != zxerr_ok || action_addrResponseLen == 0) {
+        THROW(APDU_CODE_EXECUTION_ERROR);
+    }
 
-//     if (err != zxerr_ok || replyLen == 0) {
-//         set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);
-//         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-//     } else {
-//         set_code(G_io_apdu_buffer, replyLen, APDU_CODE_OK);
-//         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, replyLen + 2);
-//     }
-// }
-
-// __Z_INLINE zxerr_t app_fill_address() {
-//     // Put data directly in the apdu buffer
-//     MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
-
-//     action_addrResponseLen = 0;
-//     zxerr_t err = crypto_fillAddress(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 2, &action_addrResponseLen);
-
-//     if (err != zxerr_ok || action_addrResponseLen == 0) {
-//         THROW(APDU_CODE_EXECUTION_ERROR);
-//     }
-
-//     return zxerr_ok;
-// }
+    return zxerr_ok;
+}
 
 __Z_INLINE void app_reject() {
     MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
