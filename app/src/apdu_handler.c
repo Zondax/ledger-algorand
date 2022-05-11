@@ -30,7 +30,6 @@
 #include "coin.h"
 #include "zxmacros.h"
 
-#include "apdu_protocol_defines.h"
 #include "algo_tx.h"
 #include "algo_keys.h"
 #include "command_handler.h"
