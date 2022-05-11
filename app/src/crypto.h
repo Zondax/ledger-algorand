@@ -28,14 +28,15 @@ extern "C" {
 
 #define MAX_BECH32_HRP_LEN      83u
 
-// extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
+extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
+
 // extern char *hrp;
 
 // uint8_t extractHRP(uint32_t rx, uint32_t offset);
 
 // void crypto_set_hrp(char *p);
 
-// zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen);
+zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen);
 
 // zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, uint16_t *signatureLen);
 
