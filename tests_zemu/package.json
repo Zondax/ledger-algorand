@@ -17,7 +17,7 @@
     "test": "jest -t 'Standard'"
   },
   "dependencies": {
-    "@zondax/ledger-algorand": "^0.0.2",
+    "@zondax/ledger-algorand": "../js",
     "@zondax/zemu": "^0.29.0"
   },
   "devDependencies": {
