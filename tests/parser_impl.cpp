@@ -253,7 +253,6 @@ TEST(SCALE, EncodingString) {
     EXPECT_EQ(mapItems, 2);
 
     uint8_t key[50] = {0};
-    uint64_t value {0};
 
     //Read key:value pos0
     err = _readString(&ctx, key, sizeof(key));
@@ -273,3 +272,47 @@ TEST(SCALE, EncodingString) {
     EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
     EXPECT_EQ(strcmp((char*)key, "some text here that might be long"), 0);
 }
+
+TEST(SCALE, EncodingBoolean) {
+    parser_context_t ctx;
+    parser_error_t err;
+
+    uint8_t buffer[100];
+    auto bufferLen = parseHexString(
+        buffer,
+        sizeof(buffer),
+        "82A9626F6F6C65616E5F30C3A9626F6F6C65616E5F31C2"
+    );
+
+    parser_init(&ctx, buffer, bufferLen);
+
+    uint16_t mapItems {0};
+    err = _readMap(&ctx, &mapItems);
+    EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    EXPECT_EQ(mapItems, 2);
+
+    uint8_t key[50] = {0};
+    uint8_t value {0};
+
+    //Read key:value pos0
+    err = _readString(&ctx, key, sizeof(key));
+    EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    EXPECT_EQ(strcmp((char*)key, "boolean_0"), 0);
+
+    value = 0xFF;
+    err = _readBool(&ctx, &value);
+    EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    EXPECT_EQ(value, 1);
+
+    //Read key:value pos1
+    err = _readString(&ctx, key, sizeof(key));
+    EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    EXPECT_EQ(strcmp((char*)key, "boolean_1"), 0);
+
+    value = 0xFF;
+    err = _readBool(&ctx, &value);
+    EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    EXPECT_EQ(value, 0);
+}
+
+

@@ -76,6 +76,7 @@ typedef enum {
     parser_msgpack_bin_type_not_supported,
     parser_msgpack_bin_unexpected_size,
     parser_msgpack_int_type_expected,
+    parser_msgpack_bool_type_expected,
 
 } parser_error_t;
 

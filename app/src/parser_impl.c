@@ -252,6 +252,29 @@ static parser_error_t _readBin(parser_context_t *c, uint8_t *buff, uint16_t *buf
     return parser_ok;
 }
 
+parser_error_t _readBool(parser_context_t *c, uint8_t *value)
+{
+    uint8_t tmp = 0;
+    CHECK_ERROR(_readUInt8(c, &tmp))
+    switch (tmp)
+    {
+        case BOOL_TRUE: {
+            *value = 1;
+            break;
+        }
+
+        case BOOL_FALSE: {
+            *value = 0;
+            break;
+        }
+        default: {
+            return parser_msgpack_bool_type_expected;
+            break;
+        }
+    }
+    return parser_ok;
+}
+
 static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 {
     //Read sender
