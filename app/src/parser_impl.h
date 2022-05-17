@@ -1,5 +1,5 @@
 /*******************************************************************************
-*  (c) 2019 Zondax GmbH
+*  (c) 2018 - 2022 Zondax GmbH
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -18,25 +18,56 @@
 #include "parser_common.h"
 #include <zxmacros.h>
 #include "zxtypes.h"
-// #include "json/json_parser.h"
 #include "parser_txdef.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-    char str1[50];
-    char str2[50];
-} key_subst_t;
-
 extern parser_tx_t parser_tx_obj;
+
+// Checks that there are at least SIZE bytes available in the buffer
+#define CTX_CHECK_AVAIL(CTX, SIZE) \
+    if ( (CTX) == NULL || ((CTX)->offset + (SIZE)) > (CTX)->bufferLen) { return parser_unexpected_buffer_end; }
+
+#define CTX_CHECK_AND_ADVANCE(CTX, SIZE) \
+    CTX_CHECK_AVAIL((CTX), (SIZE))   \
+    (CTX)->offset += (SIZE);
+
+#define DEF_READARRAY(SIZE) \
+    v->_ptr = c->buffer + c->offset; \
+    CTX_CHECK_AND_ADVANCE(c, SIZE) \
+    return parser_ok;
+
+#define DEF_READFIX_UNSIGNED(BITS) parser_error_t _readUInt ## BITS(parser_context_t *ctx, uint ## BITS ##_t *value)
+#define DEC_READFIX_UNSIGNED(BITS) parser_error_t _readUInt ## BITS(parser_context_t *ctx, uint ## BITS ##_t *value) \
+{                                                                                           \
+    if (value == NULL)  return parser_no_data;                                              \
+    *value = 0u;                                                                            \
+    for(uint8_t i=0u; i < (BITS##u>>3u); i++, ctx->offset++) {                              \
+        if (ctx->offset >= ctx->bufferLen) return parser_unexpected_buffer_end;             \
+        *value = (*value << 8) | (uint ## BITS ##_t) *(ctx->buffer + ctx->offset);          \
+    }                                                                                       \
+    return parser_ok;                                                                       \
+}
+
+parser_error_t _readBytes(parser_context_t *c, uint8_t *buff, uint16_t bufLen);
 
 parser_error_t parser_init(parser_context_t *ctx,
                            const uint8_t *buffer,
-                           size_t bufferSize);
+                           uint16_t bufferSize);
 
-parser_error_t _readTx(parser_context_t *c, parser_tx_t *v);
+parser_error_t _read(parser_context_t *c, parser_tx_t *v);
+
+parser_error_t _readMap(parser_context_t *c, uint16_t *mapItems);
+parser_error_t _readString(parser_context_t *c, uint8_t *buff, uint16_t buffLen);
+parser_error_t _readInteger(parser_context_t *c, uint64_t* value);
+
+DEF_READFIX_UNSIGNED(8);
+DEF_READFIX_UNSIGNED(16);
+DEF_READFIX_UNSIGNED(32);
+DEF_READFIX_UNSIGNED(64);
+
 
 #ifdef __cplusplus
 }

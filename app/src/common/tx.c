@@ -82,7 +82,8 @@ const char *tx_parse()
 
     uint8_t err = parser_parse(&ctx_parsed_tx,
                                tx_get_buffer(),
-                               tx_get_buffer_length());
+                               tx_get_buffer_length(),
+                               &tx_obj);
     zemu_log_stack("parse|parsed");
 
     if (err != parser_ok)

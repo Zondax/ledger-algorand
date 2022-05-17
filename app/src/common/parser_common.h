@@ -22,7 +22,7 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
-#define CHECK_PARSER_ERR(__CALL) { \
+#define CHECK_ERROR(__CALL) { \
     parser_error_t __err = __CALL;  \
     CHECK_APP_CANARY()  \
     if (__err!=parser_ok) return __err;}
@@ -63,6 +63,20 @@ typedef enum {
     parser_json_missing_account_number,
     parser_json_missing_memo,
     parser_json_unexpected_error,
+
+    paser_unknown_transaction,
+
+    //Msgpack specific
+    parser_msgpack_map_type_expected,
+    parser_msgpack_map_type_not_supported,
+    parser_msgpack_str_type_expected,
+    parser_msgpack_str_type_not_supported,
+    parser_msgpack_str_too_big,
+    parser_msgpack_bin_type_expected,
+    parser_msgpack_bin_type_not_supported,
+    parser_msgpack_bin_unexpected_size,
+    parser_msgpack_int_type_expected,
+
 } parser_error_t;
 
 typedef struct {

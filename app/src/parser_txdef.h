@@ -22,59 +22,155 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
-// #include <json/json_parser.h>
+typedef enum TxType {
+  TX_UNKNOWN,
+  TX_PAYMENT,
+  TX_KEYREG,
+  TX_ASSET_XFER,
+  TX_ASSET_FREEZE,
+  TX_ASSET_CONFIG,
+  TX_APPLICATION,
+  TX_ALL_TYPES,
+} TxType;
 
-typedef struct {
-    // These are internal values used for tracking the state of the query/search
-    uint16_t _item_index_current;
+#define KEY_TYPE "key"
 
-    // maximum json tree level. Beyond this tree depth, key/values are flattened
-    uint8_t max_level;
+typedef enum oncompletion {
+  NOOPOC       = 0,
+  OPTINOC      = 1,
+  CLOSEOUTOC   = 2,
+  CLEARSTATEOC = 3,
+  UPDATEAPPOC  = 4,
+  DELETEAPPOC  = 5,
+} oncompletion_t;
 
-    // maximum tree traversal depth. This limits possible stack overflow issues
-    uint8_t max_depth;
+struct asset_params {
+  uint64_t total;
+  uint64_t decimals;
+  uint8_t default_frozen;
+  char unitname[8];
+  char assetname[32];
+  char url[32];
+  uint8_t metadata_hash[32];
+  uint8_t manager[32];
+  uint8_t reserve[32];
+  uint8_t freeze[32];
+  uint8_t clawback[32];
+};
 
-    // Index of the item to retrieve
-    int16_t item_index;
-    // Chunk of the item to retrieve (assuming partitioning based on out_val_len chunks)
-    int16_t page_index;
+struct state_schema {
+  uint64_t num_uint;
+  uint64_t num_byteslice;
+};
 
-    // These fields (out_*) are where query results are placed
-    char *out_key;
-    uint16_t out_key_len;
-    char *out_val;
-    int16_t out_val_len;
-} tx_query_t;
+#define MAX_ACCT 2
+typedef uint8_t accounts_t[MAX_ACCT][32];
 
+#define MAX_ARG 2
+#define MAX_ARGLEN 32
+#define MAX_FOREIGN_APPS 1
+#define MAX_FOREIGN_ASSETS 1
+#define MAX_APPROV_LEN 128
+#define MAX_CLEAR_LEN 32
 
+// TXs structs
+struct txn_payment {
+  uint8_t receiver[32];
+  uint64_t amount;
+  uint8_t close[32];
+};
 
-typedef struct {
-    // Buffer to the original tx blob
-    const char *tx;
+struct txn_keyreg {
+  uint8_t votepk[32];
+  uint8_t vrfpk[32];
+  uint8_t sprfkey[64];
+  uint64_t voteFirst;
+  uint64_t voteLast;
+  uint64_t keyDilution;
+  uint8_t nonpartFlag;
+};
 
-    // parsed data (tokens, etc.)
-    // parsed_json_t json;
+struct txn_asset_xfer {
+  uint64_t id;
+  uint64_t amount;
+  uint8_t sender[32];
+  uint8_t receiver[32];
+  uint8_t close[32];
+};
 
-    // internal flags
-    struct {
-        bool cache_valid:1;
-        bool msg_type_grouping:1;       // indicates if msg type grouping is enabled
-        bool msg_from_grouping:1;       // indicates if msg from grouping is enabled
-        bool msg_from_grouping_hide_all:1; // indicates if msg from grouping should hide all
-    } flags;
+struct txn_asset_freeze {
+  uint64_t id;
+  uint8_t account[32];
+  uint8_t flag;
+};
 
-    // indicates that N identical msg_type fields have been detected
-    uint8_t filter_msg_type_count;
-    int32_t filter_msg_type_valid_idx;
+struct txn_asset_config {
+  uint64_t id;
+  struct asset_params params;
+};
 
-    // indicates that N identical msg_from fields have been detected
-    uint8_t filter_msg_from_count;
-    int32_t filter_msg_from_valid_idx;
-    const char *own_addr;
+struct txn_application {
+  uint64_t id;
+  uint64_t oncompletion;
 
-    // current tx query
-    tx_query_t query;
+  uint8_t accounts[MAX_ACCT][32];
+  size_t num_accounts;
+
+  uint64_t foreign_apps[MAX_FOREIGN_APPS];
+  size_t num_foreign_apps;
+
+  uint64_t foreign_assets[MAX_FOREIGN_ASSETS];
+  size_t num_foreign_assets;
+
+  uint8_t app_args[MAX_ARG][MAX_ARGLEN];
+  size_t app_args_len[MAX_ARG];
+  size_t num_app_args;
+
+  uint8_t aprog[MAX_APPROV_LEN];
+  size_t aprog_len;
+
+  uint8_t cprog[MAX_CLEAR_LEN];
+  size_t cprog_len;
+
+  struct state_schema local_schema;
+  struct state_schema global_schema;
+};
+
+typedef struct{
+  TxType type;
+  // Account Id asscociated with this transaction.
+  uint32_t accountId;
+
+  // Common header fields
+  uint8_t sender[32];
+  uint8_t rekey[32];
+  uint64_t fee;
+  uint64_t firstValid;
+  uint64_t lastValid;
+  char genesisID[32];
+  uint8_t genesisHash[32];
+  uint8_t groupID[32];
+
+#if defined(TARGET_NANOS)
+  uint8_t note[32];
+#else
+  uint8_t note[512];
+#endif
+
+  size_t note_len;
+
+  // Fields for specific tx types
+  union {
+    struct txn_payment payment;
+    struct txn_keyreg keyreg;
+    struct txn_asset_xfer asset_xfer;
+    struct txn_asset_freeze asset_freeze;
+    struct txn_asset_config asset_config;
+    struct txn_application application;
+  };
 } parser_tx_t;
+
+typedef parser_tx_t txn_t;
 
 #ifdef __cplusplus
 }
