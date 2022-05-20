@@ -62,34 +62,42 @@ int parse_input_for_msgpack_command(const uint8_t* data_buffer, const uint32_t b
                                     char **error_msg)
 {
   const uint8_t *cdata = data_buffer + OFFSET_DATA;
+  //Payload length
   uint8_t lc = data_buffer[OFFSET_DATA_LEN];
 
   if (lc == 0) {
+    // APDU msgpack wrong size
     return 0x6a84;
   }
 
   if (buffer_len < lc + OFFSET_DATA) {
+    // buffer too small
     return 0x6a85;
   }
 
   if ((data_buffer[OFFSET_P1] & 0x80) == P1_FIRST)
   {
+    // Payload length = 4-byte accountId + Chuck_00
     memset(txn_output, 0, sizeof(*txn_output));
     *current_txn_buffer_offset = 0;
     txn_output->accountId = 0;
     if (data_buffer[OFFSET_P1] & P1_WITH_ACCOUNT_ID)
     {
       parse_input_for_get_public_key_command(data_buffer, buffer_len, &txn_output->accountId);
-      PRINTF("signing the transaction using account id: %d\n",txn_output->accountId);
+      ZEMU_LOGF(200, "Signing the transaction using account id: %d\n", txn_output->accountId);
+
+      //Replace with this: txn_output->accountId
       cdata += sizeof(uint32_t);
       lc -= sizeof(uint32_t);
     }
   }
 
   if (*current_txn_buffer_offset + lc > current_txn_buffer_size) {
+    //Buffer to small
     return APDU_CODE_WRONG_LENGTH;
   }
 
+  //lc size is now (payload - accountId) bytes (for first block only)
   MEMMOVE(current_txn_buffer + *current_txn_buffer_offset, cdata, lc);
   *current_txn_buffer_offset += lc;
 
@@ -102,6 +110,7 @@ int parse_input_for_msgpack_command(const uint8_t* data_buffer, const uint32_t b
       return APDU_CODE_INVALIDP1P2;
   }
 
+  //parser data
   *error_msg = tx_decode(current_txn_buffer, *current_txn_buffer_offset, txn_output);
   if (*error_msg != NULL) {
     PRINTF("got error from decoder:\n");
