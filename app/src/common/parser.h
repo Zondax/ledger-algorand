@@ -23,6 +23,7 @@ extern "C" {
 #include "parser_impl.h"
 
 const char *parser_getErrorDescription(parser_error_t err);
+const char *parser_getMsgPackTypeDescription(uint8_t type);
 
 //// parses a tx buffer
 parser_error_t parser_parse(parser_context_t *ctx,

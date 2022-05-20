@@ -50,33 +50,32 @@ typedef enum {
     parser_unexpected_chain,
     parser_missing_field,
     parser_query_no_results,
-    // Coin Specific
-    parser_json_zero_tokens,
-    parser_json_too_many_tokens,    // "NOMEM: JSON string contains too many tokens"
-    parser_json_incomplete_json,    // "JSON string is not complete";
-    parser_json_contains_whitespace,
-    parser_json_is_not_sorted,
-    parser_json_missing_chain_id,
-    parser_json_missing_sequence,
-    parser_json_missing_fee,
-    parser_json_missing_msgs,
-    parser_json_missing_account_number,
-    parser_json_missing_memo,
-    parser_json_unexpected_error,
 
     paser_unknown_transaction,
 
+
     //Msgpack specific
-    parser_msgpack_map_type_expected,
+    parser_msgpack_unexpected_type,
+    parser_msgpack_unexpected_key,
+
+    parser_msgpack_map_type_expected,       //33
     parser_msgpack_map_type_not_supported,
+
     parser_msgpack_str_type_expected,
     parser_msgpack_str_type_not_supported,
     parser_msgpack_str_too_big,
+
     parser_msgpack_bin_type_expected,
     parser_msgpack_bin_type_not_supported,
     parser_msgpack_bin_unexpected_size,
+
     parser_msgpack_int_type_expected,
+
     parser_msgpack_bool_type_expected,
+
+    parser_msgpack_array_unexpected_size,
+    parser_msgpack_array_too_big,
+    parser_msgpack_array_type_expected,
 
 } parser_error_t;
 
