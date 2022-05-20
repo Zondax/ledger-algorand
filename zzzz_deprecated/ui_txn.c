@@ -587,7 +587,7 @@ screen_t const screen_table[] = {
   // {"Last valid", step_lastvalid, ALL_TYPES},
   {"Genesis ID", &step_genesisID, ALL_TYPES},
   {"Genesis hash", &step_genesisHash, ALL_TYPES},
-  {"Group ID", &step_groupID, ALL_TYPES}, 
+  {"Group ID", &step_groupID, ALL_TYPES},
 
   {"Note", &step_note, ALL_TYPES},
 
@@ -641,3 +641,35 @@ screen_t const screen_table[] = {
 };
 
 const uint8_t screen_num = sizeof(screen_table) / sizeof(screen_t);
+
+
+// FT sign msgpack (Asset config)
+  "Review",
+  "Transaction",
+
+  {"Txn type", &step_txn_type, ALL_TYPES},
+  {"Sender", &step_sender, ALL_TYPES},
+  // {"Rekey to", &step_rekey, ALL_TYPES},
+  {"Fee (Alg)", &step_fee, ALL_TYPES},
+  // {"First valid", step_firstvalid, ALL_TYPES},
+  // {"Last valid", step_lastvalid, ALL_TYPES},
+  // {"Genesis ID", &step_genesisID, ALL_TYPES},
+  {"Genesis hash", &step_genesisHash, ALL_TYPES},
+  // {"Group ID", &step_groupID, ALL_TYPES},
+
+  {"Asset ID", &step_asset_config_id, ASSET_CONFIG},
+  {"Total units", &step_asset_config_total, ASSET_CONFIG},
+  // {"Default frozen", &step_asset_config_default_frozen, ASSET_CONFIG},
+  {"Unit name", &step_asset_config_unitname, ASSET_CONFIG},
+  // {"Decimals", &step_asset_config_decimals, ASSET_CONFIG},
+  {"Asset name", &step_asset_config_assetname, ASSET_CONFIG},
+  {"URL", &step_asset_config_url, ASSET_CONFIG},
+  {"Metadata hash", &step_asset_config_metadata_hash, ASSET_CONFIG},
+  {"Manager", &step_asset_config_manager, ASSET_CONFIG},
+  {"Reserve", &step_asset_config_reserve, ASSET_CONFIG},
+  {"Freezer", &step_asset_config_freeze, ASSET_CONFIG},
+  {"Clawback", &step_asset_config_clawback, ASSET_CONFIG},
+
+  "Sign",
+  "Transaction",
+

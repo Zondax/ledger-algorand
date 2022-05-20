@@ -148,7 +148,7 @@ int algorand_sign_message(uint32_t account_id, const uint8_t* msg_to_sign,
     }
     CATCH_OTHER(e)
     {
-      PRINTF("exception caught while signing transaction\n");
+      zemu_log("Exception caught while signing transaction\n");
       error = e;
     }
     FINALLY
