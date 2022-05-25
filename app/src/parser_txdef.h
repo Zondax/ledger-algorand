@@ -70,15 +70,14 @@ typedef enum TxType {
 #define KEY_XFER_SENDER           "asnd"
 #define KEY_XFER_ID               "xaid"
 
-#define KEY_FREEZE_ID             "xaid"
-#define KEY_FREEZE_ACCOUNT        "xaid"
-#define KEY_FREEZE_FLAG           "xaid"
-
+#define KEY_FREEZE_ID             "faid"
+#define KEY_FREEZE_ACCOUNT        "fadd"
+#define KEY_FREEZE_FLAG           "afrz"
 
 #define KEY_CONFIG_ID             "caid"
 #define KEY_CONFIG_PARAMS         "apar"
 
-#define KEY_APP_ID                "apar"
+#define KEY_APP_ID                "apid"
 #define KEY_APP_ARGS              "apaa"
 #define KEY_APP_APROG_LEN         "apap"
 #define KEY_APP_CPROG_LEN         "apsu"

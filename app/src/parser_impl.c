@@ -55,28 +55,22 @@ static uint8_t getMsgPackType(uint8_t byte)
         return FIXMAP_0;
     } else if (byte >= FIXSTR_0 && byte <= FIXSTR_31) {
         return FIXSTR_0;
-    } else if (byte >= FIXARR_0 && byte <= FIXARR_15) {
-        return FIXARR_0;
     }
     return byte;
 }
 
-parser_error_t _readMapArraySize(parser_context_t *c, uint16_t *mapItems)
+parser_error_t _readMapSize(parser_context_t *c, size_t *mapItems)
 {
     uint8_t byte = 0;
     CHECK_ERROR(_readUInt8(c, &byte))
 
     switch (getMsgPackType(byte)) {
-        case FIXARR_0:
-            *mapItems = byte - FIXMAP_0;
-        break;
-
         case FIXMAP_0:
             *mapItems = byte - FIXMAP_0;
         break;
 
         case MAP16:
-            CHECK_ERROR(_readUInt16(c, mapItems))
+            CHECK_ERROR(_readUInt16(c, (uint16_t*)mapItems))
         break;
 
         case MAP32:
@@ -87,6 +81,19 @@ parser_error_t _readMapArraySize(parser_context_t *c, uint16_t *mapItems)
             return parser_msgpack_unexpected_type;
     }
     return parser_ok;
+}
+
+parser_error_t _readArraySize(parser_context_t *c, size_t *mapItems)
+{
+    uint8_t byte = 0;
+    CHECK_ERROR(_readUInt8(c, &byte))
+
+    if (byte >= FIXARR_0 && byte <= FIXARR_15) {
+        *mapItems = byte - FIXARR_0;
+        return parser_ok;
+    }
+
+    return parser_msgpack_unexpected_type;
 }
 
 parser_error_t _readBytes(parser_context_t *c, uint8_t *buff, uint16_t buffLen)
@@ -264,29 +271,8 @@ parser_error_t _readBool(parser_context_t *c, uint8_t *value)
 
 static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *asset_config)
 {
-    uint16_t paramsSize = 0;
-    CHECK_ERROR(_readMapArraySize(c, &paramsSize))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_TOTAL))
-    CHECK_ERROR(_readInteger(c, &asset_config->params.total))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_DECIMALS))
-    CHECK_ERROR(_readInteger(c, &asset_config->params.decimals))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_DEF_FROZEN))
-    CHECK_ERROR(_readBool(c, &asset_config->params.default_frozen))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_UNIT_NAME))
-    CHECK_ERROR(_readString(c, (u_int8_t*)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_ASSET_NAME))
-    CHECK_ERROR(_readString(c, (u_int8_t*)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_URL))
-    CHECK_ERROR(_readString(c, (u_int8_t*)asset_config->params.url, sizeof(asset_config->params.url)))
-
-    CHECK_ERROR(_findKey(c, KEY_APARAMS_METADATA_HASH))
-    CHECK_ERROR(_readBinFixed(c, asset_config->params.metadata_hash, sizeof(asset_config->params.metadata_hash)))
+    size_t paramsSize = 0;
+    CHECK_ERROR(_readMapSize(c, &paramsSize))
 
     CHECK_ERROR(_findKey(c, KEY_APARAMS_MANAGER))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.manager, sizeof(asset_config->params.manager)))
@@ -300,12 +286,34 @@ static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *as
     CHECK_ERROR(_findKey(c, KEY_APARAMS_CLAWBACK))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.clawback, sizeof(asset_config->params.clawback)))
 
+    if (_findKey(c, KEY_APARAMS_TOTAL) == parser_ok) {
+        CHECK_ERROR(_readInteger(c, &asset_config->params.total))
+    }
+    if (_findKey(c, KEY_APARAMS_DECIMALS) == parser_ok) {
+        CHECK_ERROR(_readInteger(c, &asset_config->params.decimals))
+    }
+    if (_findKey(c, KEY_APARAMS_DEF_FROZEN) == parser_ok) {
+        CHECK_ERROR(_readBool(c, &asset_config->params.default_frozen))
+    }
+    if (_findKey(c, KEY_APARAMS_UNIT_NAME) == parser_ok) {
+        CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
+    }
+    if (_findKey(c, KEY_APARAMS_ASSET_NAME) == parser_ok) {
+        CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
+    }
+    if (_findKey(c, KEY_APARAMS_URL) == parser_ok) {
+        CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.url, sizeof(asset_config->params.url)))
+    }
+    if (_findKey(c, KEY_APARAMS_METADATA_HASH) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, asset_config->params.metadata_hash, sizeof(asset_config->params.metadata_hash)))
+    }
+
     return parser_ok;
 }
 
 parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], size_t args_len[], size_t *argsSize, size_t maxArgs)
 {
-    CHECK_ERROR(_readMapArraySize(c, (uint16_t*)argsSize))
+    CHECK_ERROR(_readArraySize(c, argsSize))
 
     if (*argsSize > maxArgs) {
         return parser_msgpack_array_too_big;
@@ -320,7 +328,7 @@ parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], siz
 
 parser_error_t _readAccounts(parser_context_t *c, uint8_t accounts[][32], size_t *numAccounts, size_t maxAccounts)
 {
-    CHECK_ERROR(_readMapArraySize(c, (uint16_t*)numAccounts))
+    CHECK_ERROR(_readArraySize(c, numAccounts))
 
     if (*numAccounts > maxAccounts) {
         return parser_msgpack_array_too_big;
@@ -335,11 +343,10 @@ parser_error_t _readAccounts(parser_context_t *c, uint8_t accounts[][32], size_t
 
 parser_error_t _readStateSchema(parser_context_t *c, state_schema *schema)
 {
-    uint16_t arraySize = 0;
-    CHECK_ERROR(_readMapArraySize(c, &arraySize))
-    // {FT} variables are overwritten :/
+    size_t mapSize = 0;
+    CHECK_ERROR(_readMapSize(c, &mapSize))
     uint8_t key[32];
-    for (size_t i = 0; i < arraySize; i++) {
+    for (size_t i = 0; i < mapSize; i++) {
         CHECK_ERROR(_readString(c, key, sizeof(key)))
         if (strcmp((char*)key, "nui") == 0) {
             CHECK_ERROR(_readInteger(c, &schema->num_uint))
@@ -353,10 +360,9 @@ parser_error_t _readStateSchema(parser_context_t *c, state_schema *schema)
     return parser_ok;
 }
 
-//decode_u64_array(uint8_t **bufp, uint8_t *buf_end, uint64_t elems[], size_t *num_elems, size_t max_elems, const char *elem_name) {
 parser_error_t _readArrayU64(parser_context_t *c, uint64_t elements[], size_t *numElements, size_t maxElements)
 {
-    CHECK_ERROR(_readMapArraySize(c, (uint16_t*)numElements))
+    CHECK_ERROR(_readArraySize(c, numElements))
 
     if (*numElements > maxElements) {
         return parser_msgpack_array_too_big;
@@ -371,25 +377,49 @@ parser_error_t _readArrayU64(parser_context_t *c, uint64_t elements[], size_t *n
 
 static parser_error_t _readTxType(parser_context_t *c, parser_tx_t *v)
 {
-    uint8_t str[50] = {0};
-    CHECK_ERROR(_findKey(c, KEY_COMMON_TYPE))
-    CHECK_ERROR(_readString(c, str, sizeof(str)))
+    uint8_t buff[100] = {0};
+    uint8_t buffLen = sizeof(buff);
+    uint8_t typeStr[50] = {0};
+    uint8_t typeStrLen = sizeof(typeStr);
+    uint16_t currentOffset = c->offset;
+    c->offset = 0;
 
-    if (strcmp((char*)str, KEY_TX_PAY) == 0) {
-        v->type = TX_PAYMENT;
-    } else if (strcmp((char*)str, KEY_TX_KEYREG) == 0) {
-        v->type = TX_KEYREG;
-    } else if (strcmp((char*)str, KEY_TX_ASSET_XFER) == 0) {
-        v->type = TX_ASSET_XFER;
-    } else if (strcmp((char*)str, KEY_TX_ASSET_FREEZE) == 0) {
-        v->type = TX_ASSET_FREEZE;
-    } else if (strcmp((char*)str, KEY_TX_ASSET_CONFIG) == 0) {
-        v->type = TX_ASSET_CONFIG;
-    } else if (strcmp((char*)str, KEY_TX_APPLICATION) == 0) {
-        v->type = TX_APPLICATION;
-    } else {
-        return parser_unexpected_type;
+    for (size_t offset = 0; offset < c->bufferLen; offset++) {
+        if (_readString(c, buff, buffLen) == parser_ok) {
+            if (strcmp((char*)buff, KEY_COMMON_TYPE) == 0) {
+                if (_readString(c, typeStr, typeStrLen) == parser_ok) {
+                    if (strcmp((char *) typeStr, KEY_TX_PAY) == 0) {
+                        v->type = TX_PAYMENT;
+                        break;
+                    } else if (strcmp((char *) typeStr, KEY_TX_KEYREG) == 0) {
+                        v->type = TX_KEYREG;
+                        break;
+                    } else if (strcmp((char *) typeStr, KEY_TX_ASSET_XFER) == 0) {
+                        v->type = TX_ASSET_XFER;
+                        break;
+                    } else if (strcmp((char *) typeStr, KEY_TX_ASSET_FREEZE) == 0) {
+                        v->type = TX_ASSET_FREEZE;
+                        break;
+                    } else if (strcmp((char *) typeStr, KEY_TX_ASSET_CONFIG) == 0) {
+                        v->type = TX_ASSET_CONFIG;
+                        break;
+                    } else if (strcmp((char *) typeStr, KEY_TX_APPLICATION) == 0) {
+                        v->type = TX_APPLICATION;
+                        break;
+                    }
+                }
+            } else {
+                c->offset = offset + 1;
+            }
+        }
     }
+
+    if(v->type == TX_UNKNOWN) {
+        // Return buffer to previous offset if key is not found
+        c->offset = currentOffset;
+        return parser_no_data;
+    }
+
     return parser_ok;
 }
 
@@ -397,9 +427,6 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 {
     CHECK_ERROR(_findKey(c, KEY_COMMON_SENDER))
     CHECK_ERROR(_readBinFixed(c, v->sender, sizeof(v->sender)))
-
-    CHECK_ERROR(_findKey(c, KEY_COMMON_REKEY))
-    CHECK_ERROR(_readBinFixed(c, v->rekey, sizeof(v->rekey)))
 
     CHECK_ERROR(_findKey(c, KEY_COMMON_FEE))
     CHECK_ERROR(_readInteger(c, &v->fee))
@@ -410,17 +437,24 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_COMMON_LAST_VALID))
     CHECK_ERROR(_readInteger(c, &v->lastValid))
 
-    CHECK_ERROR(_findKey(c, KEY_COMMON_GEN_ID))
-    CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
-
     CHECK_ERROR(_findKey(c, KEY_COMMON_GEN_HASH))
     CHECK_ERROR(_readBinFixed(c, v->genesisHash, sizeof(v->genesisHash)))
 
-    CHECK_ERROR(_findKey(c, KEY_COMMON_GROUP_ID))
-    CHECK_ERROR(_readBinFixed(c, v->groupID, sizeof(v->groupID)))
+    if (_findKey(c, KEY_COMMON_REKEY) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->rekey, sizeof(v->rekey)))
+    }
 
-    CHECK_ERROR(_findKey(c, KEY_COMMON_NOTE))
-    CHECK_ERROR(_readBin(c, v->note, (uint16_t*)&v->note_len, sizeof(v->note)))
+    if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
+        CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
+    }
+
+    if (_findKey(c, KEY_COMMON_GROUP_ID) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->groupID, sizeof(v->groupID)))
+    }
+
+    if (_findKey(c, KEY_COMMON_NOTE) == parser_ok) {
+        CHECK_ERROR(_readBin(c, v->note, (uint16_t*)&v->note_len, sizeof(v->note)))
+    }
 
     return parser_ok;
 }
@@ -436,6 +470,8 @@ parser_error_t _findKey(parser_context_t *c, const char *key)
         if (_readString(c, buff, buffLen) == parser_ok) {
             if (strcmp((char*)buff, key) == 0) {
                 return parser_ok;
+            } else {
+               c->offset = offset + 1;
             }
         }
     }
@@ -460,8 +496,8 @@ static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
 {
-    CHECK_ERROR(_findKey(c, KEY_VRF_PK))
-    CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
+   CHECK_ERROR(_findKey(c, KEY_VRF_PK))
+   CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
 
     CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
     CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
@@ -478,8 +514,10 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_VOTE_KEY_DILUTION))
     CHECK_ERROR(_readInteger(c, &v->keyreg.keyDilution))
 
-    CHECK_ERROR(_findKey(c, KEY_VOTE_NON_PART_FLAG))
-    CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
+    if (_findKey(c, KEY_VOTE_NON_PART_FLAG) == parser_ok) {
+        CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
+    }
+
     return parser_ok;
 }
 
@@ -488,17 +526,19 @@ static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_XFER_AMOUNT))
     CHECK_ERROR(_readInteger(c, &v->asset_xfer.amount))
 
-    CHECK_ERROR(_findKey(c, KEY_XFER_CLOSE))
-    CHECK_ERROR(_readBinFixed(c, v->asset_xfer.close, sizeof(v->asset_xfer.close)))
-
     CHECK_ERROR(_findKey(c, KEY_XFER_RECEIVER))
     CHECK_ERROR(_readBinFixed(c, v->asset_xfer.receiver, sizeof(v->asset_xfer.receiver)))
 
-    CHECK_ERROR(_findKey(c, KEY_XFER_SENDER))
-    CHECK_ERROR(_readBinFixed(c, v->asset_xfer.sender, sizeof(v->asset_xfer.sender)))
-
     CHECK_ERROR(_findKey(c, KEY_XFER_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_xfer.id))
+
+    if (_findKey(c, KEY_XFER_CLOSE) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->asset_xfer.close, sizeof(v->asset_xfer.close)))
+    }
+
+    if (_findKey(c, KEY_XFER_SENDER) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->asset_xfer.sender, sizeof(v->asset_xfer.sender)))
+    }
 
     return parser_ok;
 }
@@ -511,8 +551,11 @@ static parser_error_t _readTxAssetFreeze(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_FREEZE_ACCOUNT))
     CHECK_ERROR(_readBinFixed(c, v->asset_freeze.account, sizeof(v->asset_freeze.account)))
 
-    CHECK_ERROR(_findKey(c, KEY_FREEZE_FLAG))
-    CHECK_ERROR(_readBool(c, &v->asset_freeze.flag))
+    if (_findKey(c, KEY_FREEZE_FLAG) == parser_ok) {
+        if (_readBool(c, &v->asset_freeze.flag) != parser_ok) {
+            v->asset_freeze.flag = 0x00;
+        }
+    }
 
     return parser_ok;
 }
@@ -530,9 +573,6 @@ static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxApplication(parser_context_t *c, txn_application *application)
 {
-    CHECK_ERROR(_findKey(c, KEY_APP_ID))
-    CHECK_ERROR(_readInteger(c, &application->id))
-
     CHECK_ERROR(_findKey(c, KEY_APP_ARGS))
     CHECK_ERROR(_readAppArgs(c, application->app_args, application->app_args_len, &application->num_app_args,
                              COUNT(application->app_args)))
@@ -549,17 +589,21 @@ static parser_error_t _readTxApplication(parser_context_t *c, txn_application *a
     CHECK_ERROR(_findKey(c, KEY_APP_ACCOUNTS))
     CHECK_ERROR(_readAccounts(c, application->accounts, &application->num_accounts, COUNT(application->accounts)))
 
+    CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_APPS))
+    CHECK_ERROR(_readArrayU64(c, application->foreign_apps, &application->num_foreign_apps, COUNT(application->foreign_apps)))
+
+    CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_ASSETS))
+    CHECK_ERROR(_readArrayU64(c, application->foreign_assets, &application->num_foreign_assets, COUNT(application->foreign_assets)))
+
     CHECK_ERROR(_findKey(c, KEY_APP_LOCAL_SCHEMA))
     CHECK_ERROR(_readStateSchema(c, &application->local_schema))
 
     CHECK_ERROR(_findKey(c, KEY_APP_GLOBAL_SCHEMA))
     CHECK_ERROR(_readStateSchema(c, &application->global_schema))
 
-    CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_APPS))
-    CHECK_ERROR(_readArrayU64(c, application->foreign_apps, &application->num_foreign_apps, COUNT(application->foreign_apps)))
-
-    CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_ASSETS))
-    CHECK_ERROR(_readArrayU64(c, application->foreign_assets, &application->num_foreign_assets, COUNT(application->foreign_assets)))
+    if (_findKey(c, KEY_APP_ID) == parser_ok) {
+        CHECK_ERROR(_readInteger(c, &application->id))
+    }
 
     return parser_ok;
 }
@@ -585,8 +629,8 @@ parser_error_t _readArray_args(parser_context_t *c, uint8_t args[][MAX_ARGLEN], 
 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 {
-    uint16_t keyLen = 0;
-    CHECK_ERROR(_readMapArraySize(c, &keyLen))
+    size_t keyLen = 0;
+    CHECK_ERROR(_readMapSize(c, &keyLen))
 
     // Read Tx type
     CHECK_ERROR(_readTxType(c, v))
@@ -606,7 +650,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         CHECK_ERROR(_readTxAssetXfer(c, v))
         break;
     case TX_ASSET_FREEZE:
-        CHECK_ERROR(_readTxAssetFreeze(c, v))
+         CHECK_ERROR(_readTxAssetFreeze(c, v))
         break;
     case TX_ASSET_CONFIG:
         CHECK_ERROR(_readTxAssetConfig(c, v))
