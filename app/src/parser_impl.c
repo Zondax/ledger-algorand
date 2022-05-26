@@ -488,8 +488,9 @@ static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_PAY_RECEIVER))
     CHECK_ERROR(_readBinFixed(c, v->payment.receiver, sizeof(v->payment.receiver)))
 
-    CHECK_ERROR(_findKey(c, KEY_PAY_CLOSE))
-    CHECK_ERROR(_readBinFixed(c, v->payment.close, sizeof(v->payment.close)))
+    if (_findKey(c, KEY_PAY_CLOSE) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->payment.close, sizeof(v->payment.close)))
+    }
 
     return parser_ok;
 }
@@ -523,21 +524,21 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
 {
+    CHECK_ERROR(_findKey(c, KEY_XFER_ID))
+    CHECK_ERROR(_readInteger(c, &v->asset_xfer.id))
+
     CHECK_ERROR(_findKey(c, KEY_XFER_AMOUNT))
     CHECK_ERROR(_readInteger(c, &v->asset_xfer.amount))
+
+    if (_findKey(c, KEY_XFER_SENDER) == parser_ok) {
+        CHECK_ERROR(_readBinFixed(c, v->asset_xfer.sender, sizeof(v->asset_xfer.sender)))
+    }
 
     CHECK_ERROR(_findKey(c, KEY_XFER_RECEIVER))
     CHECK_ERROR(_readBinFixed(c, v->asset_xfer.receiver, sizeof(v->asset_xfer.receiver)))
 
-    CHECK_ERROR(_findKey(c, KEY_XFER_ID))
-    CHECK_ERROR(_readInteger(c, &v->asset_xfer.id))
-
     if (_findKey(c, KEY_XFER_CLOSE) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->asset_xfer.close, sizeof(v->asset_xfer.close)))
-    }
-
-    if (_findKey(c, KEY_XFER_SENDER) == parser_ok) {
-        CHECK_ERROR(_readBinFixed(c, v->asset_xfer.sender, sizeof(v->asset_xfer.sender)))
     }
 
     return parser_ok;
