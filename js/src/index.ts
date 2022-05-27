@@ -64,15 +64,20 @@ export default class AlgorandApp {
     this.transport = transport;
   }
 
-  static prepareChunks(serializedPathBuffer: Buffer, message: Buffer) {
+  static prepareChunks(accountId: number, message: Buffer) {
     const chunks = [];
 
-    // First chunk (only path)
-    chunks.push(serializedPathBuffer);
-
+    // First chunk prepend accountId if != 0
     const messageBuffer = Buffer.from(message);
+    let buffer : Buffer;
+    if (accountId !== 0) {
+      const accountIdBuffer = Buffer.alloc(4);
+      accountIdBuffer.writeUInt32BE(accountId, 4)
+      buffer = Buffer.concat([accountIdBuffer, messageBuffer]);
+    } else {
+      buffer = Buffer.concat([messageBuffer]);
+    }
 
-    const buffer = Buffer.concat([messageBuffer]);
     for (let i = 0; i < buffer.length; i += CHUNK_SIZE) {
       let end = i + CHUNK_SIZE;
       if (i > buffer.length) {
@@ -80,16 +85,15 @@ export default class AlgorandApp {
       }
       chunks.push(buffer.slice(i, end));
     }
-
     return chunks;
   }
 
-  async signGetChunks(path: string | number[], message: string | Buffer) {
+  async signGetChunks(accountId: number, message: string | Buffer) {
     if (typeof message === 'string') {
-      return AlgorandApp.prepareChunks(serializePath(path), Buffer.from(message));
+      return AlgorandApp.prepareChunks(accountId, Buffer.from(message));
     }
 
-    return AlgorandApp.prepareChunks(serializePath(path), message);
+    return AlgorandApp.prepareChunks(accountId, message);
   }
 
   async getVersion(): Promise<ResponseVersion> {
@@ -210,17 +214,19 @@ export default class AlgorandApp {
       .then(processGetAddrResponse, processErrorResponse);
   }
 
-  async signSendChunk(chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponseSign> {
-    let payloadType = PAYLOAD_TYPE.ADD;
+  async signSendChunk(chunkIdx: number, chunkNum: number, accountId: number, chunk: Buffer): Promise<ResponseSign> {
+    let p1 = P1_VALUES.MSGPACK_ADD
+    let p2 = P2_VALUES.MSGPACK_ADD
+
     if (chunkIdx === 1) {
-      payloadType = PAYLOAD_TYPE.INIT;
+      p1 = (accountId !== 0) ? P1_VALUES.MSGPACK_FIRST_ACCOUNT_ID : P1_VALUES.MSGPACK_FIRST
     }
     if (chunkIdx === chunkNum) {
-      payloadType = PAYLOAD_TYPE.LAST;
+      p2 = P2_VALUES.MSGPACK_LAST
     }
 
     return this.transport
-      .send(CLA, INS.SIGN_SECP256K1, payloadType, 0, chunk, [
+      .send(CLA, INS.SIGN_SECP256K1, p1, p2, chunk, [
         LedgerError.NoErrors,
         LedgerError.DataIsInvalid,
         LedgerError.BadKeyHandle,
@@ -230,10 +236,6 @@ export default class AlgorandApp {
         const errorCodeData = response.slice(-2);
         const returnCode = errorCodeData[0] * 256 + errorCodeData[1];
         let errorMessage = errorCodeToString(returnCode);
-
-        // let preSignHash = Buffer.alloc(0);
-        // let signatureRS = Buffer.alloc(0);
-        // let signatureDER = Buffer.alloc(0);
 
         if (returnCode === LedgerError.BadKeyHandle ||
           returnCode === LedgerError.DataIsInvalid ||
@@ -266,9 +268,9 @@ export default class AlgorandApp {
       }, processErrorResponse);
   }
 
-  async sign(path: string | number[], message: string | Buffer) {
-    return this.signGetChunks(path, message).then(chunks => {
-      return this.signSendChunk(1, chunks.length, chunks[0]).then(async response => {
+  async sign(accountId = 0, message: string | Buffer) {
+    return this.signGetChunks(accountId, message).then(chunks => {
+      return this.signSendChunk(1, chunks.length, accountId, chunks[0]).then(async response => {
         let result = {
           returnCode: response.returnCode,
           errorMessage: response.errorMessage,
@@ -283,7 +285,7 @@ export default class AlgorandApp {
 
         for (let i = 1; i < chunks.length; i += 1) {
           // eslint-disable-next-line no-await-in-loop
-          result = await this.signSendChunk(1 + i, chunks.length, chunks[i]);
+          result = await this.signSendChunk(1 + i, chunks.length, accountId, chunks[i]);
           if (result.returnCode !== LedgerError.NoErrors) {
             break;
           }
