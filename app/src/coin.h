@@ -25,7 +25,7 @@ extern "C" {
 #include <stddef.h>
 
 #define HDPATH_LEN_DEFAULT   5
-#define HDPATH_0_DEFAULT     (0x80000000u | 0x2c)
+#define HDPATH_0_DEFAULT     (0x80000000u | 0x2c)   //44
 #define HDPATH_1_DEFAULT     (0x80000000u | 0x11b)  //283
 
 #define HDPATH_2_DEFAULT     (0x80000000u | 0u)
@@ -39,6 +39,8 @@ extern "C" {
 #define SIG_PLUS_TYPE_LEN 65u
 
 #define PK_LEN_25519 32u
+#define SS58_ADDRESS_MAX_LEN 60u
+
 #define MAX_SIGN_SIZE 256u
 #define BLAKE2B_DIGEST_SIZE 32u
 

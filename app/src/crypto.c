@@ -20,11 +20,45 @@
 #include "cx.h"
 #include "zxmacros.h"
 // #include "ristretto.h"
+#include "base32.h"
 
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
-zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT],
-                                uint8_t *pubKey, uint16_t pubKeyLen) {
+uint8_t crypto_encodePubKey(uint8_t *buffer, uint16_t buffer_len, const uint8_t *pubkey)
+{
+  // The SDK does not provide a ready-made SHA512/256, so we set up a SHA512
+  // hash context, and then overwrite the IV with the SHA512/256-specific IV.
+  cx_sha512_t h;
+  explicit_bzero(&h, sizeof(h));
+  cx_sha512_init(&h);
+
+  static const uint64_t sha512_256_state[8] = {
+    0x22312194fc2bf72c, 0x9f555fa3c84c64c2, 0x2393b86b6f53b151, 0x963877195940eabd,
+    0x96283ee2a88effe3, 0xbe5e1e2553863992, 0x2b0199fc2c85b8aa, 0x0eb72ddc81c52ca2
+  };
+
+  for (int i = 0; i < 8; i++) {
+    uint64_t iv = sha512_256_state[i];
+    for (int j = 0; j < 8; j++) {
+      h.acc[i*8 + j] = iv & 0xff;
+      iv = iv >> 8;
+    }
+  }
+
+  uint8_t hash[64];
+  cx_hash(&h.header, CX_LAST, pubkey, 32, hash, sizeof(hash));
+
+  uint8_t checksummed[36];
+  MEMMOVE(&checksummed[0], pubkey, 32);
+  MEMMOVE(&checksummed[32], &hash[28], 4);
+
+  base32_encode(checksummed, sizeof(checksummed), (unsigned char*) buffer);
+  //check this size
+  return 65;
+}
+
+zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen)
+{
     cx_ecfp_public_key_t cx_publicKey;
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[SK_LEN_25519];
@@ -41,7 +75,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT],
             // Generate keys
             os_perso_derive_node_bip32(
                     CX_CURVE_Ed25519,
-                    path,
+                    hdPath,
                     HDPATH_LEN_DEFAULT,
                     privateKeyData,
                     NULL);
@@ -58,7 +92,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT],
         }
         CATCH_ALL
         {
-            err = zxerr_unknown;
+            err = zxerr_ledger_api_error;
         }
         FINALLY
         {
@@ -67,10 +101,12 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT],
         }
     }
     END_TRY;
+
     return err;
 }
 
-zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen) {
+zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen)
+{
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[SK_LEN_25519];
 
@@ -90,7 +126,6 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
             cx_ecfp_init_private_key(CX_CURVE_Ed25519, privateKeyData, SCALAR_LEN_ED25519, &cx_privateKey);
 
             // Sign
-            *signature = PREFIX_SIGNATURE_TYPE_ED25519;
             cx_eddsa_sign(&cx_privateKey,
                           CX_LAST,
                           CX_SHA512,
@@ -118,25 +153,22 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
     return err;
 }
 
-
-
-
-zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen) {
-    // if (bufferLen < PK_LEN_25519 + SS58_ADDRESS_MAX_LEN) {
-    //     return zxerr_unknown;
-    // }
+zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen)
+{
+    if (bufferLen < PK_LEN_25519 + SS58_ADDRESS_MAX_LEN) {
+        return zxerr_unknown;
+    }
 
     MEMZERO(buffer, bufferLen);
-    CHECK_ZXERR(crypto_extractPublicKey(hdPath, buffer, bufferLen))
+    CHECK_ZXERR(crypto_extractPublicKey(buffer, bufferLen))
 
-    // size_t outLen = crypto_SS58EncodePubkey(buffer + PK_LEN_25519,
-    //                                         bufferLen - PK_LEN_25519,
-    //                                         PK_ADDRESS_TYPE, buffer);
-    size_t outLen = 20;
+    size_t outLen = crypto_encodePubKey(buffer + PK_LEN_25519,
+                                        bufferLen - PK_LEN_25519,
+                                        buffer);
 
     if (outLen == 0) {
         MEMZERO(buffer, bufferLen);
-        return zxerr_unknown;
+        return zxerr_encoding_failed;
     }
 
     *addrResponseLen = PK_LEN_25519 + outLen;

@@ -94,26 +94,24 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-void extractHDPath(uint32_t rx, uint32_t offset) {
-    if ((rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
-        THROW(APDU_CODE_WRONG_LENGTH);
-    }
+void extractHDPath() {
+    // Verify get address or first chunk from sign msgpack
+    if (G_io_apdu_buffer[OFFSET_INS] == INS_GET_PUBLIC_KEY ||
+    ((G_io_apdu_buffer[OFFSET_INS] == INS_SIGN_MSGPACK) &&
+    ((G_io_apdu_buffer[OFFSET_P2] & 0x80) && G_io_apdu_buffer[OFFSET_P1] == 0)))
+    {
+        hdPath[0] = HDPATH_0_DEFAULT;
+        hdPath[1] = HDPATH_1_DEFAULT;
+        hdPath[3] = HDPATH_3_DEFAULT;
+        hdPath[4] = HDPATH_4_DEFAULT;
 
-    MEMCPY(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * HDPATH_LEN_DEFAULT);
-
-    // Check values
-    if (hdPath[0] != HDPATH_0_DEFAULT ||
-        hdPath[1] != HDPATH_1_DEFAULT ||
-        hdPath[3] != HDPATH_3_DEFAULT) {
-        THROW(APDU_CODE_DATA_INVALID);
-    }
-
-    // Limit values unless the app is running in expert mode
-    if (!app_mode_expert()) {
-        for(int i=2; i < HDPATH_LEN_DEFAULT; i++) {
-            // hardened or unhardened values should be below 20
-            if ( (hdPath[i] & 0x7FFFFFFF) > 100) THROW(APDU_CODE_CONDITIONS_NOT_SATISFIED);
+        if (G_io_apdu_buffer[OFFSET_DATA_LEN] == 0) {
+            hdPath[2] = HDPATH_2_DEFAULT;
+        } else {
+            hdPath[2] = U4BE(G_io_apdu_buffer, OFFSET_DATA);
         }
+    } else {
+        THROW(APDU_CODE_COMMAND_NOT_ALLOWED);
     }
 }
 

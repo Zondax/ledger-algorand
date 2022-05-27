@@ -51,22 +51,49 @@ unsigned int msgpack_next_off;
 struct pubkey_s public_key;
 txn_t current_txn;
 
-__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
-    const uint8_t payloadType = G_io_apdu_buffer[OFFSET_PAYLOAD_TYPE];
+__Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
+{
+    if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
+        return P1_INIT;
+    } else if (p1 == P1_MORE && p2 == P2_MORE) {
+        return P1_ADD;
+    } else if (p1 == P1_MORE && p2 == P2_LAST) {
+        return P1_LAST;
+    } else if (p1 == P1_FIRST && p2 == P2_LAST) {
+        // Transaction fits in one chunk
+        return P1_SINGLE_CHUNK;
+    }
+    return 0xFF;
+}
+
+__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
+{
+    const uint8_t P1 = G_io_apdu_buffer[OFFSET_P1];
+    const uint8_t P2 = G_io_apdu_buffer[OFFSET_P2];
+    const uint8_t payloadType = convertP1P2(P1, P2);
+
     if (rx < OFFSET_DATA) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
     uint32_t added;
+    uint8_t accountIdSize = 0;
     switch (payloadType) {
         case P1_INIT:
             tx_initialize();
             tx_reset();
-            extractHDPath(rx, OFFSET_DATA);
-            // check here account id (parse_input_for_get_public_key_command)
-            // parse_input_for_get_public_key_command(G_io_apdu_buffer, rx, &account_id);
             tx_initialized = true;
+            if (P1 == P1_FIRST_ACCOUNT_ID) {
+                extractHDPath();
+                accountIdSize = ACCOUNT_ID_LENGTH;
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - OFFSET_DATA);
+            if (added != rx - OFFSET_DATA) {
+                tx_initialized = false;
+                THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
+            }
             return false;
+
         case P1_ADD:
             if (!tx_initialized) {
                 THROW(APDU_CODE_TX_NOT_INITIALIZED);
@@ -77,6 +104,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             return false;
+
         case P1_LAST:
             if (!tx_initialized) {
                 THROW(APDU_CODE_TX_NOT_INITIALIZED);
@@ -88,6 +116,16 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             tx_initialized = false;
+            return true;
+
+        case P1_SINGLE_CHUNK:
+            tx_initialize();
+            tx_reset();
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            tx_initialized = false;
+            if (added != rx - OFFSET_DATA) {
+                THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
+            }
             return true;
     }
 
@@ -162,35 +200,38 @@ static void handle_sign_keyreg(uint8_t ins)
 
 static void txn_approve(void)
 {
-  int sign_size = 0;
-  unsigned int msg_len = 0;
+    int sign_size = 0;
+    unsigned int msg_len = 0;
 
-  msgpack_buf[0] = 'T';
-  msgpack_buf[1] = 'X';
+    msgpack_buf[0] = 'T';
+    msgpack_buf[1] = 'X';
 
-//   msg_len = 2 + tx_encode(&current_txn, msgpack_buf+2, sizeof(msgpack_buf)-2);
+    //   msg_len = 2 + tx_encode(&current_txn, msgpack_buf+2, sizeof(msgpack_buf)-2);
 
-  PRINTF("Signing message: %.*h\n", msg_len, msgpack_buf);
-  PRINTF("Signing message: accountId:%d\n", current_txn.accountId);
+    PRINTF("Signing message: %.*h\n", msg_len, msgpack_buf);
+    PRINTF("Signing message: accountId:%d\n", current_txn.accountId);
 
-  int error = algorand_sign_message(current_txn.accountId, &msgpack_buf[0], msg_len, G_io_apdu_buffer, &sign_size);
-  if (error) {
+    //   zxerr_t err = crypto_sign_ed25519(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength);
+    // crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, tx_get_buffer(), tx_get_buffer_length());
+
+    int error = algorand_sign_message(current_txn.accountId, &msgpack_buf[0], msg_len, G_io_apdu_buffer, &sign_size);
+    if (error) {
     THROW(error);
-  }
+    }
 
-//   G_io_apdu_buffer[sign_size++] = 0x90;
-//   G_io_apdu_buffer[sign_size++] = 0x00;
+    //   G_io_apdu_buffer[sign_size++] = 0x90;
+    //   G_io_apdu_buffer[sign_size++] = 0x00;
 
-  // we've just signed the txn so we clear the static struct
-//   explicit_bzero(&current_txn, sizeof(current_txn));
-//   msgpack_next_off = 0;
-  tx_reset();
+    // we've just signed the txn so we clear the static struct
+    //   explicit_bzero(&current_txn, sizeof(current_txn));
+    //   msgpack_next_off = 0;
+    tx_reset();
 
-  // Send back the response, do not restart the event loop
-//   io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, sign_size);
+    // Send back the response, do not restart the event loop
+    //   io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, sign_size);
 
-  // Display back the original UX
-//   ui_idle();
+    // Display back the original UX
+    //   ui_idle();
 }
 
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
@@ -199,60 +240,33 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         THROW(APDU_CODE_OK);
     }
 
-    char *error_msg = NULL;
-    // int error;
-
-    //
     // error = parse_input_for_msgpack_command(G_io_apdu_buffer, rx, msgpack_buf, TNX_BUFFER_SIZE, &msgpack_next_off, &current_txn, &error_msg);
-    // if (error) {
-    //     return error;
-    // }
+    //We need to add TX to input buffer before signing
+    const char *error_msg = tx_parse();
+    CHECK_APP_CANARY()
 
-    // error_msg = tx_decode(tx_get_buffer(), tx_get_buffer_length(), &current_txn);
     if (error_msg != NULL) {
-        PRINTF("got error from decoder:\n");
-        PRINTF("%s\n", *error_msg);
+        int error_msg_length = strlen(error_msg);
+        memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
+        *tx += (error_msg_length);
+        THROW(APDU_CODE_DATA_INVALID);
     }
 
-    // if (error_msg != NULL)
-    // {
-    //     int errlen = strlen(error_msg);
-    //     MEMZERO(G_io_apdu_buffer, 65);
-    //     memmove(&G_io_apdu_buffer[65], error_msg, errlen);
-    //     *tx = 65 + errlen;
-    // } else {
-    //     // we get here when all the data was received, otherwise an exception is thrown
-    //     // ui_txn();
-    // }
-    // return 0;
-
-    view_review_init(tx_getItem, tx_getNumItems, txn_approve);
+    view_review_init(tx_getItem, tx_getNumItems, app_sign);
     view_review_show(0x03);
     *flags |= IO_ASYNCH_REPLY;
 }
 
 __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
-    uint32_t account_id = 0;
     const uint8_t requireConfirmation = G_io_apdu_buffer[OFFSET_P1];
 
-    zxerr_t err = parse_input_for_get_public_key_command(G_io_apdu_buffer, rx, &account_id);
+    extractHDPath();
+
+    zxerr_t err = app_fill_address();
     if (err != zxerr_ok) {
         THROW(APDU_CODE_UNKNOWN);
     }
-
-    uint16_t bufferLen = IO_APDU_BUFFER_SIZE - 2;
-    MEMZERO(G_io_apdu_buffer, bufferLen);
-
-    err = fetch_public_key(account_id, &public_key);
-    if (err != zxerr_ok) {
-        THROW(APDU_CODE_UNKNOWN);
-    }
-    MEMMOVE(G_io_apdu_buffer, public_key.data, ALGORAND_PUBLIC_KEY_SIZE);
-
-    // convert pk ---> address
-    const uint8_t addrLen = convert_to_public_address(G_io_apdu_buffer, G_io_apdu_buffer+PK_LEN_25519);
-    action_addrResponseLen = PK_LEN_25519 + addrLen;
 
     if (requireConfirmation) {
         view_review_init(addr_getItem, addr_getNumItems, app_reply_address);

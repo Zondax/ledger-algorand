@@ -27,16 +27,18 @@
 #define OFFSET_DATA                     5  //< Data offset
 
 #define APDU_MIN_LENGTH                 5
+#define ACCOUNT_ID_LENGTH               4
 
 #define P1_INIT                         0  //< P1
 #define P1_ADD                          1  //< P1
 #define P1_LAST                         2  //< P1
+#define P1_SINGLE_CHUNK                10  //< P1
 
 #define OFFSET_PAYLOAD_TYPE             OFFSET_P1
 
 #define P1_FIRST 0x00
+#define P1_FIRST_ACCOUNT_ID 0x01
 #define P1_MORE  0x80
-#define P1_WITH_ACCOUNT_ID  0x01
 #define P1_WITH_REQUEST_USER_APPROVAL  0x80
 
 #define P2_LAST  0x00
@@ -61,4 +63,4 @@ void app_main();
 
 void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx);
 
-void extractHDPath(uint32_t rx, uint32_t offset);
+void extractHDPath();
