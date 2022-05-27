@@ -81,7 +81,7 @@ int parse_input_for_msgpack_command(const uint8_t* data_buffer, const uint32_t b
     memset(txn_output, 0, sizeof(*txn_output));
     *current_txn_buffer_offset = 0;
     txn_output->accountId = 0;
-    if (data_buffer[OFFSET_P1] & P1_WITH_ACCOUNT_ID)
+    if (data_buffer[OFFSET_P1] & P1_FIRST_ACCOUNT_ID)
     {
       parse_input_for_get_public_key_command(data_buffer, buffer_len, &txn_output->accountId);
       ZEMU_LOGF(200, "Signing the transaction using account id: %d\n", txn_output->accountId);

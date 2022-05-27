@@ -121,35 +121,35 @@ decode_fixsz(uint8_t **bufp, uint8_t *buf_end, uint8_t fix_first, uint8_t fix_la
 //   return true;
 // }
 
-// static bool
-// decode_bin_fixed(uint8_t **bufp, uint8_t *buf_end, uint8_t *res, size_t reslen)
-// {
-//   uint8_t b;
+static bool
+decode_bin_fixed(uint8_t **bufp, uint8_t *buf_end, uint8_t *res, size_t reslen)
+{
+  uint8_t b;
 
-//   CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
-//   if (b != BIN8) {
-//     snprintf(decode_err, sizeof(decode_err), "expected bin, found %d", b);
-//     return false;
-//   }
+  CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
+  if (b != BIN8) {
+    snprintf(decode_err, sizeof(decode_err), "expected bin, found %d", b);
+    return false;
+  }
 
-//   uint8_t bin_len;
+  uint8_t bin_len;
 
-//   CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &bin_len));
-//   if (bin_len != reslen) {
-//     snprintf(decode_err, sizeof(decode_err), "expected %d bin bytes, found %d", reslen, bin_len);
-//     return false;
-//   }
+  CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &bin_len));
+  if (bin_len != reslen) {
+    snprintf(decode_err, sizeof(decode_err), "expected %d bin bytes, found %d", reslen, bin_len);
+    return false;
+  }
 
-//   if (*bufp + bin_len > buf_end) {
-//     snprintf(decode_err, sizeof(decode_err), "%d-byte bin overruns input", bin_len);
-//     return false;
-//   }
+  if (*bufp + bin_len > buf_end) {
+    snprintf(decode_err, sizeof(decode_err), "%d-byte bin overruns input", bin_len);
+    return false;
+  }
 
-//   memmove(res, *bufp, bin_len);
-//   *bufp += bin_len;
+  memmove(res, *bufp, bin_len);
+  *bufp += bin_len;
 
-//   return true;
-// }
+  return true;
+}
 
 // static bool
 // decode_bin_var(uint8_t **bufp, uint8_t *buf_end, uint8_t *res, size_t *reslen, size_t reslenmax)
@@ -187,57 +187,57 @@ decode_fixsz(uint8_t **bufp, uint8_t *buf_end, uint8_t fix_first, uint8_t fix_la
 //   return true;
 // }
 
-// static bool
-// decode_uint64(uint8_t **bufp, uint8_t *buf_end, uint64_t *res)
-// {
-//   uint8_t b;
+static bool
+decode_uint64(uint8_t **bufp, uint8_t *buf_end, uint64_t *res)
+{
+  uint8_t b;
 
-//   CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
-//   if (b >= FIXINT_0 && b <= FIXINT_127) {
-//     *res = b - FIXINT_0;
-//     return true;
-//   }
+  CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
+  if (b >= FIXINT_0 && b <= FIXINT_127) {
+    *res = b - FIXINT_0;
+    return true;
+  }
 
-//   size_t size;
-//   if (b == UINT8) {
-//     size = 1;
-//   } else if (b == UINT16) {
-//     size = 2;
-//   } else if (b == UINT32) {
-//     size = 4;
-//   } else if (b == UINT64) {
-//     size = 8;
-//   } else {
-//     snprintf(decode_err, sizeof(decode_err), "expected u64, found %d", b);
-//     return false;
-//   }
+  size_t size;
+  if (b == UINT8) {
+    size = 1;
+  } else if (b == UINT16) {
+    size = 2;
+  } else if (b == UINT32) {
+    size = 4;
+  } else if (b == UINT64) {
+    size = 8;
+  } else {
+    snprintf(decode_err, sizeof(decode_err), "expected u64, found %d", b);
+    return false;
+  }
 
-//   CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
-//   *res = b;
+  CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
+  *res = b;
 
-//   for (size_t i = 1; i < size; i++) {
-//     CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
-//     *res = (*res << 8) | b;
-//   }
+  for (size_t i = 1; i < size; i++) {
+    CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
+    *res = (*res << 8) | b;
+  }
 
-//   return true;
-// }
+  return true;
+}
 
-// static bool
-// decode_bool(uint8_t **bufp, uint8_t *buf_end, uint8_t *res)
-// {
-//   uint8_t b;
-//   CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
-//   if (b == BOOL_TRUE) {
-//     *res = 1;
-//   } else if (b == BOOL_FALSE) {
-//     *res = 0;
-//   } else {
-//     snprintf(decode_err, sizeof(decode_err), "expected bool, found %d", b);
-//     return false;
-//   }
-//   return true;
-// }
+static bool
+decode_bool(uint8_t **bufp, uint8_t *buf_end, uint8_t *res)
+{
+  uint8_t b;
+  CHECK_ERROR_ALGO(next_byte(bufp, buf_end, &b));
+  if (b == BOOL_TRUE) {
+    *res = 1;
+  } else if (b == BOOL_FALSE) {
+    *res = 0;
+  } else {
+    snprintf(decode_err, sizeof(decode_err), "expected bool, found %d", b);
+    return false;
+  }
+  return true;
+}
 
 static bool
 decode_asset_params(uint8_t **bufp, uint8_t *buf_end, struct asset_params *res)
@@ -302,23 +302,23 @@ decode_accounts(uint8_t **bufp, uint8_t *buf_end, uint8_t accounts[][32], size_t
   return true;
 }
 
-// static bool
-// decode_app_args(uint8_t **bufp, uint8_t *buf_end, uint8_t app_args[][MAX_ARGLEN], size_t app_args_len[], size_t *num_args, size_t max_args) {
-//   size_t arr_count;
+static bool
+decode_app_args(uint8_t **bufp, uint8_t *buf_end, uint8_t app_args[][MAX_ARGLEN], size_t app_args_len[], size_t *num_args, size_t max_args) {
+  size_t arr_count;
 
-//   CHECK_ERROR_ALGO(decode_fixsz(bufp, buf_end, FIXARR_0, FIXARR_15, &arr_count));
-//   if (arr_count > max_args) {
-//     snprintf(decode_err, sizeof(decode_err), "too many args. max %u", max_args);
-//     return false;
-//   }
+  CHECK_ERROR_ALGO(decode_fixsz(bufp, buf_end, FIXARR_0, FIXARR_15, &arr_count));
+  if (arr_count > max_args) {
+    snprintf(decode_err, sizeof(decode_err), "too many args. max %u", max_args);
+    return false;
+  }
 
-//   for (size_t i = 0; i < arr_count; i++) {
-//     CHECK_ERROR_ALGO(decode_bin_var(bufp, buf_end, app_args[i], &app_args_len[i], sizeof(app_args[0])));
-//   }
+  for (size_t i = 0; i < arr_count; i++) {
+    CHECK_ERROR_ALGO(decode_bin_var(bufp, buf_end, app_args[i], &app_args_len[i], sizeof(app_args[0])));
+  }
 
-//   *num_args = arr_count;
-//   return true;
-// }
+  *num_args = arr_count;
+  return true;
+}
 
 static bool
 decode_u64_array(uint8_t **bufp, uint8_t *buf_end, uint64_t elems[], size_t *num_elems, size_t max_elems, const char *elem_name) {
