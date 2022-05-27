@@ -53,6 +53,8 @@ typedef enum {
 
     paser_unknown_transaction,
 
+    parser_key_not_found,
+
 
     //Msgpack specific
     parser_msgpack_unexpected_type,

@@ -55,8 +55,10 @@ parser_error_t parser_validate(const parser_context_t *ctx) {
 
 parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_items) {
     zemu_log("parser_getNumItems\n");
-    *num_items = 1;
-    // *num_items = _getNumItems(ctx, &parser_tx_obj);
+    *num_items = _getNumItems();
+    if(*num_items == 0) {
+        return parser_unexpected_number_items;
+    }
     return parser_ok;
 }
 
@@ -71,14 +73,9 @@ static void cleanOutput(char *outKey, uint16_t outKeyLen,
 
 __Z_INLINE parser_error_t checkSanity(uint8_t numItems, uint8_t displayIdx)
 {
-    if (numItems == 0) {
-        return parser_unexpected_number_items;
-    }
-
     if ( displayIdx >= numItems) {
         return parser_display_idx_out_of_range;
     }
-
     return parser_ok;
 }
 
@@ -96,8 +93,36 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
 
     CHECK_ERROR(checkSanity(numItems, displayIdx))
 
+    if (displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Tx type ");
+        return parser_ok;
+        // return _printAddress(&parser_tx_obj.to,
+        //                      outVal, outValLen, pageIdx, pageCount);
+    }
 
-
+    switch (parser_tx_obj.type)
+    {
+    case TX_PAYMENT:
+        /* code */
+        break;
+    case TX_KEYREG:
+        /* code */
+        break;
+    case TX_ASSET_XFER:
+        /* code */
+        break;
+    case TX_ASSET_FREEZE:
+        /* code */
+        break;
+    case TX_ASSET_CONFIG:
+        /* code */
+        break;
+    case TX_APPLICATION:
+        /* code */
+        break;
+    default:
+        return parser_unexpected_error;
+    }
 
 
     return parser_ok;

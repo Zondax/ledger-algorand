@@ -19,6 +19,8 @@
 
 parser_tx_t parser_tx_obj;
 
+static uint8_t num_items;
+
 DEC_READFIX_UNSIGNED(8);
 DEC_READFIX_UNSIGNED(16);
 DEC_READFIX_UNSIGNED(32);
@@ -33,6 +35,7 @@ parser_error_t parser_init_context(parser_context_t *ctx,
     ctx->offset = 0;
     ctx->buffer = NULL;
     ctx->bufferLen = 0;
+    num_items = 0;
 
     if (bufferSize == 0 || buffer == NULL) {
         // Not available, use defaults
@@ -631,7 +634,12 @@ parser_error_t _readArray_args(parser_context_t *c, uint8_t args[][MAX_ARGLEN], 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 {
     size_t keyLen = 0;
+
     CHECK_ERROR(_readMapSize(c, &keyLen))
+    if(keyLen > UINT8_MAX) {
+        return parser_unexpected_number_items;
+    }
+    num_items = (uint8_t)keyLen;
 
     // Read Tx type
     CHECK_ERROR(_readTxType(c, v))
@@ -667,6 +675,10 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
+uint8_t _getNumItems()
+{
+    return num_items;
+}
 
 const char *parser_getErrorDescription(parser_error_t err) {
     switch (err) {

@@ -57,6 +57,8 @@ parser_error_t parser_init(parser_context_t *ctx,
                            const uint8_t *buffer,
                            uint16_t bufferSize);
 
+uint8_t _getNumItems();
+
 parser_error_t _read(parser_context_t *c, parser_tx_t *v);
 
 parser_error_t _readMapSize(parser_context_t *c, size_t *mapItems);
