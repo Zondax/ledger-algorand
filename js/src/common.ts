@@ -27,6 +27,13 @@ export const PAYLOAD_TYPE = {
 export const P1_VALUES = {
   ONLY_RETRIEVE: 0x00,
   SHOW_ADDRESS_IN_DEVICE: 0x01,
+  MSGPACK_CHUNK_FIRST: 0x01,
+};
+
+export const P2_VALUES = {
+  DEFAULT: 0x00,
+  MSGPACK_CHUNK: 0x80,
+  MSGPACK_CHUNK_LAST: 0x00,
 };
 
 // noinspection JSUnusedGlobalSymbols

@@ -27,4 +27,4 @@ export const INS = {
 
   SIGN_MSGPACK: 0x08,
 };
-export const PKLEN = 33;
+export const PKLEN = 32;

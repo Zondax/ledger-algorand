@@ -22,6 +22,7 @@ import {
   getVersion,
   LedgerError,
   P1_VALUES,
+  P2_VALUES,
   PAYLOAD_TYPE,
   processErrorResponse,
   serializePath,
@@ -35,8 +36,8 @@ function processGetAddrResponse(response: Buffer) {
   const errorCodeData = response.slice(-2);
   const returnCode = (errorCodeData[0] * 256 + errorCodeData[1]);
 
-  const publicKey = Buffer.from(response.slice(0, PKLEN));
-  const address = Buffer.from(response.slice(PKLEN, -2)).toString();
+  const publicKey = response.slice(0, PKLEN).toString('hex')
+  const address = response.slice(PKLEN, response.length - 2).toString('ascii')
 
   return {
     // Legacy
@@ -197,43 +198,15 @@ export default class AlgorandApp {
       }, processErrorResponse);
   }
 
-  static serializeHRP(hrp: string) {
-    if (hrp == null || hrp.length < 3 || hrp.length > 83) {
-      throw new Error("Invalid HRP");
-    }
-    const buf = Buffer.alloc(1 + hrp.length);
-    buf.writeUInt8(hrp.length, 0);
-    buf.write(hrp, 1);
-    return buf;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // async getAddressAndPubKey(path: string | number[]): Promise<ResponseAddress> {
-  //   const data = serializePath(path);
+  async getAddressAndPubKey(accountId = 0, requireConfirmation = false): Promise<ResponseAddress> {
+    const data = Buffer.alloc(20);
+    data.writeUInt32BE(accountId, 4)
 
-  //   return this.transport
-  //     .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.ONLY_RETRIEVE, 0, data, [0x9000])
-  //     .then(processGetAddrResponse, processErrorResponse);
-  // }
-
-  // async showAddressAndPubKey(path: string | number[], bech32Prefix: string): Promise<ResponseAddress> {
-  //   const data = serializePath(path);
-  //   // const data = Buffer.concat([AlgorandApp.serializeHRP(bech32Prefix), serializedPath]);
-
-  //   return this.transport
-  //     .send(CLA, INS.GET_ADDR_SECP256K1, P1_VALUES.SHOW_ADDRESS_IN_DEVICE, 0, data, [
-  //       LedgerError.NoErrors
-  //     ])
-  //     .then(processGetAddrResponse, processErrorResponse);
-  // }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getPublicKey(path: string | number[], requireConfirmation = false): Promise<ResponseAddress> {
-    const data = serializePath(path);
     const p1_value = requireConfirmation ? P1_VALUES.SHOW_ADDRESS_IN_DEVICE : P1_VALUES.ONLY_RETRIEVE
 
     return this.transport
-      .send(CLA, INS.GET_PUBLIC_KEY, p1_value, 0, data, [0x9000])
+      .send(CLA, INS.GET_PUBLIC_KEY, p1_value, P2_VALUES.DEFAULT, data, [0x9000])
       .then(processGetAddrResponse, processErrorResponse);
   }
 
