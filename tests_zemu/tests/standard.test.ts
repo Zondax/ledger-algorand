@@ -17,7 +17,7 @@
 import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 // @ts-ignore
 import AlgorandApp from '@zondax/ledger-algorand'
-import { APP_SEED, models, txFreezeAssets } from './common'
+import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -37,110 +37,110 @@ beforeAll(async () => {
 })
 
 describe('Standard', function () {
-  test.each(models)('can start and stop container', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-    } finally {
-      await sim.close()
-    }
-  })
+  // test.each(models)('can start and stop container', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
-  test.each(models)('main menu', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      await sim.navigateAndCompareSnapshots('.', `${m.prefix.toLowerCase()}-mainmenu`, [1, 0, 0, 4, -5])
-    } finally {
-      await sim.close()
-    }
-  })
+  // test.each(models)('main menu', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     await sim.navigateAndCompareSnapshots('.', `${m.prefix.toLowerCase()}-mainmenu`, [1, 0, 0, 4, -5])
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
-  test.each(models)('get app version', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
-      const resp = await app.getVersion()
+  // test.each(models)('get app version', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     const app = new AlgorandApp(sim.getTransport())
+  //     const resp = await app.getVersion()
 
-      console.log(resp)
+  //     console.log(resp)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
-      expect(resp).toHaveProperty('test_mode')
-      expect(resp).toHaveProperty('major')
-      expect(resp).toHaveProperty('minor')
-      expect(resp).toHaveProperty('patch')
-    } finally {
-      await sim.close()
-    }
-  })
+  //     expect(resp.return_code).toEqual(0x9000)
+  //     expect(resp.error_message).toEqual('No errors')
+  //     expect(resp).toHaveProperty('test_mode')
+  //     expect(resp).toHaveProperty('major')
+  //     expect(resp).toHaveProperty('minor')
+  //     expect(resp).toHaveProperty('patch')
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
-  test.each(models)('get address', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
+  // test.each(models)('get address', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     const app = new AlgorandApp(sim.getTransport())
 
-      const resp = await app.getAddressAndPubKey(accountId)
+  //     const resp = await app.getAddressAndPubKey(accountId)
 
-      console.log(resp)
+  //     console.log(resp)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
+  //     expect(resp.return_code).toEqual(0x9000)
+  //     expect(resp.error_message).toEqual('No errors')
 
-      // const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
-      // const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
+  //     // const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
+  //     // const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
 
-      // expect(resp.address).toEqual(expected_address)
-      // expect(resp.pubKey).toEqual(expected_pk)
-    } finally {
-      await sim.close()
-    }
-  })
+  //     // expect(resp.address).toEqual(expected_address)
+  //     // expect(resp.pubKey).toEqual(expected_pk)
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
-  test.each(models)('show address', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
+  // test.each(models)('show address', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     const app = new AlgorandApp(sim.getTransport())
 
-      const respRequest = app.getAddressAndPubKey(accountId, true)
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
+  //     const respRequest = app.getAddressAndPubKey(accountId, true)
+  //     // Wait until we are not in the main menu
+  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+  //     await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
 
-      const resp = await respRequest
-      console.log(resp)
+  //     const resp = await respRequest
+  //     console.log(resp)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
-    } finally {
-      await sim.close()
-    }
-  })
+  //     expect(resp.return_code).toEqual(0x9000)
+  //     expect(resp.error_message).toEqual('No errors')
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
-  test.each(models)('show address - reject', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
+  // test.each(models)('show address - reject', async function (m) {
+  //   const sim = new Zemu(m.path)
+  //   try {
+  //     await sim.start({ ...defaultOptions, model: m.name })
+  //     const app = new AlgorandApp(sim.getTransport())
 
-      const respRequest = app.getAddressAndPubKey(accountId, true)
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+  //     const respRequest = app.getAddressAndPubKey(accountId, true)
+  //     // Wait until we are not in the main menu
+  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
 
-      await sim.navigateAndCompareUntilText('.', `${m.prefix.toLowerCase()}-show_address_reject`, 'REJECT')
+  //     await sim.navigateAndCompareUntilText('.', `${m.prefix.toLowerCase()}-show_address_reject`, 'REJECT')
 
-      const resp = await respRequest
-      console.log(resp)
+  //     const resp = await respRequest
+  //     console.log(resp)
 
-      expect(resp.return_code).toEqual(0x6986)
-      expect(resp.error_message).toEqual('Transaction rejected')
-    } finally {
-      await sim.close()
-    }
-  })
+  //     expect(resp.return_code).toEqual(0x6986)
+  //     expect(resp.error_message).toEqual('Transaction rejected')
+  //   } finally {
+  //     await sim.close()
+  //   }
+  // })
 
   test.each(models)('sign asset freeze normal', async function (m) {
     const sim = new Zemu(m.path)
@@ -148,13 +148,15 @@ describe('Standard', function () {
       await sim.start({ ...defaultOptions, model: m.name })
       const app = new AlgorandApp(sim.getTransport())
 
-      const txBlob = Buffer.from(txFreezeAssets)
+      const txBlob = Buffer.from(txAssetFreeze)
+      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
 
       // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
+
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`)
@@ -180,91 +182,204 @@ describe('Standard', function () {
     }
   })
 
-  // test.each(models)('sign basic expert', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = AlgorandApp(sim.getTransport())
-  //     const pathAccount = 0x80000000
-  //     const pathChange = 0x80000000
-  //     const pathIndex = 0x80000000
+  test.each(models)('sign asset transfer normal', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     // Change to expert mode so we can skip fields
-  //     await sim.clickRight()
-  //     await sim.clickBoth()
-  //     await sim.clickLeft()
+      const txBlob = Buffer.from(txAssetXfer)
+      console.log(sim.getMainMenuSnapshot())
+      const responseAddr = await app.getAddressAndPubKey(accountId)
 
-  //     const txBlob = Buffer.from(txBalances_transfer, 'hex')
+      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
 
-  //     const responseAddr = await app.getAddress(pathAccount, pathChange, pathIndex)
-  //     const pubKey = Buffer.from(responseAddr.pubKey, 'hex')
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
 
-  //     // do not wait here.. we need to navigate
-  //     const signatureRequest = app.sign(pathAccount, pathChange, pathIndex, txBlob)
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_transfer`)
 
-  //     // Wait until we are not in the main menu
-  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      const signatureResponse = await signatureRequest
+      console.log(signatureResponse)
 
-  //     await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_basic_expert`)
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
 
-  //     const signatureResponse = await signatureRequest
-  //     console.log(signatureResponse)
+      //Replace verification with js-algorand-sdk npm package
+      // Now verify the signature
+      // let prehash = txBlob
+      // if (txBlob.length > 256) {
+      //   const context = blake2bInit(32)
+      //   blake2bUpdate(context, txBlob)
+      //   prehash = Buffer.from(blake2bFinal(context))
+      // }
+      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
+      // expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
 
-  //     expect(signatureResponse.return_code).toEqual(0x9000)
-  //     expect(signatureResponse.error_message).toEqual('No errors')
+  test.each(models)('sign asset config normal', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     // Now verify the signature
-  //     let prehash = txBlob
-  //     if (txBlob.length > 256) {
-  //       const context = blake2bInit(32)
-  //       blake2bUpdate(context, txBlob)
-  //       prehash = Buffer.from(blake2bFinal(context))
-  //     }
-  //     const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-  //     expect(valid).toEqual(true)
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      const txBlob = Buffer.from(txAssetConfig)
+      console.log(sim.getMainMenuSnapshot())
+      const responseAddr = await app.getAddressAndPubKey(accountId)
 
-  // test.each(models)('set keys', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = AlgorandApp(sim.getTransport())
-  //     const pathAccount = 0x80000000
-  //     const pathChange = 0x80000000
-  //     const pathIndex = 0x80000000
+      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
 
-  //     const txBlob = Buffer.from(txSession_setKeys, 'hex')
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
 
-  //     const responseAddr = await app.getAddress(pathAccount, pathChange, pathIndex)
-  //     const pubKey = Buffer.from(responseAddr.pubKey, 'hex')
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_config`)
 
-  //     // do not wait here.. we need to navigate
-  //     const signatureRequest = app.sign(pathAccount, pathChange, pathIndex, txBlob)
-  //     // Wait until we are not in the main menu
-  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      const signatureResponse = await signatureRequest
+      console.log(signatureResponse)
 
-  //     await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-set-keys`)
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
 
-  //     const signatureResponse = await signatureRequest
-  //     console.log(signatureResponse)
+      //Replace verification with js-algorand-sdk npm package
+      // Now verify the signature
+      // let prehash = txBlob
+      // if (txBlob.length > 256) {
+      //   const context = blake2bInit(32)
+      //   blake2bUpdate(context, txBlob)
+      //   prehash = Buffer.from(blake2bFinal(context))
+      // }
+      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
+      // expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
 
-  //     expect(signatureResponse.return_code).toEqual(0x9000)
-  //     expect(signatureResponse.error_message).toEqual('No errors')
+  test.each(models)('sign keyreg normal', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     // Now verify the signature
-  //     let prehash = txBlob
-  //     if (txBlob.length > 256) {
-  //       const context = blake2bInit(32)
-  //       blake2bUpdate(context, txBlob)
-  //       prehash = Buffer.from(blake2bFinal(context))
-  //     }
-  //     const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-  //     expect(valid).toEqual(true)
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      const txBlob = Buffer.from(txKeyreg)
+      console.log(sim.getMainMenuSnapshot())
+      const responseAddr = await app.getAddressAndPubKey(accountId)
+
+      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_keyreg`)
+
+      const signatureResponse = await signatureRequest
+      console.log(signatureResponse)
+
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
+
+      //Replace verification with js-algorand-sdk npm package
+      // Now verify the signature
+      // let prehash = txBlob
+      // if (txBlob.length > 256) {
+      //   const context = blake2bInit(32)
+      //   blake2bUpdate(context, txBlob)
+      //   prehash = Buffer.from(blake2bFinal(context))
+      // }
+      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
+      // expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('sign payment normal', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const txBlob = Buffer.from(txPayment)
+      console.log(sim.getMainMenuSnapshot())
+      const responseAddr = await app.getAddressAndPubKey(accountId)
+
+      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_payment`)
+
+      const signatureResponse = await signatureRequest
+      console.log(signatureResponse)
+
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
+
+      //Replace verification with js-algorand-sdk npm package
+      // Now verify the signature
+      // let prehash = txBlob
+      // if (txBlob.length > 256) {
+      //   const context = blake2bInit(32)
+      //   blake2bUpdate(context, txBlob)
+      //   prehash = Buffer.from(blake2bFinal(context))
+      // }
+      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
+      // expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('sign application normal', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const txBlob = Buffer.from(txApplication)
+      console.log(sim.getMainMenuSnapshot())
+      const responseAddr = await app.getAddressAndPubKey(accountId)
+
+      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application`)
+
+      const signatureResponse = await signatureRequest
+      console.log(signatureResponse)
+
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
+
+      //Replace verification with js-algorand-sdk npm package
+      // Now verify the signature
+      // let prehash = txBlob
+      // if (txBlob.length > 256) {
+      //   const context = blake2bInit(32)
+      //   blake2bUpdate(context, txBlob)
+      //   prehash = Buffer.from(blake2bFinal(context))
+      // }
+      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
+      // expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
+
 })
