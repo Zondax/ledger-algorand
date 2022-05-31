@@ -72,7 +72,7 @@ export default class AlgorandApp {
     let buffer : Buffer;
     if (accountId !== 0) {
       const accountIdBuffer = Buffer.alloc(4);
-      accountIdBuffer.writeUInt32BE(accountId, 4)
+      accountIdBuffer.writeUInt32BE(accountId)
       buffer = Buffer.concat([accountIdBuffer, messageBuffer]);
     } else {
       buffer = Buffer.concat([messageBuffer]);
@@ -204,8 +204,8 @@ export default class AlgorandApp {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getAddressAndPubKey(accountId = 0, requireConfirmation = false): Promise<ResponseAddress> {
-    const data = Buffer.alloc(20);
-    data.writeUInt32BE(accountId, 4)
+    const data = Buffer.alloc(4);
+    data.writeUInt32BE(accountId)
 
     const p1_value = requireConfirmation ? P1_VALUES.SHOW_ADDRESS_IN_DEVICE : P1_VALUES.ONLY_RETRIEVE
 
@@ -226,7 +226,7 @@ export default class AlgorandApp {
     }
 
     return this.transport
-      .send(CLA, INS.SIGN_SECP256K1, p1, p2, chunk, [
+      .send(CLA, INS.SIGN_MSGPACK, p1, p2, chunk, [
         LedgerError.NoErrors,
         LedgerError.DataIsInvalid,
         LedgerError.BadKeyHandle,
