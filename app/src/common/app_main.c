@@ -95,24 +95,18 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
 }
 
 void extractHDPath() {
-    // Verify get address or first chunk from sign msgpack
-    if (G_io_apdu_buffer[OFFSET_INS] == INS_GET_PUBLIC_KEY ||
-    ((G_io_apdu_buffer[OFFSET_INS] == INS_SIGN_MSGPACK) &&
-    ((G_io_apdu_buffer[OFFSET_P2] & 0x80) && G_io_apdu_buffer[OFFSET_P1] == 0)))
-    {
-        hdPath[0] = HDPATH_0_DEFAULT;
-        hdPath[1] = HDPATH_1_DEFAULT;
-        hdPath[3] = HDPATH_3_DEFAULT;
-        hdPath[4] = HDPATH_4_DEFAULT;
+    hdPath[0] = HDPATH_0_DEFAULT;
+    hdPath[1] = HDPATH_1_DEFAULT;
+    hdPath[3] = HDPATH_3_DEFAULT;
+    hdPath[4] = HDPATH_4_DEFAULT;
 
-        if (G_io_apdu_buffer[OFFSET_DATA_LEN] == 0) {
-            hdPath[2] = HDPATH_2_DEFAULT;
-        } else {
-            hdPath[2] = U4BE(G_io_apdu_buffer, OFFSET_DATA);
-        }
+    if (G_io_apdu_buffer[OFFSET_DATA_LEN] == 0) {
+        hdPath[2] = HDPATH_2_DEFAULT;
     } else {
-        THROW(APDU_CODE_COMMAND_NOT_ALLOWED);
+        hdPath[2] = U4BE(G_io_apdu_buffer, OFFSET_DATA);
     }
+
+    ZEMU_LOGF(100, "ACCOUNT ID: %d \n", hdPath[2])
 }
 
 void handle_generic_apdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {

@@ -32,7 +32,6 @@
 
 #include "algo_tx.h"
 #include "algo_keys.h"
-#include "command_handler.h"
 
 #include "crypto.h"
 #include "algo_addr.h"
@@ -59,7 +58,7 @@ __Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
         return P1_ADD;
     } else if (p1 == P1_MORE && p2 == P2_LAST) {
         return P1_LAST;
-    } else if (p1 == P1_FIRST && p2 == P2_LAST) {
+    } else if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_LAST) {
         // Transaction fits in one chunk
         return P1_SINGLE_CHUNK;
     }
@@ -121,7 +120,11 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
         case P1_SINGLE_CHUNK:
             tx_initialize();
             tx_reset();
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            if (P1 == P1_FIRST_ACCOUNT_ID) {
+                extractHDPath();
+                accountIdSize = ACCOUNT_ID_LENGTH;
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - OFFSET_DATA);
             tx_initialized = false;
             if (added != rx - OFFSET_DATA) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
@@ -260,7 +263,6 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
 __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
     const uint8_t requireConfirmation = G_io_apdu_buffer[OFFSET_P1];
-
     extractHDPath();
 
     zxerr_t err = app_fill_address();

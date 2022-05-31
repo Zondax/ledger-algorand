@@ -24,8 +24,6 @@
 extern "C" {
 #endif
 
-extern parser_tx_t parser_tx_obj;
-
 // Checks that there are at least SIZE bytes available in the buffer
 #define CTX_CHECK_AVAIL(CTX, SIZE) \
     if ( (CTX) == NULL || ((CTX)->offset + (SIZE)) > (CTX)->bufferLen) { return parser_unexpected_buffer_end; }
@@ -58,6 +56,8 @@ parser_error_t parser_init(parser_context_t *ctx,
                            uint16_t bufferSize);
 
 uint8_t _getNumItems();
+uint8_t _getCommonNumItems();
+uint8_t _getTxNumItems();
 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v);
 
