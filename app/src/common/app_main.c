@@ -103,7 +103,7 @@ void extractHDPath() {
     if (G_io_apdu_buffer[OFFSET_DATA_LEN] == 0) {
         hdPath[2] = HDPATH_2_DEFAULT;
     } else {
-        hdPath[2] = U4BE(G_io_apdu_buffer, OFFSET_DATA);
+        hdPath[2] = HDPATH_2_DEFAULT | U4BE(G_io_apdu_buffer, OFFSET_DATA);
     }
 
     ZEMU_LOGF(100, "ACCOUNT ID: %d \n", hdPath[2])
