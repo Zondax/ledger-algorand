@@ -205,6 +205,16 @@ typedef struct {
 } txn_application;
 
 typedef struct{
+      // Fields for specific tx types
+    union {
+    txn_payment payment;
+    txn_keyreg keyreg;
+    txn_asset_xfer asset_xfer;
+    txn_asset_freeze asset_freeze;
+    txn_asset_config asset_config;
+    txn_application application;
+    };
+
   TxType type;
   // Account Id asscociated with this transaction.
   uint32_t accountId;
@@ -224,18 +234,8 @@ typedef struct{
 #else
   uint8_t note[512];
 #endif
-
   size_t note_len;
 
-  // Fields for specific tx types
-  union {
-    txn_payment payment;
-    txn_keyreg keyreg;
-    txn_asset_xfer asset_xfer;
-    txn_asset_freeze asset_freeze;
-    txn_asset_config asset_config;
-    txn_application application;
-  };
 } parser_tx_t;
 
 typedef parser_tx_t txn_t;
