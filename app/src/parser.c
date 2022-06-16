@@ -190,7 +190,7 @@ __Z_INLINE parser_error_t checkSanity(uint8_t numItems, uint8_t displayIdx)
 __Z_INLINE parser_error_t parser_printTxType(const parser_context_t *ctx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t *pageCount)
 {
     *pageCount = 1;
-    snprintf(outKey, outKeyLen, "Tx type ");
+    snprintf(outKey, outKeyLen, "Tx type");
 
     switch (ctx->parser_tx_obj->type) {
         case TX_PAYMENT:

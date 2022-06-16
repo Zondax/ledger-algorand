@@ -517,8 +517,8 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
    CHECK_ERROR(_findKey(c, KEY_VRF_PK))
    CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
 
-    CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
-    CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
+    // CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
+    // CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_PK))
     CHECK_ERROR(_readBinFixed(c, v->keyreg.votepk, sizeof(v->keyreg.votepk)))
