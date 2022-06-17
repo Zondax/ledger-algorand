@@ -292,26 +292,35 @@ static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *as
     CHECK_ERROR(_findKey(c, KEY_APARAMS_CLAWBACK))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.clawback, sizeof(asset_config->params.clawback)))
 
+    tx_num_items += 4;
+
     if (_findKey(c, KEY_APARAMS_TOTAL) == parser_ok) {
         CHECK_ERROR(_readInteger(c, &asset_config->params.total))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_DECIMALS) == parser_ok) {
         CHECK_ERROR(_readInteger(c, &asset_config->params.decimals))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_DEF_FROZEN) == parser_ok) {
         CHECK_ERROR(_readBool(c, &asset_config->params.default_frozen))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_UNIT_NAME) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_ASSET_NAME) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_URL) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.url, sizeof(asset_config->params.url)))
+        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_METADATA_HASH) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, asset_config->params.metadata_hash, sizeof(asset_config->params.metadata_hash)))
+        tx_num_items++;
     }
 
     return parser_ok;
@@ -446,7 +455,8 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_COMMON_SENDER))
     CHECK_ERROR(_readBinFixed(c, v->sender, sizeof(v->sender)))
 
-    common_num_items = 5;
+    // First and Last valid won't be display --> don't count them
+    common_num_items = 3;
 
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
@@ -532,12 +542,12 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_VOTE_KEY_DILUTION))
     CHECK_ERROR(_readInteger(c, &v->keyreg.keyDilution))
 
-    tx_num_items = 6;
-
     if (_findKey(c, KEY_VOTE_NON_PART_FLAG) == parser_ok) {
         CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
         tx_num_items++;
     }
+
+    tx_num_items = 6;
 
     return parser_ok;
 }
@@ -590,10 +600,10 @@ static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_findKey(c, KEY_CONFIG_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_config.id))
 
+    tx_num_items = 1;
+
     CHECK_ERROR(_findKey(c, KEY_CONFIG_PARAMS))
     CHECK_ERROR(_readAssetParams(c, &v->asset_config))
-
-    tx_num_items = 2;
 
     return parser_ok;
 }
