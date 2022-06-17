@@ -45,6 +45,7 @@ extern "C" {
 #define BLAKE2B_DIGEST_SIZE 32u
 
 #define COIN_AMOUNT_DECIMAL_PLACES 6
+#define COIN_TICKER "ALGO "
 
 #define MENU_MAIN_APP_LINE1 "Algorand"
 #define MENU_MAIN_APP_LINE2 "Ready"
