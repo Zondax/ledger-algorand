@@ -27,7 +27,7 @@
         "5 | Asset account [2/2] : OAEJTZDPLHKHHQUYA7G4",
         "6 | Freeze flag : Unfrozen"
         ]
-    }
+    },
     {
         "index": 2,
         "name": "Asset xfer",
@@ -96,7 +96,6 @@
             "8 | Clawback [2/2] : N2A5TJ7TI62A3FJARYTQ"
         ]
     },
-
     {
         "index": 4,
         "name": "Payment",
@@ -137,6 +136,9 @@
             "4 | Vote PK [2/2] : i5lkU=",
             "5 | VRF PK [1/2] : dx717L3uOIIb/jr9OIyls1l5Ei00NFgRa380w7",
             "5 | VRF PK [2/2] : TnPr4=",
+            "6 | Vote first : 1",
+            "7 | Vote last : 2000",
+            "8 | Key dilution : 10",
             "9 | Participating : Yes"
         ],
         "output_expert": [
