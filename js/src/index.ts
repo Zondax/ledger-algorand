@@ -18,14 +18,13 @@ import Transport from "@ledgerhq/hw-transport";
 import {ResponseAddress, ResponseAppInfo, ResponseDeviceInfo, ResponseSign, ResponseVersion} from "./types";
 import {
   CHUNK_SIZE,
+  ERROR_CODE,
   errorCodeToString,
   getVersion,
   LedgerError,
   P1_VALUES,
   P2_VALUES,
-  PAYLOAD_TYPE,
   processErrorResponse,
-  serializePath,
 } from "./common";
 import {CLA, INS, PKLEN} from "./config";
 
@@ -270,28 +269,21 @@ export default class AlgorandApp {
 
   async sign(accountId = 0, message: string | Buffer) {
     return this.signGetChunks(accountId, message).then(chunks => {
-      return this.signSendChunk(1, chunks.length, accountId, chunks[0]).then(async response => {
-        let result = {
-          returnCode: response.returnCode,
-          errorMessage: response.errorMessage,
-          // legacy
-          return_code: response.returnCode,
-          error_message: response.errorMessage,
-          ///
-          preSignHash: null as null | Buffer,
-          signatureRS: null as null | Buffer,
-          signatureDER: null as null | Buffer
-        } as ResponseSign;
-
+      return this.signSendChunk(1, chunks.length, accountId, chunks[0]).then(async result => {
         for (let i = 1; i < chunks.length; i += 1) {
-          // eslint-disable-next-line no-await-in-loop
-          result = await this.signSendChunk(1 + i, chunks.length, accountId, chunks[i]);
-          if (result.returnCode !== LedgerError.NoErrors) {
-            break;
+          // eslint-disable-next-line no-await-in-loop,no-param-reassign
+          result = await this.signSendChunk(1 + i, chunks.length, accountId, chunks[i])
+          if (result.return_code !== ERROR_CODE.NoError) {
+            break
           }
         }
-        return result;
-      }, processErrorResponse);
-    }, processErrorResponse);
+
+        return {
+          return_code: result.return_code,
+          error_message: result.error_message,
+          signature: result.signature,
+        }
+      }, processErrorResponse)
+    })
   }
 }

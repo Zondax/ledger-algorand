@@ -43,6 +43,10 @@ export const SIGN_VALUES_P2 = {
   DEFAULT: 0x00,
 };
 
+export const ERROR_CODE = {
+  NoError: 0x9000,
+}
+
 export enum LedgerError {
   U2FUnknown = 1,
   U2FBadRequest = 2,
