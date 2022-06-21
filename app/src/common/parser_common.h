@@ -1,5 +1,5 @@
 /*******************************************************************************
-*  (c) 2019 Zondax GmbH
+*  (c) 2018 - 2022 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -55,7 +55,6 @@ typedef enum {
     paser_unknown_transaction,
 
     parser_key_not_found,
-
 
     //Msgpack specific
     parser_msgpack_unexpected_type,

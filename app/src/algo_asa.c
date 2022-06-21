@@ -1,5 +1,7 @@
-#include "os.h"
 #include "algo_asa.h"
+#include "stdint.h"
+#include <stdio.h>
+
 
 
 #define ARRAY_SIZE(__arr)   (sizeof(__arr) / sizeof(__arr[0]))
@@ -31,7 +33,7 @@ static const algo_asset_info_t algo_assets[] = {
     ALGO_ASA(2757561, "realioUSD",                  "RUSD",        7),
     ALGO_ASA(2751733, "Realio Token",               "RIO",         7),
     ALGO_ASA(2725935, "Realio Security Token",      "RST",         7),
-    ALGO_ASA(27165954, "PLANET",                    "PLANETS",     6),       
+    ALGO_ASA(27165954, "PLANET",                    "PLANETS",     6),
     ALGO_ASA(163650, "Asia Reserve Currency Coin",  "ARCC",        6),
     ALGO_ASA(137594422, "HEADLINE",                 "HDL",         6),
 };

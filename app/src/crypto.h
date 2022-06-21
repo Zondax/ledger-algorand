@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2019 Zondax GmbH
+*   (c) 2018 - 2022 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 extern "C" {
 #endif
 
-#include <zxmacros.h>
 #include "coin.h"
 #include <stdbool.h>
 #include <sigutils.h>
@@ -31,6 +30,8 @@ extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
 zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen);
 
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen);
+
+uint8_t crypto_encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *publicKey);
 
 #ifdef __cplusplus
 }

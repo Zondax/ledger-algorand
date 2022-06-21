@@ -1,6 +1,5 @@
 /*******************************************************************************
-*   (c) 2016 Ledger
-*   (c) 2018 Zondax GmbH
+*   (c) 2018 - 2022 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -48,8 +47,6 @@
 #define INS_SIGN_SECP256K1              0x02
 #define INS_GET_ADDR_SECP256K1          0x04
 
-#define INS_SIGN_PAYMENT    0x01    // Deprecated, unused
-#define INS_SIGN_KEYREG     0x02    // Deprecated, unused
 #define INS_GET_PUBLIC_KEY  0x03
 #define INS_SIGN_PAYMENT_V2 0x04
 #define INS_SIGN_KEYREG_V2  0x05

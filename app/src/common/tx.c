@@ -1,5 +1,5 @@
 /*******************************************************************************
-*  (c) 2019 Zondax GmbH
+*  (c) 2018 - 2022 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ const char *tx_parse()
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));
 
     uint8_t err = parser_parse(&ctx_parsed_tx,
-                               tx_get_buffer(),
+                               tx_get_buffer()+2,   // 'TX' is prepended to input buffer
                                tx_get_buffer_length(),
                                &parser_tx_obj);
 

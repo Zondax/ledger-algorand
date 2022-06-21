@@ -1,5 +1,5 @@
 /*******************************************************************************
-*  (c) 2019 Zondax GmbH
+*  (c) 2018 - 2022 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -182,8 +182,6 @@ parser_error_t _readInteger(parser_context_t *c, uint64_t* value)
         break;
     }
 
-    ZEMU_LOGF(200, "LOG UINT64\n")
-    zemu_log_stack_uint64(*value);
     return parser_ok;
 }
 
@@ -460,24 +458,24 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
-        common_num_items++;
+        // common_num_items++;
     }
 
     if (_findKey(c, KEY_COMMON_GROUP_ID) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->groupID, sizeof(v->groupID)))
-        common_num_items++;
+        // common_num_items++;
     }
 
     // Add lease
 
     if (_findKey(c, KEY_COMMON_NOTE) == parser_ok) {
         CHECK_ERROR(_readBin(c, v->note, (uint16_t*)&v->note_len, sizeof(v->note)))
-        common_num_items++;
+        // common_num_items++;
     }
 
     if (_findKey(c, KEY_COMMON_REKEY) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->rekey, sizeof(v->rekey)))
-        common_num_items++;
+        // common_num_items++;
     }
 
     return parser_ok;
@@ -567,12 +565,12 @@ static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_XFER_SENDER) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->asset_xfer.sender, sizeof(v->asset_xfer.sender)))
-        tx_num_items++;
+        // tx_num_items++;
     }
 
     if (_findKey(c, KEY_XFER_CLOSE) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->asset_xfer.close, sizeof(v->asset_xfer.close)))
-        tx_num_items++;
+        // tx_num_items++;
     }
 
     return parser_ok;
@@ -708,6 +706,8 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         break;
     }
 
+    // hack until we process all fields
+    num_items = common_num_items + tx_num_items + 1;
     return parser_ok;
 }
 

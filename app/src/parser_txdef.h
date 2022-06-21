@@ -101,8 +101,6 @@ typedef enum TxType {
 #define KEY_APARAMS_CLAWBACK      "c"
 
 
-
-
 typedef enum oncompletion {
   NOOPOC       = 0,
   OPTINOC      = 1,
@@ -151,7 +149,7 @@ typedef struct {
 typedef struct {
   uint8_t votepk[32];
   uint8_t vrfpk[32];
-  uint8_t sprfkey[64];
+  // uint8_t sprfkey[64]; //Should we support stateproof PK?
   uint64_t voteFirst;
   uint64_t voteLast;
   uint64_t keyDilution;

@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2018, 2022 Zondax GmbH
+*   (c) 2018 - 2022 Zondax AG
 *   (c) 2016 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,25 +30,8 @@
 #include "coin.h"
 #include "zxmacros.h"
 
-#include "algo_tx.h"
-#include "algo_keys.h"
-
-#include "crypto.h"
-#include "algo_addr.h"
-
 static bool tx_initialized = false;
-
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
-#define TNX_BUFFER_SIZE 2048
-#else
-#define TNX_BUFFER_SIZE 900
-#endif
-
-uint8_t msgpack_buf[TNX_BUFFER_SIZE];
-unsigned int msgpack_next_off;
-
-struct pubkey_s public_key;
-txn_t current_txn;
+static const unsigned char tmpBuff[] = {'T', 'X'};
 
 __Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
 {
@@ -77,6 +60,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
 
     uint32_t added;
     uint8_t accountIdSize = 0;
+
     switch (payloadType) {
         case P1_INIT:
             tx_initialize();
@@ -86,8 +70,9 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
                 extractHDPath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
             }
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - OFFSET_DATA);
-            if (added != rx - OFFSET_DATA) {
+            tx_append((unsigned char*)tmpBuff, 2);
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - (OFFSET_DATA + accountIdSize));
+            if (added != rx - (OFFSET_DATA + accountIdSize)) {
                 tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
@@ -124,9 +109,10 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
                 extractHDPath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
             }
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - OFFSET_DATA);
+            tx_append((unsigned char*)tmpBuff, 2);
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - (OFFSET_DATA + accountIdSize));
             tx_initialized = false;
-            if (added != rx - OFFSET_DATA) {
+            if (added != rx - (OFFSET_DATA + accountIdSize)) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             return true;
@@ -135,116 +121,12 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
-// From main.c ---> moved here
-static void copy_and_advance(void *dst, uint8_t **p, size_t len)
-{
-    MEMMOVE(dst, *p, len);
-    *p += len;
-}
-
-void handle_sign_payment(uint8_t ins)
-{
-    uint8_t *p;
-
-    MEMZERO(&current_txn, sizeof(current_txn));
-
-    if (ins == INS_SIGN_PAYMENT_V2) {
-        p = &G_io_apdu_buffer[2];
-    } else {
-        p = &G_io_apdu_buffer[OFFSET_DATA];
-    }
-
-    _Static_assert(sizeof(G_io_apdu_buffer) - OFFSET_DATA >= 192, "assert");
-
-    current_txn.type = TX_PAYMENT;
-    copy_and_advance( current_txn.sender,           &p, 32);
-    copy_and_advance(&current_txn.fee,              &p, 8);
-    copy_and_advance(&current_txn.firstValid,       &p, 8);
-    copy_and_advance(&current_txn.lastValid,        &p, 8);
-    copy_and_advance( current_txn.genesisID,        &p, 32);
-    copy_and_advance( current_txn.genesisHash,      &p, 32);
-    copy_and_advance( current_txn.payment.receiver, &p, 32);
-    copy_and_advance(&current_txn.payment.amount,   &p, 8);
-    copy_and_advance( current_txn.payment.close,    &p, 32);
-
-    // ui_txn();
-    // view_review_init(tx_getItem, tx_getNumItems, txn_approve);
-    // view_review_show();
-    // *flags |= IO_ASYNCH_REPLY;
-}
-
-static void handle_sign_keyreg(uint8_t ins)
-{
-    uint8_t *p;
-
-    MEMZERO(&current_txn, sizeof(current_txn));
-
-    if (ins == INS_SIGN_KEYREG_V2) {
-        p = &G_io_apdu_buffer[2];
-    } else {
-        p = &G_io_apdu_buffer[OFFSET_DATA];
-    }
-
-    _Static_assert(sizeof(G_io_apdu_buffer) - OFFSET_DATA >= 184, "assert");
-
-    current_txn.type = TX_KEYREG;
-    copy_and_advance( current_txn.sender,        &p, 32);
-    copy_and_advance(&current_txn.fee,           &p, 8);
-    copy_and_advance(&current_txn.firstValid,    &p, 8);
-    copy_and_advance(&current_txn.lastValid,     &p, 8);
-    copy_and_advance( current_txn.genesisID,     &p, 32);
-    copy_and_advance( current_txn.genesisHash,   &p, 32);
-    copy_and_advance( current_txn.keyreg.votepk, &p, 32);
-    copy_and_advance( current_txn.keyreg.vrfpk,  &p, 32);
-    copy_and_advance( current_txn.keyreg.sprfkey,  &p, 64);
-
-    // ui_txn();
-}
-
-static void txn_approve(void)
-{
-    int sign_size = 0;
-    unsigned int msg_len = 0;
-
-    msgpack_buf[0] = 'T';
-    msgpack_buf[1] = 'X';
-
-    //   msg_len = 2 + tx_encode(&current_txn, msgpack_buf+2, sizeof(msgpack_buf)-2);
-
-    PRINTF("Signing message: %.*h\n", msg_len, msgpack_buf);
-    PRINTF("Signing message: accountId:%d\n", current_txn.accountId);
-
-    //   zxerr_t err = crypto_sign_ed25519(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength);
-    // crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, tx_get_buffer(), tx_get_buffer_length());
-
-    int error = algorand_sign_message(current_txn.accountId, &msgpack_buf[0], msg_len, G_io_apdu_buffer, &sign_size);
-    if (error) {
-    THROW(error);
-    }
-
-    //   G_io_apdu_buffer[sign_size++] = 0x90;
-    //   G_io_apdu_buffer[sign_size++] = 0x00;
-
-    // we've just signed the txn so we clear the static struct
-    //   explicit_bzero(&current_txn, sizeof(current_txn));
-    //   msgpack_next_off = 0;
-    tx_reset();
-
-    // Send back the response, do not restart the event loop
-    //   io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, sign_size);
-
-    // Display back the original UX
-    //   ui_idle();
-}
-
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
     if (!process_chunk(tx, rx)) {
         THROW(APDU_CODE_OK);
     }
 
-    // error = parse_input_for_msgpack_command(G_io_apdu_buffer, rx, msgpack_buf, TNX_BUFFER_SIZE, &msgpack_next_off, &current_txn, &error_msg);
-    //We need to add TX to input buffer before signing
     const char *error_msg = tx_parse();
     CHECK_APP_CANARY()
 
@@ -326,21 +208,6 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
             const uint8_t ins = G_io_apdu_buffer[OFFSET_INS];
             switch (ins) {
-                case INS_SIGN_PAYMENT_V2:
-                case INS_SIGN_PAYMENT_V3:
-                    handle_sign_payment(ins);
-                    *flags |= IO_ASYNCH_REPLY;
-                    break;
-
-                case INS_SIGN_KEYREG_V2:
-                case INS_SIGN_KEYREG_V3:
-                    if( os_global_pin_is_validated() != BOLOS_UX_OK ) {
-                        THROW(APDU_CODE_COMMAND_NOT_ALLOWED);
-                    }
-                    handle_sign_keyreg(ins);
-                    *flags |= IO_ASYNCH_REPLY;
-                    break;
-
                 case INS_SIGN_MSGPACK:
                     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
                         THROW(APDU_CODE_COMMAND_NOT_ALLOWED);

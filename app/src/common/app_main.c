@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2018, 2019 Zondax GmbH
+*   (c) 2018 - 2022 Zondax AG
 *   (c) 2016 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,6 @@
 #include "view.h"
 #include "actions.h"
 #include "tx.h"
-// #include "crypto.h"
 #include "coin.h"
 #include "zxmacros.h"
 #include "app_mode.h"
@@ -105,8 +104,6 @@ void extractHDPath() {
     } else {
         hdPath[2] = HDPATH_2_DEFAULT | U4BE(G_io_apdu_buffer, OFFSET_DATA);
     }
-
-    ZEMU_LOGF(100, "ACCOUNT ID: %d \n", hdPath[2])
 }
 
 void handle_generic_apdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
