@@ -14,18 +14,18 @@
 #define CHECKEDSUM_BUFFER_SIZE 65
 
 
-bool is_opt_in_tx(void) {
+// bool is_opt_in_tx(void) {
 
-  if(current_txn.type == ASSET_XFER &&
-     current_txn.asset_xfer.amount == 0 &&
-     current_txn.asset_xfer.id != 0 &&
-     memcmp(current_txn.asset_xfer.receiver,
-            current_txn.asset_xfer.sender,
-            sizeof(current_txn.asset_xfer.receiver)) == 0){
-      return true;
-  }
-  return false;
-}
+//   if(current_txn.type == ASSET_XFER &&
+//      current_txn.asset_xfer.amount == 0 &&
+//      current_txn.asset_xfer.id != 0 &&
+//      memcmp(current_txn.asset_xfer.receiver,
+//             current_txn.asset_xfer.sender,
+//             sizeof(current_txn.asset_xfer.receiver)) == 0){
+//       return true;
+//   }
+//   return false;
+// }
 
 char caption[20];
 
@@ -38,33 +38,33 @@ static void checksum_and_put_text(const uint8_t * buffer)
 }
 
 
-static int
-all_zero_key(uint8_t *buf)
-{
-  for (int i = 0; i < 32; i++) {
-    if (buf[i] != 0) {
-      return 0;
-    }
-  }
+// static int
+// all_zero_key(uint8_t *buf)
+// {
+//   for (int i = 0; i < 32; i++) {
+//     if (buf[i] != 0) {
+//       return 0;
+//     }
+//   }
 
-  return 1;
-}
+//   return 1;
+// }
 
-static char *
-b64hash_data(unsigned char *data, size_t data_len)
-{
-  static char b64hash[45];
-  unsigned char hash[32];
+// static char *
+// b64hash_data(unsigned char *data, size_t data_len)
+// {
+//   static char b64hash[45];
+//   unsigned char hash[32];
 
-  // Hash program and b64 encode for display
-  cx_sha256_t ctx;
-  memset(&ctx, 0, sizeof(ctx));
-  cx_sha256_init(&ctx);
-  cx_hash(&ctx.header, CX_LAST, data, data_len, hash, sizeof(hash));
-  base64_encode((const char *)hash, sizeof(hash), b64hash, sizeof(b64hash));
+//   // Hash program and b64 encode for display
+//   cx_sha256_t ctx;
+//   memset(&ctx, 0, sizeof(ctx));
+//   cx_sha256_init(&ctx);
+//   cx_hash(&ctx.header, CX_LAST, data, data_len, hash, sizeof(hash));
+//   base64_encode((const char *)hash, sizeof(hash), b64hash, sizeof(b64hash));
 
-  return b64hash;
-}
+//   return b64hash;
+// }
 
 static int step_txn_type(void) {
   switch (current_txn.type) {
@@ -120,15 +120,15 @@ static int step_fee(void) {
   return 1;
 }
 
-// static int step_firstvalid(void) {
-//   ui_text_put(u64str(current_txn.firstValid));
-//   return 1;
-// }
+static int step_firstvalid(void) {
+  ui_text_put(u64str(current_txn.firstValid));
+  return 1;
+}
 
-// static int step_lastvalid(void) {
-//   ui_text_put(u64str(current_txn.lastValid));
-//   return 1;
-// }
+static int step_lastvalid(void) {
+  ui_text_put(u64str(current_txn.lastValid));
+  return 1;
+}
 
 static const char* default_genesisID = "mainnet-v1.0";
 static const uint8_t default_genesisHash[] = {
@@ -579,21 +579,22 @@ static int step_application_arg_1(void) {
 }
 
 screen_t const screen_table[] = {
-  {"Txn type", &step_txn_type, ALL_TYPES},
-  {"Sender", &step_sender, ALL_TYPES},
-  {"Rekey to", &step_rekey, ALL_TYPES},
-  {"Fee (Alg)", &step_fee, ALL_TYPES},
-  // {"First valid", step_firstvalid, ALL_TYPES},
-  // {"Last valid", step_lastvalid, ALL_TYPES},
-  {"Genesis ID", &step_genesisID, ALL_TYPES},
-  {"Genesis hash", &step_genesisHash, ALL_TYPES},
-  {"Group ID", &step_groupID, ALL_TYPES},
+  {"Txn type", &step_txn_type, ALL_TYPES},  // DONE
+  {"Sender", &step_sender, ALL_TYPES},      // DONE
+  {"Rekey to", &step_rekey, ALL_TYPES},     // DONE
+  {"Fee (Alg)", &step_fee, ALL_TYPES},     // DONE
+  // {"First valid", step_firstvalid, ALL_TYPES}, // DONE
+  // {"Last valid", step_lastvalid, ALL_TYPES},   // DONE
+  {"Genesis ID", &step_genesisID, ALL_TYPES},  // DONE
+  {"Genesis hash", &step_genesisHash, ALL_TYPES}, // DONE
+  {"Group ID", &step_groupID, ALL_TYPES}, // DONE
 
-  {"Note", &step_note, ALL_TYPES},
+  {"Note", &step_note, ALL_TYPES},  //DONE
 
   {"Receiver", &step_receiver, PAYMENT},
   {"Amount (Alg)", step_amount, PAYMENT},
   {"Close to", &step_close, PAYMENT},
+  //DONE
 
   {"Vote PK", &step_votepk, KEYREG},
   {"VRF PK", &step_vrfpk, KEYREG},
@@ -602,16 +603,19 @@ screen_t const screen_table[] = {
   {"Vote last", &step_votelast, KEYREG},
   {"Key dilution", &step_keydilution, KEYREG},
   {"Participating", &step_participating, KEYREG},
+  //DONE
 
   {"Asset ID", &step_asset_xfer_id, ASSET_XFER},
   {SCREEN_DYN_CAPTION, &step_asset_xfer_amount, ASSET_XFER},
   {"Asset src", &step_asset_xfer_sender, ASSET_XFER},
   {"Asset dst", &step_asset_xfer_receiver, ASSET_XFER},
   {"Asset close", &step_asset_xfer_close, ASSET_XFER},
+  //DONE
 
   {"Asset ID", &step_asset_freeze_id, ASSET_FREEZE},
   {"Asset account", &step_asset_freeze_account, ASSET_FREEZE},
   {"Freeze flag", &step_asset_freeze_flag, ASSET_FREEZE},
+  //DONE
 
   {"Asset ID", &step_asset_config_id, ASSET_CONFIG},
   {"Total units", &step_asset_config_total, ASSET_CONFIG},
@@ -625,15 +629,19 @@ screen_t const screen_table[] = {
   {"Reserve", &step_asset_config_reserve, ASSET_CONFIG},
   {"Freezer", &step_asset_config_freeze, ASSET_CONFIG},
   {"Clawback", &step_asset_config_clawback, ASSET_CONFIG},
+  //DONE
 
   {"App ID", &step_application_id, APPLICATION},
   {"On completion", &step_application_oncompletion, APPLICATION},
+
   {"Foreign app 0", &step_application_foreign_app_0, APPLICATION},
   {"Foreign asset 0", &step_application_foreign_asset_0, APPLICATION},
   {"App account 0", &step_application_account_0, APPLICATION},
   {"App account 1", &step_application_account_1, APPLICATION},
+
   {"App arg 0 (sha256)", &step_application_arg_0, APPLICATION},
   {"App arg 1 (sha256)", &step_application_arg_1, APPLICATION},
+
   {"Global schema", &step_application_global_schema, APPLICATION},
   {"Local schema", &step_application_local_schema, APPLICATION},
   {"Apprv (sha256)", &step_application_approve_prog, APPLICATION},
@@ -641,35 +649,3 @@ screen_t const screen_table[] = {
 };
 
 const uint8_t screen_num = sizeof(screen_table) / sizeof(screen_t);
-
-
-// FT sign msgpack (Asset config)
-  "Review",
-  "Transaction",
-
-  {"Txn type", &step_txn_type, ALL_TYPES},
-  {"Sender", &step_sender, ALL_TYPES},
-  // {"Rekey to", &step_rekey, ALL_TYPES},
-  {"Fee (Alg)", &step_fee, ALL_TYPES},
-  // {"First valid", step_firstvalid, ALL_TYPES},
-  // {"Last valid", step_lastvalid, ALL_TYPES},
-  // {"Genesis ID", &step_genesisID, ALL_TYPES},
-  {"Genesis hash", &step_genesisHash, ALL_TYPES},
-  // {"Group ID", &step_groupID, ALL_TYPES},
-
-  {"Asset ID", &step_asset_config_id, ASSET_CONFIG},
-  {"Total units", &step_asset_config_total, ASSET_CONFIG},
-  // {"Default frozen", &step_asset_config_default_frozen, ASSET_CONFIG},
-  {"Unit name", &step_asset_config_unitname, ASSET_CONFIG},
-  // {"Decimals", &step_asset_config_decimals, ASSET_CONFIG},
-  {"Asset name", &step_asset_config_assetname, ASSET_CONFIG},
-  {"URL", &step_asset_config_url, ASSET_CONFIG},
-  {"Metadata hash", &step_asset_config_metadata_hash, ASSET_CONFIG},
-  {"Manager", &step_asset_config_manager, ASSET_CONFIG},
-  {"Reserve", &step_asset_config_reserve, ASSET_CONFIG},
-  {"Freezer", &step_asset_config_freeze, ASSET_CONFIG},
-  {"Clawback", &step_asset_config_clawback, ASSET_CONFIG},
-
-  "Sign",
-  "Transaction",
-
