@@ -19,16 +19,32 @@
 #include "zxformat.h"
 #include "crypto.h"
 
+#include "sha512.h"
+#include "base32.h"
+#define CX_SHA512_SIZE 64
+
  #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX)
 
-
-
 #else
-
-
+#include "picohash.h"
 
 #endif
 
+uint8_t encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *publicKey)
+{
+    if(bufferLen < (2 * PK_LEN_25519 + 1)) {
+        return 0;
+    }
+    uint8_t messageDigest[CX_SHA512_SIZE];
+    SHA512_256(publicKey, 32, messageDigest);
+
+    uint8_t checksummed[36];
+    memmove(&checksummed[0], publicKey, 32);
+    memmove(&checksummed[32], &messageDigest[28], 4);
+
+    base32_encode(checksummed, sizeof(checksummed), (char*)buffer, 65);
+    return 65;
+}
 
 parser_error_t b64hash_data(unsigned char *data, size_t data_len, char *b64hash, size_t b64hashLen)
 {
@@ -40,8 +56,10 @@ parser_error_t b64hash_data(unsigned char *data, size_t data_len, char *b64hash,
     cx_sha256_init(&ctx);
     cx_hash(&ctx.header, CX_LAST, data, data_len, hash, sizeof(hash));
 #else
-
-
+    picohash_ctx_t ctx;
+    picohash_init_sha256(&ctx);
+    picohash_update(&ctx, data, data_len);
+    picohash_final(&ctx, hash);
 #endif
     base64_encode((const char *)hash, sizeof(hash), b64hash, b64hashLen);
     return parser_ok;
@@ -74,7 +92,7 @@ parser_error_t _toStringAddress(uint8_t* address, char* outValue, uint16_t outVa
         *pageCount = 1;
     } else {
         char buff[65] = {0};
-        if (!crypto_encodePubKey((uint8_t*)buff, sizeof(buff), address)){
+        if (!encodePubKey((uint8_t*)buff, sizeof(buff), address)){
             return parser_unexpected_buffer_end;
         }
         pageString(outValue, outValueLen, buff, pageIdx, pageCount);

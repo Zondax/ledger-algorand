@@ -19,6 +19,8 @@
 #include "stdbool.h"
 #include "parser_common.h"
 
+uint8_t encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *publicKey);
+
 parser_error_t b64hash_data(unsigned char *data, size_t data_len, char *b64hash, size_t b64hashLen);
 
 parser_error_t _toStringBalance(uint64_t* amount, uint8_t decimalPlaces, char postfix[], char prefix[],

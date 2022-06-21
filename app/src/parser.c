@@ -130,17 +130,17 @@ static parser_error_t parser_printTxType(const parser_context_t *ctx, char *outK
 }
 
 static parser_error_t parser_printCommonParams(const parser_tx_t *parser_tx_obj,
-                                                   uint8_t displayIdx,
-                                                   char *outKey, uint16_t outKeyLen,
-                                                   char *outVal, uint16_t outValLen,
-                                                   uint8_t pageIdx, uint8_t *pageCount)
+                                               uint8_t displayIdx,
+                                               char *outKey, uint16_t outKeyLen,
+                                               char *outVal, uint16_t outValLen,
+                                               uint8_t pageIdx, uint8_t *pageCount)
 {
     *pageCount = 1;
     char buff[65] = {0};
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "Sender");
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), parser_tx_obj->sender)) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), parser_tx_obj->sender)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -166,7 +166,7 @@ static parser_error_t parser_printCommonParams(const parser_tx_t *parser_tx_obj,
 
         case 4:
             snprintf(outKey, outKeyLen, "Note");
-            snprintf(outVal, outValLen, "%d bytes", parser_tx_obj->note_len);
+            snprintf(outVal, outValLen, "%d bytes", (int)parser_tx_obj->note_len);
             return parser_ok;
 
         case 10:
@@ -177,7 +177,7 @@ static parser_error_t parser_printCommonParams(const parser_tx_t *parser_tx_obj,
 
         case 11:
             snprintf(outKey, outKeyLen, "Rekey to");
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), parser_tx_obj->rekey)) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), parser_tx_obj->rekey)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -215,7 +215,7 @@ static parser_error_t parser_printTxPayment(const txn_payment *payment,
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "Receiver");
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), payment->receiver)) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), payment->receiver)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -229,7 +229,7 @@ static parser_error_t parser_printTxPayment(const txn_payment *payment,
 
         case 2:
             snprintf(outKey, outKeyLen, "Close to");
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), payment->close)) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), payment->close)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -357,7 +357,7 @@ static parser_error_t parser_printTxAssetXfer(const txn_asset_xfer *asset_xfer,
         case 2:
             //If is_opt_in_tx --> don't display
             snprintf(outKey, outKeyLen, "Asset dst");
-            if (!crypto_encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->receiver)) {
+            if (!encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->receiver)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, tmpBuff.buff, pageIdx, pageCount);
@@ -365,7 +365,7 @@ static parser_error_t parser_printTxAssetXfer(const txn_asset_xfer *asset_xfer,
 
         case 20:
             snprintf(outKey, outKeyLen, "Asset src");
-            if (!crypto_encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->sender)) {
+            if (!encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->sender)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, tmpBuff.buff, pageIdx, pageCount);
@@ -373,7 +373,7 @@ static parser_error_t parser_printTxAssetXfer(const txn_asset_xfer *asset_xfer,
 
         case 40:
             snprintf(outKey, outKeyLen, "Asset close");
-            if (!crypto_encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->close)) {
+            if (!encodePubKey((uint8_t*) tmpBuff.buff, sizeof(tmpBuff.buff), asset_xfer->close)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, tmpBuff.buff, pageIdx, pageCount);
@@ -397,7 +397,7 @@ static parser_error_t parser_printTxAssetFreeze(const txn_asset_freeze *asset_fr
     switch (displayIdx) {
         case 1:
             snprintf(outKey, outKeyLen, "Asset account");
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), asset_freeze->account)) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), asset_freeze->account)) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -579,7 +579,7 @@ static parser_error_t parser_printTxApplication(const txn_application *applicati
         case 4:
         case 5:
             snprintf(outKey, outKeyLen, "App account %d", (displayIdx - 4));
-            if (!crypto_encodePubKey((uint8_t*) buff, sizeof(buff), application->accounts[displayIdx - 4])) {
+            if (!encodePubKey((uint8_t*) buff, sizeof(buff), application->accounts[displayIdx - 4])) {
                 return parser_unexpected_buffer_end;
             }
             pageString(outVal, outValLen, buff, pageIdx, pageCount);

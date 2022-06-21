@@ -15,32 +15,12 @@
 ********************************************************************************/
 
 #include "crypto.h"
-#include "base58.h"
 #include "coin.h"
 #include "cx.h"
 #include "zxmacros.h"
-#include "base32.h"
-
-#include "sha512.h"
-#define CX_SHA512_SIZE 64
+#include "parser_encoding.h"
 
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
-
-uint8_t crypto_encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *publicKey)
-{
-    if(bufferLen < (2 * PK_LEN_25519 + 1)) {
-        return 0;
-    }
-    uint8_t messageDigest[CX_SHA512_SIZE];
-    SHA512_256(publicKey, 32, messageDigest);
-
-    uint8_t checksummed[36];
-    memmove(&checksummed[0], publicKey, 32);
-    memmove(&checksummed[32], &messageDigest[28], 4);
-
-    base32_encode(checksummed, sizeof(checksummed), (char*)buffer, 65);
-    return 65;
-}
 
 zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen)
 {
@@ -147,9 +127,9 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrRe
     MEMZERO(buffer, bufferLen);
     CHECK_ZXERR(crypto_extractPublicKey(buffer, bufferLen))
 
-    size_t outLen = crypto_encodePubKey(buffer + PK_LEN_25519,
-                                        bufferLen - PK_LEN_25519,
-                                        buffer);
+    size_t outLen = encodePubKey(buffer + PK_LEN_25519,
+                                 bufferLen - PK_LEN_25519,
+                                 buffer);
 
     if (outLen == 0) {
         MEMZERO(buffer, bufferLen);

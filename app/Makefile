@@ -1,6 +1,6 @@
 #*******************************************************************************
 #  Ledger App
-#  (c) 2019 - 2022 Zondax GmbH
+#  (c) 2018 - 2022 Zondax AG
 #  (c) 2017 Ledger
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,7 +82,7 @@ APP_LOAD_PARAMS =  --delete $(COMMON_LOAD_PARAMS) --path $(APPPATH)
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 APP_LOAD_PARAMS += --appFlags 0x000
-# APP_STACK_SIZE:=3216
+APP_STACK_SIZE:=2635
 ICONNAME:=$(CURDIR)/nanos_icon.gif
 OUTPUT_ELF ?= $(CURDIR)/output/app_s.elf
 OUTPUT_INSTALLER := $(CURDIR)/pkg/installer_s.sh
@@ -202,6 +202,7 @@ APP_SOURCE_PATH += $(MY_DIR)/glyphs
 APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/include
 APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/src
 APP_SOURCE_PATH += $(MY_DIR)/../deps/ledger-zxlib/app/common
+APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
 
 # SDK_SOURCE_PATH += lib_stusb lib_stusb_impl lib_u2f lib_ux
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl

@@ -10,3 +10,6 @@
 [submodule "cmake/cmake-modules"]
 	path = cmake/cmake-modules
 	url = https://github.com/bilke/cmake-modules
+[submodule "deps/picohash"]
+	path = deps/picohash
+	url = https://github.com/kazuho/picohash
