@@ -21,6 +21,10 @@ static uint8_t num_items;
 static uint8_t common_num_items;
 static uint8_t tx_num_items;
 
+#define MAX_ITEM_ARRAY 50
+static uint8_t itemArray[MAX_ITEM_ARRAY] = {0};
+static uint8_t itemIndex = 0;
+
 DEC_READFIX_UNSIGNED(8);
 DEC_READFIX_UNSIGNED(16);
 DEC_READFIX_UNSIGNED(32);
@@ -49,6 +53,35 @@ parser_error_t parser_init_context(parser_context_t *ctx,
 
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize) {
     CHECK_ERROR(parser_init_context(ctx, buffer, bufferSize))
+    return parser_ok;
+}
+
+static parser_error_t initializeItemArray()
+{
+    for(uint8_t i = 0; i < MAX_ITEM_ARRAY; i++) {
+        itemArray[i] = 0xFF;
+    }
+    itemIndex = 0;
+    return parser_ok;
+}
+
+static parser_error_t addItem(uint8_t displayIdx)
+{
+    if(itemIndex >= MAX_ITEM_ARRAY) {
+        return parser_unexpected_buffer_end;
+    }
+    itemArray[itemIndex] = displayIdx;
+    itemIndex++;
+
+    return parser_ok;
+}
+
+parser_error_t getItem(uint8_t index, uint8_t* displayIdx)
+{
+    if(index >= itemIndex) {
+        return parser_display_page_out_of_range;
+    }
+    *displayIdx = itemArray[index];
     return parser_ok;
 }
 
@@ -280,15 +313,19 @@ static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *as
 
     CHECK_ERROR(_findKey(c, KEY_APARAMS_MANAGER))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.manager, sizeof(asset_config->params.manager)))
+    addItem(1);
 
     CHECK_ERROR(_findKey(c, KEY_APARAMS_RESERVE))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.reserve, sizeof(asset_config->params.reserve)))
+    addItem(2);
 
     CHECK_ERROR(_findKey(c, KEY_APARAMS_FREEZE))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.freeze, sizeof(asset_config->params.freeze)))
+    addItem(3);
 
     CHECK_ERROR(_findKey(c, KEY_APARAMS_CLAWBACK))
     CHECK_ERROR(_readBinFixed(c, asset_config->params.clawback, sizeof(asset_config->params.clawback)))
+    addItem(4);
 
     tx_num_items += 4;
 
@@ -438,28 +475,25 @@ static parser_error_t _readTxType(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 {
-    CHECK_ERROR(_findKey(c, KEY_COMMON_FEE))
-    CHECK_ERROR(_readInteger(c, &v->fee))
-
-    CHECK_ERROR(_findKey(c, KEY_COMMON_FIRST_VALID))
-    CHECK_ERROR(_readInteger(c, &v->firstValid))
-
-    CHECK_ERROR(_findKey(c, KEY_COMMON_GEN_HASH))
-    CHECK_ERROR(_readBinFixed(c, v->genesisHash, sizeof(v->genesisHash)))
-
-    CHECK_ERROR(_findKey(c, KEY_COMMON_LAST_VALID))
-    CHECK_ERROR(_readInteger(c, &v->lastValid))
+    common_num_items = 3;
 
     CHECK_ERROR(_findKey(c, KEY_COMMON_SENDER))
     CHECK_ERROR(_readBinFixed(c, v->sender, sizeof(v->sender)))
+    addItem(0);
 
-    // First and Last valid won't be display --> don't count them
-    common_num_items = 3;
+    CHECK_ERROR(_findKey(c, KEY_COMMON_FEE))
+    CHECK_ERROR(_readInteger(c, &v->fee))
+    addItem(1);
 
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
-        // common_num_items++;
+        common_num_items++;
+        addItem(3);
     }
+    CHECK_ERROR(_findKey(c, KEY_COMMON_GEN_HASH))
+    CHECK_ERROR(_readBinFixed(c, v->genesisHash, sizeof(v->genesisHash)))
+    addItem(2);
+
 
     if (_findKey(c, KEY_COMMON_GROUP_ID) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->groupID, sizeof(v->groupID)))
@@ -469,14 +503,25 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
     // Add lease
 
     if (_findKey(c, KEY_COMMON_NOTE) == parser_ok) {
-        CHECK_ERROR(_readBin(c, v->note, (uint16_t*)&v->note_len, sizeof(v->note)))
-        // common_num_items++;
+        uint16_t noteLen = 0;
+        CHECK_ERROR(_readBin(c, v->note, &noteLen, sizeof(v->note)))
+        v->note_len = (size_t)noteLen;
+        common_num_items++;
+        addItem(4);
+        ZEMU_LOGF(100, "NOTE LEN: %d | %d\n", v->note_len, noteLen)
     }
 
     if (_findKey(c, KEY_COMMON_REKEY) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->rekey, sizeof(v->rekey)))
         // common_num_items++;
     }
+
+    // First and Last valid won't be display --> don't count them
+    CHECK_ERROR(_findKey(c, KEY_COMMON_FIRST_VALID))
+    CHECK_ERROR(_readInteger(c, &v->firstValid))
+
+    CHECK_ERROR(_findKey(c, KEY_COMMON_LAST_VALID))
+    CHECK_ERROR(_readInteger(c, &v->lastValid))
 
     return parser_ok;
 }
@@ -504,17 +549,20 @@ parser_error_t _findKey(parser_context_t *c, const char *key)
 
 static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
 {
-    CHECK_ERROR(_findKey(c, KEY_PAY_AMOUNT))
-    CHECK_ERROR(_readInteger(c, &v->payment.amount))
-
     CHECK_ERROR(_findKey(c, KEY_PAY_RECEIVER))
     CHECK_ERROR(_readBinFixed(c, v->payment.receiver, sizeof(v->payment.receiver)))
+    addItem(0);
+
+    CHECK_ERROR(_findKey(c, KEY_PAY_AMOUNT))
+    CHECK_ERROR(_readInteger(c, &v->payment.amount))
+    addItem(1);
 
     tx_num_items = 2;
 
     if (_findKey(c, KEY_PAY_CLOSE) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->payment.close, sizeof(v->payment.close)))
         tx_num_items++;
+        addItem(2);
     }
 
     return parser_ok;
@@ -522,28 +570,36 @@ static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
 {
-   CHECK_ERROR(_findKey(c, KEY_VRF_PK))
-   CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
+    CHECK_ERROR(_findKey(c, KEY_VOTE_PK))
+    CHECK_ERROR(_readBinFixed(c, v->keyreg.votepk, sizeof(v->keyreg.votepk)))
+    addItem(0);
+
+    CHECK_ERROR(_findKey(c, KEY_VRF_PK))
+    CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
+    addItem(1);
 
     // CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
     // CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
 
-    CHECK_ERROR(_findKey(c, KEY_VOTE_PK))
-    CHECK_ERROR(_readBinFixed(c, v->keyreg.votepk, sizeof(v->keyreg.votepk)))
+
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_FIRST))
     CHECK_ERROR(_readInteger(c, &v->keyreg.voteFirst))
+    addItem(2);
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_LAST))
     CHECK_ERROR(_readInteger(c, &v->keyreg.voteLast))
+    addItem(3);
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_KEY_DILUTION))
     CHECK_ERROR(_readInteger(c, &v->keyreg.keyDilution))
+    addItem(4);
 
     if (_findKey(c, KEY_VOTE_NON_PART_FLAG) == parser_ok) {
         CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
         tx_num_items++;
     }
+    addItem(5);
 
     tx_num_items = 6;
 
@@ -554,12 +610,15 @@ static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
 {
     CHECK_ERROR(_findKey(c, KEY_XFER_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_xfer.id))
+    addItem(0);
 
     CHECK_ERROR(_findKey(c, KEY_XFER_AMOUNT))
     CHECK_ERROR(_readInteger(c, &v->asset_xfer.amount))
+    addItem(1);
 
     CHECK_ERROR(_findKey(c, KEY_XFER_RECEIVER))
     CHECK_ERROR(_readBinFixed(c, v->asset_xfer.receiver, sizeof(v->asset_xfer.receiver)))
+    addItem(2);
 
     tx_num_items = 3;
 
@@ -580,15 +639,19 @@ static parser_error_t _readTxAssetFreeze(parser_context_t *c, parser_tx_t *v)
 {
     CHECK_ERROR(_findKey(c, KEY_FREEZE_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_freeze.id))
+    addItem(0);
 
     CHECK_ERROR(_findKey(c, KEY_FREEZE_ACCOUNT))
     CHECK_ERROR(_readBinFixed(c, v->asset_freeze.account, sizeof(v->asset_freeze.account)))
+    addItem(1);
 
     if (_findKey(c, KEY_FREEZE_FLAG) == parser_ok) {
         if (_readBool(c, &v->asset_freeze.flag) != parser_ok) {
             v->asset_freeze.flag = 0x00;
         }
     }
+    addItem(2);
+
     tx_num_items = 3;
     return parser_ok;
 }
@@ -597,6 +660,7 @@ static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
 {
     CHECK_ERROR(_findKey(c, KEY_CONFIG_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_config.id))
+    addItem(0);
 
     tx_num_items = 1;
 
@@ -608,40 +672,51 @@ static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
 
 static parser_error_t _readTxApplication(parser_context_t *c, txn_application *application)
 {
-    CHECK_ERROR(_findKey(c, KEY_APP_ARGS))
-    CHECK_ERROR(_readAppArgs(c, application->app_args, application->app_args_len, &application->num_app_args,
-                             COUNT(application->app_args)))
-
-    CHECK_ERROR(_findKey(c, KEY_APP_APROG_LEN))
-    CHECK_ERROR(_readBin(c, application->aprog, (uint16_t*)&application->aprog_len, sizeof(application->aprog)))
-
-    CHECK_ERROR(_findKey(c, KEY_APP_CPROG_LEN))
-    CHECK_ERROR(_readBin(c, application->cprog, (uint16_t*)&application->cprog_len, sizeof(application->cprog)))
+    tx_num_items = 12;
+    if (_findKey(c, KEY_APP_ID) == parser_ok) {
+        CHECK_ERROR(_readInteger(c, &application->id))
+    }
+    addItem(0);
 
     CHECK_ERROR(_findKey(c, KEY_APP_ONCOMPLETION))
     CHECK_ERROR(_readInteger(c, &application->oncompletion))
-
-    CHECK_ERROR(_findKey(c, KEY_APP_ACCOUNTS))
-    CHECK_ERROR(_readAccounts(c, application->accounts, &application->num_accounts, COUNT(application->accounts)))
+    addItem(1);
 
     CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_APPS))
     CHECK_ERROR(_readArrayU64(c, application->foreign_apps, &application->num_foreign_apps, COUNT(application->foreign_apps)))
+    addItem(2);
 
     CHECK_ERROR(_findKey(c, KEY_APP_FOREIGN_ASSETS))
     CHECK_ERROR(_readArrayU64(c, application->foreign_assets, &application->num_foreign_assets, COUNT(application->foreign_assets)))
+    addItem(3);
 
-    CHECK_ERROR(_findKey(c, KEY_APP_LOCAL_SCHEMA))
-    CHECK_ERROR(_readStateSchema(c, &application->local_schema))
+    CHECK_ERROR(_findKey(c, KEY_APP_ACCOUNTS))
+    CHECK_ERROR(_readAccounts(c, application->accounts, &application->num_accounts, COUNT(application->accounts)))
+    addItem(4);
+    addItem(5);
+
+    CHECK_ERROR(_findKey(c, KEY_APP_ARGS))
+    CHECK_ERROR(_readAppArgs(c, application->app_args, application->app_args_len, &application->num_app_args,
+                             COUNT(application->app_args)))
+    addItem(6);
+    addItem(7);
 
     CHECK_ERROR(_findKey(c, KEY_APP_GLOBAL_SCHEMA))
     CHECK_ERROR(_readStateSchema(c, &application->global_schema))
+    addItem(8);
 
-    tx_num_items = 9;
+    CHECK_ERROR(_findKey(c, KEY_APP_LOCAL_SCHEMA))
+    CHECK_ERROR(_readStateSchema(c, &application->local_schema))
+    addItem(9);
 
-    if (_findKey(c, KEY_APP_ID) == parser_ok) {
-        CHECK_ERROR(_readInteger(c, &application->id))
-        tx_num_items++;
-    }
+    CHECK_ERROR(_findKey(c, KEY_APP_APROG_LEN))
+    CHECK_ERROR(_readBin(c, application->aprog, (uint16_t*)&application->aprog_len, sizeof(application->aprog)))
+    addItem(10);
+
+    CHECK_ERROR(_findKey(c, KEY_APP_CPROG_LEN))
+    CHECK_ERROR(_readBin(c, application->cprog, (uint16_t*)&application->cprog_len, sizeof(application->cprog)))
+    addItem(11);
+
 
     return parser_ok;
 }
@@ -668,6 +743,7 @@ parser_error_t _readArray_args(parser_context_t *c, uint8_t args[][MAX_ARGLEN], 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 {
     size_t keyLen = 0;
+    initializeItemArray();
 
     CHECK_ERROR(_readMapSize(c, &keyLen))
     if(keyLen > UINT8_MAX) {

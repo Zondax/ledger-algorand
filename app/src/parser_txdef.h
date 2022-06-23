@@ -227,12 +227,13 @@ typedef struct{
   uint8_t genesisHash[32];
   uint8_t groupID[32];
 
+  size_t note_len;
+
 #if defined(TARGET_NANOS)
   uint8_t note[32];
 #else
   uint8_t note[512];
 #endif
-  size_t note_len;
 
 } parser_tx_t;
 

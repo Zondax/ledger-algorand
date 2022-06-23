@@ -81,6 +81,8 @@ parser_error_t _toStringBalance(uint64_t* amount, uint8_t decimalPlaces, char po
         return parser_unexpected_buffer_end;
     }
 
+    number_inplace_trimming(bufferUI, 1);
+
     pageString(outValue, outValueLen, bufferUI, pageIdx, pageCount);
     return parser_ok;
 }

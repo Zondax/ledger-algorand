@@ -102,23 +102,23 @@ static parser_error_t checkSanity(uint8_t numItems, uint8_t displayIdx)
 static parser_error_t parser_printTxType(const parser_context_t *ctx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t *pageCount)
 {
     *pageCount = 1;
-    snprintf(outKey, outKeyLen, "Tx type");
+    snprintf(outKey, outKeyLen, "Txn type");
 
     switch (ctx->parser_tx_obj->type) {
         case TX_PAYMENT:
             snprintf(outVal, outValLen, "Payment");
             break;
         case TX_KEYREG:
-            snprintf(outVal, outValLen, "Key Registration");
+            snprintf(outVal, outValLen, "Key reg");
             break;
         case TX_ASSET_XFER:
-            snprintf(outVal, outValLen, "Asset Transfer");
+            snprintf(outVal, outValLen, "Asset xfer");
             break;
         case TX_ASSET_FREEZE:
             snprintf(outVal, outValLen, "Asset Freeze");
             break;
         case TX_ASSET_CONFIG:
-            snprintf(outVal, outValLen, "Asset Config");
+            snprintf(outVal, outValLen, "Asset config");
             break;
         case TX_APPLICATION:
             snprintf(outVal, outValLen, "Application");
@@ -166,7 +166,7 @@ static parser_error_t parser_printCommonParams(const parser_tx_t *parser_tx_obj,
 
         case 4:
             snprintf(outKey, outKeyLen, "Note");
-            snprintf(outVal, outValLen, "%d bytes", (int)parser_tx_obj->note_len);
+            snprintf(outVal, outValLen, "%d bytes", parser_tx_obj->note_len);
             return parser_ok;
 
         case 10:
@@ -589,9 +589,10 @@ static parser_error_t parser_printTxApplication(const txn_application *applicati
         case 7:
             snprintf(outKey, outKeyLen, "App arg %d (sha256)", (displayIdx - 6));
             //check that num_app_args >= 1 or 2
-            // char buff[45] = {0};
             b64hash_data((unsigned char*) application->app_args[displayIdx - 6], application->app_args_len[displayIdx - 6], buff, sizeof(buff));
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
+
+
             return parser_ok;
 
         case 8:
@@ -647,42 +648,47 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
     }
 
     if (displayIdx <= commonItems) {
-        return parser_printCommonParams(ctx->parser_tx_obj, displayIdx - 1, outKey, outKeyLen,
+        uint8_t commonDisplayIdx = 0;
+        CHECK_ERROR(getItem(displayIdx - 1, &commonDisplayIdx))
+        return parser_printCommonParams(ctx->parser_tx_obj, commonDisplayIdx, outKey, outKeyLen,
                                         outVal, outValLen, pageIdx, pageCount);
     }
 
+    uint8_t txDisplayIdx = 0;
+    CHECK_ERROR(getItem(displayIdx - 1, &txDisplayIdx))
     displayIdx = displayIdx - commonItems -1;
+
     if (displayIdx < txItems) {
         switch (ctx->parser_tx_obj->type) {
             case TX_PAYMENT:
                 return parser_printTxPayment(&ctx->parser_tx_obj->payment,
-                                             displayIdx, outKey, outKeyLen,
+                                             txDisplayIdx, outKey, outKeyLen,
                                              outVal, outValLen, pageIdx, pageCount);
                 break;
             case TX_KEYREG:
                 return parser_printTxKeyreg(&ctx->parser_tx_obj->keyreg,
-                                            displayIdx, outKey, outKeyLen,
+                                            txDisplayIdx, outKey, outKeyLen,
                                             outVal, outValLen, pageIdx, pageCount);
                 break;
             case TX_ASSET_XFER:
                 return parser_printTxAssetXfer(&ctx->parser_tx_obj->asset_xfer,
-                                               displayIdx, outKey, outKeyLen,
+                                               txDisplayIdx, outKey, outKeyLen,
                                                outVal, outValLen, pageIdx, pageCount);
                 break;
             case TX_ASSET_FREEZE:
                 return parser_printTxAssetFreeze(&ctx->parser_tx_obj->asset_freeze,
-                                                 displayIdx, outKey, outKeyLen,
+                                                 txDisplayIdx, outKey, outKeyLen,
                                                  outVal, outValLen, pageIdx, pageCount);
                 break;
             case TX_ASSET_CONFIG:
                 return parser_printTxAssetConfig(&ctx->parser_tx_obj->asset_config,
-                                                 displayIdx, outKey, outKeyLen,
+                                                 txDisplayIdx, outKey, outKeyLen,
                                                  outVal, outValLen, pageIdx, pageCount);
                 break;
             case TX_APPLICATION:
                 return parser_printTxApplication(&ctx->parser_tx_obj->application,
-                                                 displayIdx, outKey, outKeyLen,
-                                                 outVal, outValLen, pageIdx, pageCount);
+                                                txDisplayIdx, outKey, outKeyLen,
+                                                outVal, outValLen, pageIdx, pageCount);
                 break;
             default:
                 return parser_unexpected_error;

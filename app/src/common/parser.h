@@ -44,6 +44,8 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
                               char *outVal, uint16_t outValLen,
                               uint8_t pageIdx, uint8_t *pageCount);
 
+parser_error_t getItem(uint8_t index, uint8_t* displayIdx);
+
 #ifdef __cplusplus
 }
 #endif
