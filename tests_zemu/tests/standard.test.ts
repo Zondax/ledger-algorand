@@ -1,5 +1,5 @@
 /** ******************************************************************************
- *  (c) 2020 Zondax GmbH
+ *  (c) 2018 - 2022 Zondax AG
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,11 @@ import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 import AlgorandApp from '@zondax/ledger-algorand'
 import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
 
+// @ts-ignore
+import ed25519 from 'ed25519-supercop'
+// @ts-ignore
+import { blake2bFinal, blake2bInit, blake2bUpdate } from 'blakejs'
+
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
   logging: true,
@@ -26,8 +31,8 @@ const defaultOptions = {
   X11: false,
 }
 
-// Derivation path. First 3 items are automatically hardened!
-const accountId = 123
+// const accountId = 12345
+const accountId = 0
 
 
 jest.setTimeout(60000)
@@ -37,110 +42,110 @@ beforeAll(async () => {
 })
 
 describe('Standard', function () {
-  // test.each(models)('can start and stop container', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+  test.each(models)('can start and stop container', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+    } finally {
+      await sim.close()
+    }
+  })
 
-  // test.each(models)('main menu', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     await sim.navigateAndCompareSnapshots('.', `${m.prefix.toLowerCase()}-mainmenu`, [1, 0, 0, 4, -5])
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+  test.each(models)('main menu', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      await sim.navigateAndCompareSnapshots('.', `${m.prefix.toLowerCase()}-mainmenu`, [1, 0, 0, 4, -5])
+    } finally {
+      await sim.close()
+    }
+  })
 
-  // test.each(models)('get app version', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = new AlgorandApp(sim.getTransport())
-  //     const resp = await app.getVersion()
+  test.each(models)('get app version', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+      const resp = await app.getVersion()
 
-  //     console.log(resp)
+      console.log(resp)
 
-  //     expect(resp.return_code).toEqual(0x9000)
-  //     expect(resp.error_message).toEqual('No errors')
-  //     expect(resp).toHaveProperty('test_mode')
-  //     expect(resp).toHaveProperty('major')
-  //     expect(resp).toHaveProperty('minor')
-  //     expect(resp).toHaveProperty('patch')
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      expect(resp.return_code).toEqual(0x9000)
+      expect(resp.error_message).toEqual('No errors')
+      expect(resp).toHaveProperty('test_mode')
+      expect(resp).toHaveProperty('major')
+      expect(resp).toHaveProperty('minor')
+      expect(resp).toHaveProperty('patch')
+    } finally {
+      await sim.close()
+    }
+  })
 
-  // test.each(models)('get address', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = new AlgorandApp(sim.getTransport())
+  test.each(models)('get address', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     const resp = await app.getAddressAndPubKey(accountId)
+      const resp = await app.getAddressAndPubKey(accountId)
 
-  //     console.log(resp)
+      console.log(resp)
 
-  //     expect(resp.return_code).toEqual(0x9000)
-  //     expect(resp.error_message).toEqual('No errors')
+      expect(resp.return_code).toEqual(0x9000)
+      expect(resp.error_message).toEqual('No errors')
 
-  //     // const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
-  //     // const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
+      // const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
+      // const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
 
-  //     // expect(resp.address).toEqual(expected_address)
-  //     // expect(resp.pubKey).toEqual(expected_pk)
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      // expect(resp.address).toEqual(expected_address)
+      // expect(resp.pubKey).toEqual(expected_pk)
+    } finally {
+      await sim.close()
+    }
+  })
 
-  // test.each(models)('show address', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = new AlgorandApp(sim.getTransport())
+  test.each(models)('show address', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     const respRequest = app.getAddressAndPubKey(accountId, true)
-  //     // Wait until we are not in the main menu
-  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-  //     await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
+      const respRequest = app.getAddressAndPubKey(accountId, true)
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
 
-  //     const resp = await respRequest
-  //     console.log(resp)
+      const resp = await respRequest
+      console.log(resp)
 
-  //     expect(resp.return_code).toEqual(0x9000)
-  //     expect(resp.error_message).toEqual('No errors')
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      expect(resp.return_code).toEqual(0x9000)
+      expect(resp.error_message).toEqual('No errors')
+    } finally {
+      await sim.close()
+    }
+  })
 
-  // test.each(models)('show address - reject', async function (m) {
-  //   const sim = new Zemu(m.path)
-  //   try {
-  //     await sim.start({ ...defaultOptions, model: m.name })
-  //     const app = new AlgorandApp(sim.getTransport())
+  test.each(models)('show address - reject', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-  //     const respRequest = app.getAddressAndPubKey(accountId, true)
-  //     // Wait until we are not in the main menu
-  //     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      const respRequest = app.getAddressAndPubKey(accountId, true)
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
 
-  //     await sim.navigateAndCompareUntilText('.', `${m.prefix.toLowerCase()}-show_address_reject`, 'REJECT')
+      await sim.navigateAndCompareUntilText('.', `${m.prefix.toLowerCase()}-show_address_reject`, 'REJECT')
 
-  //     const resp = await respRequest
-  //     console.log(resp)
+      const resp = await respRequest
+      console.log(resp)
 
-  //     expect(resp.return_code).toEqual(0x6986)
-  //     expect(resp.error_message).toEqual('Transaction rejected')
-  //   } finally {
-  //     await sim.close()
-  //   }
-  // })
+      expect(resp.return_code).toEqual(0x6986)
+      expect(resp.error_message).toEqual('Transaction rejected')
+    } finally {
+      await sim.close()
+    }
+  })
 
   test.each(models)('sign asset freeze normal', async function (m) {
     const sim = new Zemu(m.path)
@@ -151,15 +156,20 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txAssetFreeze)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
+      console.log("FT BLOB SIZE: "+ txAssetFreeze.length)
+      console.log(responseAddr)
 
       // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
+      console.log(typeof pubKey)
+      // const pubKey = Buffer.from(myPubKey, 'hex')
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`,50000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
@@ -199,7 +209,7 @@ describe('Standard', function () {
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_transfer`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_transfer`,50000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
@@ -239,7 +249,7 @@ describe('Standard', function () {
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_config`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_config`,50000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
@@ -279,7 +289,7 @@ describe('Standard', function () {
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_keyreg`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_keyreg`, 30000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
@@ -319,7 +329,7 @@ describe('Standard', function () {
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_payment`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_payment`,50000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
@@ -359,7 +369,7 @@ describe('Standard', function () {
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application`)
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application`, 50000)
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
