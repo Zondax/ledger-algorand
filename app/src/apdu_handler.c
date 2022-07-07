@@ -23,6 +23,7 @@
 #include <ux.h>
 
 #include "view.h"
+#include "view_internal.h"
 #include "actions.h"
 #include "tx.h"
 #include "addr.h"
@@ -138,7 +139,7 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
     }
 
     view_review_init(tx_getItem, tx_getNumItems, app_sign);
-    view_review_show(0x03);
+    view_review_show(REVIEW_TXN);
     *flags |= IO_ASYNCH_REPLY;
 }
 
@@ -154,7 +155,7 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
 
     if (requireConfirmation) {
         view_review_init(addr_getItem, addr_getNumItems, app_reply_address);
-        view_review_show(0x03);
+        view_review_show(REVIEW_ADDRESS);
         *flags |= IO_ASYNCH_REPLY;
         return;
     }

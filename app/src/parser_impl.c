@@ -508,7 +508,6 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
         v->note_len = (size_t)noteLen;
         common_num_items++;
         addItem(4);
-        ZEMU_LOGF(100, "NOTE LEN: %d | %d\n", v->note_len, noteLen)
     }
 
     if (_findKey(c, KEY_COMMON_REKEY) == parser_ok) {

@@ -51,6 +51,8 @@ DEFINES += ZEMU_LOGGING
 $(info ************ LOGGING ENABLED ************)
 endif
 
+DEFINES += REVIEW_SCREEN_ENABLED
+
 ifndef COIN
 COIN=ALGO
 endif

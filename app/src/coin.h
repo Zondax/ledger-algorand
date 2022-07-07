@@ -53,6 +53,10 @@ extern "C" {
 #define APPVERSION_LINE1 "Version"
 #define APPVERSION_LINE2 "v" APPVERSION
 
+#define REVIEW_SCREEN_TITLE "Review"
+#define REVIEW_SCREEN_TXN_VALUE "Transaction"
+#define REVIEW_SCREEN_ADDR_VALUE "address"
+
 #ifdef __cplusplus
 }
 #endif
