@@ -36,6 +36,7 @@
 #include <stdbool.h>
 
 view_t viewdata;
+unsigned int mustReply = 0;
 
 void h_approve(__Z_UNUSED unsigned int _) {
     zemu_log_stack("h_approve");
@@ -146,6 +147,26 @@ void h_paging_decrease() {
     }
 }
 
+uint8_t getIntroPages() {
+#if defined(APP_BLIND_MODE_ENABLED)
+    if (mustReply == REVIEW_ADDRESS || !app_mode_blind()) {
+        #if defined(TARGET_NANOS)
+            return INTRO_PAGES - 1;
+        #else
+            return INTRO_PAGES;
+        #endif
+    } else {
+        return INTRO_PAGES;
+    }
+#else
+    return INTRO_PAGES;
+#endif
+}
+
+bool h_paging_intro_screen() {
+    return viewdata.itemIdx < getIntroPages();
+}
+
 ///////////////////////////////////
 // Paging related
 
@@ -178,6 +199,7 @@ void h_review_action(unsigned int requireReply) {
         return;
     }
 
+    // I need to use this shortcut for BlindSigning
     zemu_log_stack("quick accept");
     if (app_mode_expert()) {
         set_accept_item();
@@ -213,7 +235,6 @@ zxerr_t h_review_update_data() {
 
 #ifdef INCLUDE_ACTIONS_AS_ITEMS
     viewdata.pageCount = 1;
-
     if( is_accept_item() ){
         snprintf(viewdata.key, MAX_CHARS_PER_KEY_LINE, "%s","");
         snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, "%s", APPROVE_LABEL);
@@ -231,14 +252,58 @@ zxerr_t h_review_update_data() {
         viewdata.pageIdx = 0;
         return zxerr_ok;
     }
+
+
+    if (h_paging_intro_screen()) {
+        char* intro_key = NULL;
+        char* intro_value = NULL;
+
+    #if defined(REVIEW_SCREEN_ENABLED) && defined(APP_BLIND_MODE_ENABLED)
+        switch (viewdata.itemIdx) {
+            case 0:
+                intro_key = PIC(review_key);
+                if(mustReply == REVIEW_ADDRESS) {
+                    intro_value = PIC(review_addrvalue);
+                } else {
+                    intro_value = PIC(review_txvalue);
+                }
+                break;
+            case 1:
+                intro_key = PIC(blindsigning_key);
+                intro_value = PIC(blindsigning_value);
+                break;
+            default:
+                return zxerr_no_data;
+        }
+    #elif defined(REVIEW_SCREEN_ENABLED)
+        intro_key = PIC(review_key);
+        if(mustReply == REVIEW_ADDRESS) {
+            intro_value = PIC(review_addrvalue);
+        } else {
+            intro_value = PIC(review_txvalue);
+        }
+    #elif defined(APP_BLIND_MODE_ENABLED)
+        intro_key = PIC(blindsigning_key);
+        intro_value = PIC(blindsigning_value);
+    #else
+        return zxerr_no_data;
+    #endif
+
+        snprintf(viewdata.key, MAX_CHARS_PER_KEY_LINE, "%s", intro_key);
+        snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, "%s", intro_value);
+        splitValueField();
+        viewdata.pageIdx = 0;
+        return zxerr_ok;
+    }
 #endif
 
     do {
         CHECK_ZXERR(viewdata.viewfuncGetNumItems(&viewdata.itemCount))
+        viewdata.itemCount+= getIntroPages();
 
         //Verify how many chars fit in display (nanos)
         CHECK_ZXERR(viewdata.viewfuncGetItem(
-                viewdata.itemIdx,
+                viewdata.itemIdx - getIntroPages(),
                 viewdata.key, MAX_CHARS_PER_KEY_LINE,
                 viewdata.value, MAX_CHARS_PER_VALUE1_LINE,
                 0, &viewdata.pageCount))
@@ -247,7 +312,7 @@ zxerr_t h_review_update_data() {
 
         // be sure we are not out of bounds
         CHECK_ZXERR(viewdata.viewfuncGetItem(
-                viewdata.itemIdx,
+                viewdata.itemIdx - getIntroPages(),
                 viewdata.key, MAX_CHARS_PER_KEY_LINE,
                 viewdata.value, dyn_max_char_per_line1,
                 0, &viewdata.pageCount))
@@ -256,7 +321,7 @@ zxerr_t h_review_update_data() {
             viewdata.pageIdx = viewdata.pageCount - 1;
         }
         CHECK_ZXERR(viewdata.viewfuncGetItem(
-                viewdata.itemIdx,
+                viewdata.itemIdx - getIntroPages(),
                 viewdata.key, MAX_CHARS_PER_KEY_LINE,
                 viewdata.value, dyn_max_char_per_line1,
                 viewdata.pageIdx, &viewdata.pageCount))

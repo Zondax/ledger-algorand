@@ -43,6 +43,41 @@
 #define APPROVE_LABEL "APPROVE"
 #define REJECT_LABEL "REJECT"
 
+#define BLIND_SIGNING_TITLE "Blind"
+#define BLIND_SIGNING_VALUE "Signing"
+
+//Review string can be customizable in each app
+#if !defined(REVIEW_SCREEN_TITLE) && !defined(REVIEW_SCREEN_TXN_VALUE) && !defined(REVIEW_SCREEN_ADDR_VALUE)
+    #define REVIEW_SCREEN_TITLE "Please"
+    #define REVIEW_SCREEN_TXN_VALUE "review"
+    #define REVIEW_SCREEN_ADDR_VALUE "address"
+#endif
+
+static const char* review_key = REVIEW_SCREEN_TITLE;
+static const char* review_txvalue = REVIEW_SCREEN_TXN_VALUE;
+static const char* review_addrvalue = REVIEW_SCREEN_ADDR_VALUE;
+
+static const char* blindsigning_key = BLIND_SIGNING_TITLE;
+static const char* blindsigning_value = BLIND_SIGNING_VALUE;
+
+#if defined(TARGET_NANOS)
+    #if defined(REVIEW_SCREEN_ENABLED) && defined(APP_BLIND_MODE_ENABLED)
+        #define INTRO_PAGES 2
+    #elif defined(REVIEW_SCREEN_ENABLED) || defined(APP_BLIND_MODE_ENABLED)
+        #define INTRO_PAGES 1
+    #else
+        #define INTRO_PAGES 0
+    #endif
+#else
+    #define INTRO_PAGES 0
+#endif
+
+enum Review_Type {
+  REVIEW_UI = 0,
+  REVIEW_ADDRESS,
+  REVIEW_TXN,
+};
+
 #if defined(TARGET_NANOS)
 #define INCLUDE_ACTIONS_AS_ITEMS 2
 #define INCLUDE_ACTIONS_COUNT (INCLUDE_ACTIONS_AS_ITEMS-1)
@@ -119,6 +154,8 @@ void h_paging_increase();
 bool h_paging_can_decrease();
 
 void h_paging_decrease();
+
+bool h_paging_intro_screen();
 
 void view_review_show_impl(unsigned int requireReply);
 

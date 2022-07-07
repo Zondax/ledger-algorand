@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
     uint8_t secret;
+    uint8_t blind;
 } app_mode_temporary_t;
 
 app_mode_temporary_t app_mode_temporary;
@@ -104,4 +105,13 @@ bool app_mode_secret() {
 
 void app_mode_set_secret(uint8_t val) {
     app_mode_temporary.secret = val;
+}
+
+bool app_mode_blind() {
+    // return true;
+    return app_mode_temporary.blind;
+}
+
+void app_mode_set_blind(uint8_t val) {
+    app_mode_temporary.blind = val;
 }

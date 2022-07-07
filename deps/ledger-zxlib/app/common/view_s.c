@@ -34,6 +34,7 @@ static bool exceed_pixel_in_display(const uint8_t length);
 
 void h_initialize();
 void account_enabled();
+void blind_enabled(){};
 
 static void h_expert_toggle();
 static void h_expert_update();
@@ -50,9 +51,14 @@ static void h_account_toggle();
 static void h_account_update();
 #endif
 
+#ifdef APP_BLIND_MODE_ENABLED
+static void h_blind_toggle();
+static void h_blind_update();
+#endif
+
 ux_state_t ux;
 extern ux_menu_state_t ux_menu;
-static unsigned int mustReply = 0;
+extern unsigned int mustReply;
 
 void os_exit(uint32_t id) {
     (void)id;
@@ -65,6 +71,10 @@ const ux_menu_entry_t menu_main[] = {
 
 #ifdef APP_ACCOUNT_MODE_ENABLED
     {NULL, h_account_toggle, 0, &C_icon_app, "Account:", viewdata.value, 33, 12},
+#endif
+
+#ifdef APP_BLIND_MODE_ENABLED
+    {NULL, h_blind_toggle, 0, &C_icon_app, "Blind signing:", viewdata.value, 33, 12},
 #endif
 
     {NULL, NULL, 0, &C_icon_app, APPVERSION_LINE1, APPVERSION_LINE2, 33, 12},
@@ -166,6 +176,11 @@ const bagl_element_t* idle_preprocessor(const ux_menu_entry_t* entry, bagl_eleme
             h_account_update();
 #endif
             break;
+        case 3:
+#ifdef APP_BLIND_MODE_ENABLED
+            h_blind_update();
+#endif
+            break;
         default:
             break;
     }
@@ -182,6 +197,12 @@ const bagl_element_t *view_prepro(const bagl_element_t *element) {
             break;
         case UIID_ICONRIGHT:
             if (!h_paging_can_increase()){
+                return NULL;
+            }
+            UX_CALLBACK_SET_INTERVAL(2000);
+            break;
+        case UIID_ICONREVIEW:
+            if (!h_paging_intro_screen()){
                 return NULL;
             }
             UX_CALLBACK_SET_INTERVAL(2000);
@@ -298,6 +319,23 @@ void h_account_update() {
     snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, ACCOUNT_DEFAULT);
     if (app_mode_account()) {
         snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, ACCOUNT_SECONDARY);
+    }
+}
+#endif
+
+#ifdef APP_BLIND_MODE_ENABLED
+void h_blind_toggle() {
+    if(app_mode_expert()) {
+        blind_enabled();
+    } else {
+        view_idle_show(3, NULL);
+    }
+}
+
+void h_blind_update() {
+    snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, "Disabled");
+    if (app_mode_blind()) {
+        snprintf(viewdata.value, MAX_CHARS_PER_VALUE1_LINE, "Enabled");
     }
 }
 #endif
