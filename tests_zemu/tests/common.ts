@@ -2,8 +2,7 @@ import { DeviceModel } from '@zondax/zemu'
 
 const Resolve = require('path').resolve
 
-// export const APP_SEED = 'equip will roof matter pink blind book anxiety banner elbow sun young'
-export const APP_SEED = 'skate purse kit glare divert valley stage network ribbon such venue forward trial web scorpion fix damp order myth wait truck cousin dilemma about chalk'
+export const APP_SEED = 'glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin'
 
 const APP_PATH_S = Resolve('../app/output/app_s.elf')
 const APP_PATH_X = Resolve('../app/output/app_x.elf')

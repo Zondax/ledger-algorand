@@ -32,7 +32,7 @@ const defaultOptions = {
 }
 
 // const accountId = 12345
-const accountId = 0
+const accountId = 123
 
 
 jest.setTimeout(60000)
@@ -154,15 +154,8 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetFreeze)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-      console.log("FT BLOB SIZE: "+ txAssetFreeze.length)
-      console.log(responseAddr)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
       const pubKey = responseAddr.publicKey
-      console.log(typeof pubKey)
-      // const pubKey = Buffer.from(myPubKey, 'hex')
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -177,16 +170,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
@@ -201,8 +193,7 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txAssetXfer)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -217,16 +208,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
@@ -241,8 +231,7 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txAssetConfig)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -257,16 +246,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
@@ -281,8 +269,7 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txKeyreg)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -297,16 +284,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
@@ -321,8 +307,7 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txPayment)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -337,16 +322,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
@@ -361,8 +345,7 @@ describe('Standard', function () {
       const txBlob = Buffer.from(txApplication)
       console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
-
-      // const pubKey = Buffer.from(responseAddr.publicKey, 'hex')
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -377,16 +360,15 @@ describe('Standard', function () {
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
 
-      //Replace verification with js-algorand-sdk npm package
       // Now verify the signature
-      // let prehash = txBlob
-      // if (txBlob.length > 256) {
-      //   const context = blake2bInit(32)
-      //   blake2bUpdate(context, txBlob)
-      //   prehash = Buffer.from(blake2bFinal(context))
-      // }
-      // const valid = ed25519.verify(signatureResponse.signature.slice(1), prehash, pubKey)
-      // expect(valid).toEqual(true)
+      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
+      if (txBlob.length > 256) {
+        const context = blake2bInit(32)
+        blake2bUpdate(context, txBlob)
+        prehash = Buffer.from(blake2bFinal(context))
+      }
+      const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
+      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }

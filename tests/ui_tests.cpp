@@ -102,7 +102,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
 
     parser_tx_t tx_obj;
-    // Since we depend on default values, we need to initialize this
+    // Since we depend on default values, we need to initialize this every time (as we do in the app)
     memset(&tx_obj, 0, sizeof(tx_obj));
 
     err = parser_parse(&ctx, buffer, bufferLen, &tx_obj);
