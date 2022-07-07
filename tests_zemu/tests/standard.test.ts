@@ -21,8 +21,6 @@ import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetX
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
-// @ts-ignore
-import { blake2bFinal, blake2bInit, blake2bUpdate } from 'blakejs'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -31,9 +29,7 @@ const defaultOptions = {
   X11: false,
 }
 
-// const accountId = 12345
 const accountId = 123
-
 
 jest.setTimeout(60000)
 
@@ -94,11 +90,11 @@ describe('Standard', function () {
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')
 
-      // const expected_address = '166wVhuQsKFeb7bd1faydHgVvX1bZU2rUuY7FJmWApNz2fQY'
-      // const expected_pk = 'e1b4d72d27b3e91b9b6116555b4ea17138ddc12ca7cdbab30e2e0509bd848419'
+      const expected_address = 'BX63ZW4O5PWWFDH3J33QEB5YN7IN5XOKPDUQ5DCZ232EDY4DWN3XKUQRCA'
+      const expected_pk = '0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377'
 
-      // expect(resp.address).toEqual(expected_address)
-      // expect(resp.pubKey).toEqual(expected_pk)
+      expect(resp.publicKey).toEqual(expected_pk)
+      expect(resp.address).toEqual(expected_address)
     } finally {
       await sim.close()
     }
@@ -171,12 +167,7 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
@@ -209,12 +200,7 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
@@ -247,12 +233,7 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
@@ -285,12 +266,7 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
@@ -323,12 +299,7 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
@@ -361,17 +332,11 @@ describe('Standard', function () {
       expect(signatureResponse.error_message).toEqual('No errors')
 
       // Now verify the signature
-      let prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
-      if (txBlob.length > 256) {
-        const context = blake2bInit(32)
-        blake2bUpdate(context, txBlob)
-        prehash = Buffer.from(blake2bFinal(context))
-      }
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob]);
       const valid = ed25519.verify(signatureResponse.signature.slice(0, -1), prehash, pubKey)
       expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }
   })
-
 })
