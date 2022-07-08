@@ -21,7 +21,7 @@ static uint8_t num_items;
 static uint8_t common_num_items;
 static uint8_t tx_num_items;
 
-#define MAX_ITEM_ARRAY 50
+#define MAX_ITEM_ARRAY 20
 static uint8_t itemArray[MAX_ITEM_ARRAY] = {0};
 static uint8_t itemIndex = 0;
 
@@ -577,30 +577,29 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
     CHECK_ERROR(_readBinFixed(c, v->keyreg.vrfpk, sizeof(v->keyreg.vrfpk)))
     addItem(1);
 
-    // CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
-    // CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
-
-
+    CHECK_ERROR(_findKey(c, KEY_SPRF_PK))
+    CHECK_ERROR(_readBinFixed(c, v->keyreg.sprfkey, sizeof(v->keyreg.sprfkey)))
+    addItem(2);
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_FIRST))
     CHECK_ERROR(_readInteger(c, &v->keyreg.voteFirst))
-    addItem(2);
+    addItem(3);
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_LAST))
     CHECK_ERROR(_readInteger(c, &v->keyreg.voteLast))
-    addItem(3);
+    addItem(4);
 
     CHECK_ERROR(_findKey(c, KEY_VOTE_KEY_DILUTION))
     CHECK_ERROR(_readInteger(c, &v->keyreg.keyDilution))
-    addItem(4);
+    addItem(5);
 
     if (_findKey(c, KEY_VOTE_NON_PART_FLAG) == parser_ok) {
         CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
         tx_num_items++;
     }
-    addItem(5);
+    addItem(6);
 
-    tx_num_items = 6;
+    tx_num_items = 7;
 
     return parser_ok;
 }

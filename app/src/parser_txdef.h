@@ -149,7 +149,7 @@ typedef struct {
 typedef struct {
   uint8_t votepk[32];
   uint8_t vrfpk[32];
-  // uint8_t sprfkey[64]; //Should we support stateproof PK?
+  uint8_t sprfkey[64];
   uint64_t voteFirst;
   uint64_t voteLast;
   uint64_t keyDilution;

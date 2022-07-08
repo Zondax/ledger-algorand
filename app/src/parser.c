@@ -265,40 +265,40 @@ static parser_error_t parser_printTxKeyreg(const txn_keyreg *keyreg,
             return parser_ok;
 
         case 2:
+            snprintf(outKey, outKeyLen, "SPRF PK");
+            char tmpBuff[90];
+            base64_encode((const char*) keyreg->sprfkey, sizeof(keyreg->sprfkey), tmpBuff, sizeof(tmpBuff));
+            pageString(outVal, outValLen, tmpBuff, pageIdx, pageCount);
+            return parser_ok;
+
+        case 3:
             snprintf(outKey, outKeyLen, "Vote first");
             if (int64_to_str(outVal, outValLen, keyreg->voteFirst) != NULL) {
                 return parser_unexpected_error;
             }
             return parser_ok;
 
-        case 3:
+        case 4:
             snprintf(outKey, outKeyLen, "Vote last");
             if (int64_to_str(outVal, outValLen, keyreg->voteLast) != NULL) {
                 return parser_unexpected_error;
             }
             return parser_ok;
 
-        case 4:
+        case 5:
             snprintf(outKey, outKeyLen, "Key dilution");
             if (int64_to_str(outVal, outValLen, keyreg->keyDilution) != NULL) {
                 return parser_unexpected_error;
             }
             return parser_ok;
 
-        case 5:
+        case 6:
             snprintf(outKey, outKeyLen, "Participating");
             if (keyreg->nonpartFlag) {
                 snprintf(outVal, outValLen, "No");
             } else {
                 snprintf(outVal, outValLen, "Yes");
             }
-            return parser_ok;
-
-        case 20:
-            snprintf(outKey, outKeyLen, "Stateproof PK");
-            // char buff[90];
-            // base64_encode((const char*) keyreg->sprfkey, sizeof(keyreg->sprfkey), buff, sizeof(buff));
-            // pageString(outVal, outValLen, buff, pageIdx, pageCount);
             return parser_ok;
 
         default:
@@ -587,7 +587,7 @@ static parser_error_t parser_printTxApplication(const txn_application *applicati
 
         case 6:
         case 7:
-            snprintf(outKey, outKeyLen, "App arg %d (sha256)", (displayIdx - 6));
+            snprintf(outKey, outKeyLen, "App arg %d", (displayIdx - 6));
             //check that num_app_args >= 1 or 2
             b64hash_data((unsigned char*) application->app_args[displayIdx - 6], application->app_args_len[displayIdx - 6], buff, sizeof(buff));
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
@@ -604,13 +604,13 @@ static parser_error_t parser_printTxApplication(const txn_application *applicati
             return _toStringSchema(&application->local_schema, outVal, outValLen, pageIdx, pageCount);
 
         case 10:
-            snprintf(outKey, outKeyLen, "Apprv (sha256)");
+            snprintf(outKey, outKeyLen, "Apprv");
             b64hash_data((unsigned char*) application->aprog, application->aprog_len, buff, sizeof(buff));
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
             return parser_ok;
 
         case 11:
-            snprintf(outKey, outKeyLen, "Clear (sha256)");
+            snprintf(outKey, outKeyLen, "Clear");
             b64hash_data((unsigned char*) application->cprog, application->cprog_len, buff, sizeof(buff));
             pageString(outVal, outValLen, buff, pageIdx, pageCount);
             return parser_ok;
