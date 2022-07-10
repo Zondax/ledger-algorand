@@ -40,6 +40,8 @@ parser_error_t parser_init_context(parser_context_t *ctx,
     ctx->buffer = NULL;
     ctx->bufferLen = 0;
     num_items = 0;
+    common_num_items = 0;
+    tx_num_items = 0;
 
     if (bufferSize == 0 || buffer == NULL) {
         // Not available, use defaults
@@ -329,33 +331,27 @@ static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *as
 
     tx_num_items += 4;
 
+    // These items won't be displayed
     if (_findKey(c, KEY_APARAMS_TOTAL) == parser_ok) {
         CHECK_ERROR(_readInteger(c, &asset_config->params.total))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_DECIMALS) == parser_ok) {
         CHECK_ERROR(_readInteger(c, &asset_config->params.decimals))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_DEF_FROZEN) == parser_ok) {
         CHECK_ERROR(_readBool(c, &asset_config->params.default_frozen))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_UNIT_NAME) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_ASSET_NAME) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_URL) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.url, sizeof(asset_config->params.url)))
-        tx_num_items++;
     }
     if (_findKey(c, KEY_APARAMS_METADATA_HASH) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, asset_config->params.metadata_hash, sizeof(asset_config->params.metadata_hash)))
-        tx_num_items++;
     }
 
     return parser_ok;
@@ -370,7 +366,7 @@ parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], siz
     }
 
     for (size_t i = 0; i < *argsSize; i++) {
-        CHECK_ERROR(_readBin(c, args[i], (uint16_t*)&args_len[i], sizeof(args[0])))
+        CHECK_ERROR(_readBin(c, args[i], (uint16_t*)&args_len[i], MAX_ARGLEN))
     }
 
     return parser_ok;
@@ -490,6 +486,7 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
         common_num_items++;
         addItem(3);
     }
+
     CHECK_ERROR(_findKey(c, KEY_COMMON_GEN_HASH))
     CHECK_ERROR(_readBinFixed(c, v->genesisHash, sizeof(v->genesisHash)))
     addItem(2);
@@ -497,7 +494,8 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_COMMON_GROUP_ID) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->groupID, sizeof(v->groupID)))
-        // common_num_items++;
+        common_num_items++;
+        addItem(10);
     }
 
     // Add lease
@@ -595,11 +593,12 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_VOTE_NON_PART_FLAG) == parser_ok) {
         CHECK_ERROR(_readBool(c, &v->keyreg.nonpartFlag))
-        tx_num_items++;
+        // tx_num_items++;
     }
     addItem(6);
 
     tx_num_items = 7;
+
 
     return parser_ok;
 }
@@ -747,13 +746,12 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     if(keyLen > UINT8_MAX) {
         return parser_unexpected_number_items;
     }
-    num_items = (uint8_t)keyLen + 1;
 
     // Read Tx type
     CHECK_ERROR(_readTxType(c, v))
 
     // Read common params
-    _readTxCommonParams(c, v);
+    CHECK_ERROR(_readTxCommonParams(c, v));
 
     // Read Tx specifics params
     switch (v->type) {
@@ -780,7 +778,6 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         break;
     }
 
-    // hack until we process all fields
     num_items = common_num_items + tx_num_items + 1;
     return parser_ok;
 }
