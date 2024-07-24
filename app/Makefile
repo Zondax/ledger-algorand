@@ -28,6 +28,16 @@ include $(BOLOS_SDK)/Makefile.defines
 
 $(info ************ TARGET_NAME  = [$(TARGET_NAME)])
 
+## Display whether this is a production build or for internal use
+PRODUCTION_BUILD ?= 1
+ifeq ($(PRODUCTION_BUILD), 1)
+    $(info ************ PRODUCTION_BUILD  = [PRODUCTION BUILD])
+else
+    $(info ************ PRODUCTION_BUILD  = [INTERNAL USE])
+endif
+
+DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
+
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
 
 DEFINES += REVIEW_SCREEN_ENABLED SHORTCUT_MODE_ENABLED
