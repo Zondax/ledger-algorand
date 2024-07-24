@@ -14,7 +14,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 
-import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind } from '@zondax/zemu'
+import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
 import AlgorandApp from '@zondax/ledger-algorand'
 import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
@@ -126,8 +126,8 @@ describe('Standard', function () {
       await sim.start({
         ...defaultOptions,
         model: m.name,
-        approveKeyword: m.name === 'stax' ? 'Show as QR' : '',
-        approveAction: ButtonKind.ApproveTapButton,
+        approveKeyword: isTouchDevice(m.name) ? 'Confirm' : '',
+        approveAction: ButtonKind.DynamicTapButton,
       })
       const app = new AlgorandApp(sim.getTransport())
 
@@ -152,7 +152,7 @@ describe('Standard', function () {
       await sim.start({
         ...defaultOptions,
         model: m.name,
-        rejectKeyword: m.name === 'stax' ? 'Show as QR' : '',
+        rejectKeyword: isTouchDevice(m.name) ? 'Confirm' : '',
       })
       const app = new AlgorandApp(sim.getTransport())
 
