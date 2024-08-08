@@ -122,13 +122,6 @@ zxerr_t tx_getItem(int8_t displayIdx,
 {
     uint8_t numItems = 0;
 
-#if defined(TARGET_STAX) || defined(TARGET_FLEX)
-    if (displayIdx == -1) {
-        const parser_error_t tmpError = parser_getTxnText(&ctx_parsed_tx, outVal, outValLen);
-        return (tmpError == parser_ok ? zxerr_ok : zxerr_no_data);
-    }
-#endif
-
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
     if (displayIdx > numItems) {
