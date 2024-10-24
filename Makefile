@@ -40,3 +40,7 @@ test_all:
 	make zemu_install
 	make
 	make zemu_test
+
+test_ledger_try:
+	make zemu_install
+	cd tests_zemu && yarn try

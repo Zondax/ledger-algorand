@@ -108,10 +108,16 @@ void tx_parse_reset()
 
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
+    if(app_mode_blindsign()){
+        *num_items = 1;
+        return zxerr_ok;
+    }
+
     parser_error_t err = parser_getNumItems(num_items);
     if (err != parser_ok) {
         return zxerr_unknown;
     }
+
     return zxerr_ok;
 }
 
@@ -120,9 +126,19 @@ zxerr_t tx_getItem(int8_t displayIdx,
                    char *outVal, uint16_t outValLen,
                    uint8_t pageIdx, uint8_t *pageCount)
 {
+
     uint8_t numItems = 0;
 
     CHECK_ZXERR(tx_getNumItems(&numItems))
+
+    if(app_mode_blindsign()){
+        MEMZERO(outKey, outKeyLen);
+        MEMZERO(outVal, outValLen);
+
+        snprintf(outKey, outKeyLen, "test");
+        snprintf(outVal, outValLen, "test");
+        return zxerr_ok;
+    }
 
     if (displayIdx > numItems) {
         return zxerr_no_data;
