@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@zondax/ledger-algorand": "../js",
-    "@zondax/zemu": "^0.51.0"
+    "@zondax/zemu": "^0.51"
   },
   "devDependencies": {
     "@ledgerhq/hw-transport-node-hid" : "^6.29.5",

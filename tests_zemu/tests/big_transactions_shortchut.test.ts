@@ -53,23 +53,11 @@ describe('BigTransactions - Shortcut', function () {
       const txBlob = Buffer.from(txApplicationLong, 'hex')
       console.log(sim.getMainMenuSnapshot())
 
-      // Enable expert mode
-      await sim.toggleExpertMode(`${m.prefix.toLowerCase()}-sign_application_big_shortcut`, true, 0);
+      // Enable blind signing mode
+      await sim.toggleBlindSigning(`${m.prefix.toLowerCase()}-sign_application_big_shortcut`, false, 0);
 
-      // Toggle shortcut mode on nano s, s+ and x devices, and compare
-      const snapshotsDelta = m.name == "nanos" ? 3 : 0
-      let nav = new ClickNavigation([2, 0, 5 + snapshotsDelta, 0])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 3);
-
-      // Take snapshots of the shortcut mode and compare
-      nav = new ClickNavigation([2, -2])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 12 + snapshotsDelta);
-
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
       const pubKey = responseAddr.publicKey
-
-      await sim.deleteEvents()
 
       // do not wait here.. we need to navigate
       const signatureRequest = app.sign(accountId, txBlob)
@@ -77,9 +65,7 @@ describe('BigTransactions - Shortcut', function () {
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
 
-      // Click on "skip fields" and approve
-      nav = new ClickNavigation([1, 0, 0])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 17 + snapshotsDelta);
+      await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, true, 0, 3000, true);
 
       const signatureResponse = await signatureRequest
       console.log(signatureResponse)
