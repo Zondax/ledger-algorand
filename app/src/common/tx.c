@@ -109,7 +109,7 @@ void tx_parse_reset()
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
     if(app_mode_blindsign()){
-        *num_items = 3;
+        *num_items = 2;
         return zxerr_ok;
     }
 
