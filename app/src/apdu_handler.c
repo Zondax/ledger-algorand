@@ -29,6 +29,7 @@
 #include "addr.h"
 #include "crypto.h"
 #include "coin.h"
+#include "parser.h"
 #include "zxmacros.h"
 
 static bool tx_initialized = false;
@@ -151,6 +152,10 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         int error_msg_length = strlen(error_msg);
         memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
         *tx += (error_msg_length);
+        if (strcmp(error_msg, parser_getErrorDescription(parser_blindsign_mode_required)) == 0) {
+            *flags |= IO_ASYNCH_REPLY;
+            view_blindsign_error_show();
+        }
         THROW(APDU_CODE_DATA_INVALID);
     }
 

@@ -16,6 +16,7 @@
 
 #include "parser_impl.h"
 #include "msgpack.h"
+#include "app_mode.h"
 
 static uint8_t num_items;
 static uint8_t common_num_items;
@@ -1163,6 +1164,9 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         CHECK_ERROR(_readTxAssetConfig(c, v))
         break;
     case TX_APPLICATION:
+        if (!app_mode_blindsign()) {
+            return parser_blindsign_mode_required;
+        }
         CHECK_ERROR(_readTxApplication(c, v))
         break;
     default:
@@ -1222,6 +1226,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "display page out of range";
         case parser_unexpected_error:
             return "Unexpected error in parser";
+        case parser_blindsign_mode_required:
+            return "Blind signing mode required";
         case parser_unexpected_type:
             return "Unexpected type";
         case parser_unexpected_method:
