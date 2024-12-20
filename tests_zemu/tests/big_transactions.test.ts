@@ -17,7 +17,7 @@
 import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 // @ts-ignore
 import AlgorandApp from '@zondax/ledger-algorand'
-import { APP_SEED, models, txApplicationLong } from './common'
+import { APP_SEED, models, APPLICATION_LONG_TEST_CASES, txApplicationLong } from './common'
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
@@ -43,37 +43,45 @@ describe('BigTransactions', function () {
     }
   })
 
-  test.concurrent.each(models)('sign application big', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
+  describe.each(APPLICATION_LONG_TEST_CASES)('Tx Application Calls', function (data) {
+    test.concurrent.each(models)(`sign_application_big${data.name}`, async function (m) {
+      const sim = new Zemu(m.path)
+      try {
+        await sim.start({ ...defaultOptions, model: m.name })
+        const app = new AlgorandApp(sim.getTransport())
 
-      const txBlob = Buffer.from(txApplicationLong, 'hex')
+        const txBlob = Buffer.from(data.tx, 'hex')
 
-      console.log(sim.getMainMenuSnapshot())
-      const responseAddr = await app.getAddressAndPubKey(accountId)
-      const pubKey = responseAddr.publicKey
+        console.log(sim.getMainMenuSnapshot())
+        const responseAddr = await app.getAddressAndPubKey(accountId)
+        const pubKey = responseAddr.publicKey
 
-      // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(accountId, txBlob)
+        if (data.blindsign_mode) {
+          await sim.toggleBlindSigning()
+        }
+        if (data.expert_mode) {
+          await sim.toggleExpertMode()
+        }
 
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_big`)
+        // do not wait here.. we need to navigate
+        const signatureRequest = app.sign(accountId, txBlob)
 
-      const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
+        // Wait until we are not in the main menu
+        await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+        await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_big${data.name}`,true, 0, 15000, data.blindsign_mode)
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+        const signatureResponse = await signatureRequest
 
-      // Now verify the signature
-      const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
-      const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
-      expect(valid).toEqual(true)
-    } finally {
-      await sim.close()
-    }
+        expect(signatureResponse.return_code).toEqual(0x9000)
+        expect(signatureResponse.error_message).toEqual('No errors')
+
+        // Now verify the signature
+        const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
+        const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
+        expect(valid).toEqual(true)
+      } finally {
+        await sim.close()
+      }
+    })
   })
 })
