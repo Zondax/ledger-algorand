@@ -49,14 +49,13 @@ static parser_error_t _findKey(parser_context_t *c, const char *key);
         }                                           \
     }
 
-#define DISPLAY_COMMON_ITEM(appIdx, len, counter, v)        \
-    if (v->type == TX_APPLICATION && !app_mode_expert()) {  \
-        if (appIdx == IDX_COMMON_SENDER ||                  \
-            appIdx == IDX_COMMON_REKEY_TO) {                \
-            DISPLAY_ITEM(appIdx, len, counter)              \
-        }                                                   \
-    } else {                                                \
-        DISPLAY_ITEM(appIdx, len, counter)                  \
+#define DISPLAY_COMMON_ITEM(appIdx, len, counter, v)                                \
+    if (v->type == TX_APPLICATION && app_mode_blindsign()) {                       \
+        if (appIdx == IDX_COMMON_SENDER || appIdx == IDX_COMMON_REKEY_TO) {         \
+            DISPLAY_ITEM(appIdx, len, counter)                                      \
+        }                                                                           \
+    } else {                                                                        \
+        DISPLAY_ITEM(appIdx, len, counter)                                          \
     }
 
 parser_error_t parser_init_context(parser_context_t *ctx,
@@ -1183,11 +1182,8 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         break;
     case TX_APPLICATION:
         #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
-        if (!app_mode_blindsign() && !app_mode_expert()) {
-            return parser_blindsign_mode_required;
-        }
         CHECK_ERROR(_readTxApplication(c, v))
-        if (app_mode_expert() && !app_mode_blindsign()) {
+        if (!app_mode_blindsign()) {
             app_mode_skip_blindsign_ui();
         }
         #else

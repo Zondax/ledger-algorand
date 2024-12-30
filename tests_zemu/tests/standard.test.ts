@@ -336,7 +336,7 @@ describe('Standard', function () {
   })
 
   describe.each(APPLICATION_TEST_CASES)('Tx Application Calls', function (data) {
-    test.concurrent.each(models)(`sign_application_normal${data.name}`, async function (m) {
+    test.concurrent.each(models)(`sign_application_normal_${data.name}`, async function (m) {
       const sim = new Zemu(m.path)
       try {
         await sim.start({ ...defaultOptions, model: m.name })
@@ -349,16 +349,13 @@ describe('Standard', function () {
         if (data.blindsign_mode) {
           await sim.toggleBlindSigning()
         }
-        if (data.expert_mode) {
-          await sim.toggleExpertMode()
-        }
 
         // do not wait here.. we need to navigate
         const signatureRequest = app.sign(accountId, txBlob)
 
         // Wait until we are not in the main menu
         await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-        await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_${data.name}`,true, 0, 15000, data.blindsign_mode)
+        await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_normal_${data.name}`,true, 0, 15000, data.blindsign_mode)
 
         const signatureResponse = await signatureRequest
 

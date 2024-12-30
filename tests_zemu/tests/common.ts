@@ -108,21 +108,13 @@ export const txApplication = [
 
 export const APPLICATION_TEST_CASES = [
   {
-    name: 'blindsign_no_expert',
-    blindsign_mode: true,
-    expert_mode: false,
-    tx: txApplication,
-  },
-  {
-    name: 'no_blindsign_expert',
+    name: 'no_blindsign',
     blindsign_mode: false,
-    expert_mode: true,
     tx: txApplication,
   },
   {
-    name: 'blindsign_expert',
+    name: 'blindsign',
     blindsign_mode: true,
-    expert_mode: true,
     tx: txApplication,
   },
 ]
@@ -132,21 +124,13 @@ export const txApplicationLong =
 
 export const APPLICATION_LONG_TEST_CASES = [
   {
-    name: 'blindsign_no_expert',
-    blindsign_mode: true,
-    expert_mode: false,
-    tx: txApplicationLong,
-  },
-  {
-    name: 'no_blindsign_expert',
+    name: 'no_blindsign',
     blindsign_mode: false,
-    expert_mode: true,
     tx: txApplicationLong,
   },
   {
-    name: 'blindsign_expert',
+    name: 'blindsign',
     blindsign_mode: true,
-    expert_mode: true,
     tx: txApplicationLong,
   },
 ]
