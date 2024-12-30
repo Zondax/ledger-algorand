@@ -1182,6 +1182,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         CHECK_ERROR(_readTxAssetConfig(c, v))
         break;
     case TX_APPLICATION:
+        #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
         if (!app_mode_blindsign() && !app_mode_expert()) {
             return parser_blindsign_mode_required;
         }
@@ -1189,6 +1190,9 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         if (app_mode_expert() && !app_mode_blindsign()) {
             app_mode_skip_blindsign_ui();
         }
+        #else
+        CHECK_ERROR(_readTxApplication(c, v))
+        #endif
         break;
     default:
         return parser_unknown_transaction;
