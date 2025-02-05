@@ -15,7 +15,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 import Transport from "@ledgerhq/hw-transport";
-import {ResponseAddress, ResponseAppInfo, ResponseDeviceInfo, ResponseSign, ResponseVersion} from "./types";
+import {ERROR_BAD_JSON, ERROR_FAILED_DECODING, ERROR_FAILED_DOMAIN_AUTH, ERROR_INVALID_SCOPE, ERROR_INVALID_SIGNER, ERROR_MISSING_AUTHENTICATION_DATA, ERROR_MISSING_DOMAIN, ResponseAddress, ResponseAppInfo, ResponseDeviceInfo, ResponseSign, ResponseVersion, ScopeType, StdSigData, StdSigDataResponse, StdSignMetadata} from "./types";
 import {
   CHUNK_SIZE,
   ERROR_CODE,
@@ -27,6 +27,8 @@ import {
   processErrorResponse,
 } from "./common";
 import {CLA, INS, PKLEN} from "./config";
+import { canonify } from '@truestamp/canonify';
+import * as crypto from 'crypto'
 
 export {LedgerError};
 export * from "./types";
@@ -298,4 +300,89 @@ export default class AlgorandApp {
       }, processErrorResponse)
     })
   }
+
+  async signData(signingData: StdSigData, metadata: StdSignMetadata): Promise<StdSigDataResponse> {
+      // decode signing data with chosen metadata.encoding
+      let decodedData: Uint8Array
+      let toSign: Uint8Array
+
+      let pubKey: ResponseAddress
+      if (signingData.hdPath) {
+        pubKey = await this.getPubkey(signingData.hdPath.addrIdx)
+      } else {
+        pubKey = await this.getPubkey()
+      }
+
+      if (Buffer.compare(pubKey.publicKey, Buffer.from(signingData.signer)) !== 0) {
+        throw ERROR_INVALID_SIGNER;
+      }
+
+      // decode data
+      switch(metadata.encoding) {
+          case 'base64':
+              decodedData = Buffer.from(signingData.data, 'base64');
+              break;
+          default:
+              throw ERROR_FAILED_DECODING;
+      }
+
+      // validate against schema
+      switch(metadata.scope) {
+
+          case ScopeType.AUTH:
+              // Expects 2 parameters
+              // clientDataJson and domain
+
+              // validate clientDataJson is a valid JSON
+              let clientDataJson: any;
+              try {
+                  clientDataJson = JSON.parse(decodedData.toString());
+              } catch (e) {
+                  throw ERROR_BAD_JSON;
+              }
+
+              const canonifiedClientDataJson = canonify(clientDataJson);
+              if (!canonifiedClientDataJson) {
+                  throw ERROR_BAD_JSON
+              }
+
+              const domain: string = signingData.domain ?? (() => { throw ERROR_MISSING_DOMAIN })()
+              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw ERROR_MISSING_AUTHENTICATION_DATA })()
+
+              // Craft authenticatorData from domain
+              // sha256
+              const rp_id_hash: Buffer = crypto.createHash('sha256').update(domain).digest();
+
+              // attestedCredentialData = aaguid (16 bytes) || credential_id_length (2 bytes) || credential_id || credential_public_key || extensions
+              // authenticator_data = rp_id_hash (32 bytes) || flags (1 byte) || sign_count (4 bytes) || attested_credential_data
+
+              // check that the first 32 bytes of authenticatorDataHash are the same as the sha256 of domain
+              if(Buffer.compare(authenticatorData.slice(0, 32), rp_id_hash) !== 0) {
+                  throw ERROR_FAILED_DOMAIN_AUTH;
+              }
+              
+              const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
+              const authenticatorDataHash: Buffer = crypto.createHash('sha256').update(authenticatorData).digest();
+
+              // Concatenate clientDataJsonHash and authenticatorData
+              toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash]);
+              break;
+
+          default:
+              throw ERROR_INVALID_SCOPE;
+      }
+
+      // perform signature using libsodium
+      const signature: Uint8Array =  await this.rawSign(this.k, toSign);
+
+      // craft response
+      return {
+          ...signingData,
+          signature: signature
+      }
+  }
+
+      private async rawSign(k: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
+        // TODO: Sign with Device
+    }
 }
