@@ -372,8 +372,8 @@ export default class AlgorandApp {
               throw ERROR_INVALID_SCOPE;
       }
 
-      // perform signature using libsodium
-      const signature: Uint8Array =  await this.rawSign(this.k, toSign);
+      const signatureResponse = await this.rawSign(signingData.domain, decodedData, toSign);
+      const signature: Uint8Array = signatureResponse.signature;
 
       // craft response
       return {
@@ -382,7 +382,17 @@ export default class AlgorandApp {
       }
   }
 
-      private async rawSign(k: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-        // TODO: Sign with Device
+  private async rawSign(domain: string, data: Uint8Array, toSign: Uint8Array): Promise<ResponseSign> {
+     // TODO: Send domain and data to the device to display on the screen
+     const response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, 0, 0, Buffer.from(toSign))
+     const return_code = response.slice(-2)[0] * 256 + response.slice(-2)[1]
+
+    return {
+      signature: response.slice(0, response.length - 2),
+      returnCode: return_code,
+      errorMessage: errorCodeToString(return_code),
+      return_code: return_code,
+      error_message: errorCodeToString(return_code),
     }
+  }
 }
