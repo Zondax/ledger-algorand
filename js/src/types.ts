@@ -54,21 +54,13 @@ export interface ResponseSign extends ResponseBase {
   signature: Buffer
 }
 
-export interface HDWalletMetadata {
-    purpose: number,
-    coinType: number,
-    account: number,
-    change: number,
-    addrIdx: number,
-}
-
 export interface StdSigData {
     data: string;
     signer: Uint8Array;
     domain: string;
     authenticationData: Uint8Array;
     requestId?: string;
-    hdPath?: HDWalletMetadata;
+    hdPath?: string;
     signature?: Uint8Array;
 }
 
@@ -87,17 +79,3 @@ export interface StdSignMetadata {
 }
 
 export type StdSignature = Uint8Array;
-
-export class SignDataError extends Error {
-    constructor(public readonly code: number, message: string, data?: any) {
-        super(message);
-    }
-}
-
-export const ERROR_INVALID_SCOPE: SignDataError = new SignDataError(4600, 'Invalid Scope');
-export const ERROR_FAILED_DECODING: SignDataError = new SignDataError(4602, 'Failed decoding');
-export const ERROR_INVALID_SIGNER: SignDataError = new SignDataError(4603, 'Invalid Signer');
-export const ERROR_MISSING_DOMAIN: SignDataError = new SignDataError(4607, 'Missing Domain');
-export const ERROR_MISSING_AUTHENTICATION_DATA: SignDataError = new SignDataError(4608, 'Missing Authentication Data');
-export const ERROR_BAD_JSON: SignDataError = new SignDataError(4609, 'Bad JSON');
-export const ERROR_FAILED_DOMAIN_AUTH: SignDataError = new SignDataError(4610, 'Failed Domain Auth');

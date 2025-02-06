@@ -15,7 +15,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 import Transport from "@ledgerhq/hw-transport";
-import {ERROR_BAD_JSON, ERROR_FAILED_DECODING, ERROR_FAILED_DOMAIN_AUTH, ERROR_INVALID_SCOPE, ERROR_INVALID_SIGNER, ERROR_MISSING_AUTHENTICATION_DATA, ERROR_MISSING_DOMAIN, ResponseAddress, ResponseAppInfo, ResponseDeviceInfo, ResponseSign, ResponseVersion, ScopeType, StdSigData, StdSigDataResponse, StdSignMetadata} from "./types";
+import {ResponseAddress, ResponseAppInfo, ResponseDeviceInfo, ResponseSign, ResponseVersion, ScopeType, StdSigData, StdSigDataResponse, StdSignMetadata} from "./types";
 import {
   CHUNK_SIZE,
   ERROR_CODE,
@@ -308,13 +308,14 @@ export default class AlgorandApp {
 
       let pubKey: ResponseAddress
       if (signingData.hdPath) {
-        pubKey = await this.getPubkey(signingData.hdPath.addrIdx)
+        let account = parseInt(signingData.hdPath.split('/')[3].replace("'", ''))
+        pubKey = await this.getPubkey(account)
       } else {
         pubKey = await this.getPubkey()
       }
 
-      if (Buffer.compare(pubKey.publicKey, Buffer.from(signingData.signer)) !== 0) {
-        throw ERROR_INVALID_SIGNER;
+      if (!signingData.signer || pubKey.publicKey !== signingData.signer) {
+          throw new Error('Invalid Signer');
       }
 
       // decode data
@@ -323,7 +324,7 @@ export default class AlgorandApp {
               decodedData = Buffer.from(signingData.data, 'base64');
               break;
           default:
-              throw ERROR_FAILED_DECODING;
+              throw new Error('Failed decoding');
       }
 
       // validate against schema
@@ -338,16 +339,16 @@ export default class AlgorandApp {
               try {
                   clientDataJson = JSON.parse(decodedData.toString());
               } catch (e) {
-                  throw ERROR_BAD_JSON;
+                  throw new Error('Bad JSON');
               }
 
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
-                  throw ERROR_BAD_JSON
+                  throw new Error('Bad JSON');
               }
 
-              const domain: string = signingData.domain ?? (() => { throw ERROR_MISSING_DOMAIN })()
-              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw ERROR_MISSING_AUTHENTICATION_DATA })()
+              const domain: string = signingData.domain ?? (() => { throw new Error('Missing Domain') })()
+              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw new Error('Missing Authentication Data') })()
 
               // Craft authenticatorData from domain
               // sha256
@@ -358,7 +359,7 @@ export default class AlgorandApp {
 
               // check that the first 32 bytes of authenticatorDataHash are the same as the sha256 of domain
               if(Buffer.compare(authenticatorData.slice(0, 32), rp_id_hash) !== 0) {
-                  throw ERROR_FAILED_DOMAIN_AUTH;
+                  throw new Error('Failed Domain Auth');
               }
               
               const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
@@ -369,7 +370,7 @@ export default class AlgorandApp {
               break;
 
           default:
-              throw ERROR_INVALID_SCOPE;
+              throw new Error('Invalid Scope');
       }
 
       const signatureResponse = await this.rawSign(signingData.domain, decodedData, toSign);

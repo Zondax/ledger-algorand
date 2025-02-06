@@ -191,6 +191,22 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
     THROW(APDU_CODE_OK);
 }
 
+__Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
+    if (!process_chunk(tx, rx)) {
+        THROW(APDU_CODE_OK);
+    }
+
+    // TODO: Extract domain from the buffer
+    // TODO: Extract data from the buffer
+
+    // TODO: Extract toSign from the buffer
+    // TODO: Sign toSign
+
+    app_sign();
+
+    // TODO: Display domain and data on the screen
+}
+
 __Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile uint32_t *tx)
 {
     G_io_apdu_buffer[0] = 0;
@@ -251,6 +267,11 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
                 case INS_GET_VERSION: {
                     handle_getversion(flags, tx);
                     THROW(APDU_CODE_OK);
+                    break;
+                }
+
+                case INS_ARBITRARY_SIGN: {
+                    handle_arbitrary_sign(flags, tx, rx);
                     break;
                 }
 
