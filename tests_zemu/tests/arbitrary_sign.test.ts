@@ -59,8 +59,8 @@ describe('Arbitrary Sign', function () {
       const signatureRequest = app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })
 
       // Wait until we are not in the main menu
-      //await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      //await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`)
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary`)
 
       const signatureResponse = await signatureRequest
 
@@ -76,6 +76,7 @@ describe('Arbitrary Sign', function () {
       const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
       const authenticatorDataHash: Buffer = crypto.createHash('sha256').update(authRequest.authenticationData).digest();
       const toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash])
+
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), toSign])

@@ -384,8 +384,15 @@ export default class AlgorandApp {
   }
 
   private async rawSign(domain: string, data: Uint8Array, toSign: Uint8Array): Promise<ResponseSign> {
-     // TODO: Send domain and data to the device to display on the screen
-     const response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, 0, 0, Buffer.from(toSign))
+     const message = Buffer.concat([
+         Buffer.from(toSign),
+         Buffer.from(domain + '\0'),
+         data
+     ])
+
+     console.log('message', message)
+
+     const response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, 0, 0, message)
      const return_code = response.slice(-2)[0] * 256 + response.slice(-2)[1]
 
     return {

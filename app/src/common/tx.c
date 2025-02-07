@@ -20,6 +20,7 @@
 #include "parser.h"
 #include <string.h>
 #include "zxmacros.h"
+#include "zxformat.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 #define RAM_BUFFER_SIZE 8192
@@ -37,6 +38,21 @@ typedef struct
 {
     uint8_t buffer[FLASH_BUFFER_SIZE];
 } storage_t;
+
+uint8_t *pData;
+void set_pData(uint8_t *data) {
+    pData = data;
+}
+
+char arbitrary_sign_domain[256];
+
+void set_arbitrary_sign_domain(const char *domain) {
+    strncpy(arbitrary_sign_domain, domain, sizeof(arbitrary_sign_domain));
+}
+
+uint8_t get_arbitrary_sign_domain_length() {
+    return strlen(arbitrary_sign_domain);
+}
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
@@ -143,5 +159,43 @@ zxerr_t tx_getItem(int8_t displayIdx,
     if (err != parser_ok)
         return zxerr_unknown;
 
+    return zxerr_ok;
+}
+
+zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    zemu_log("tx_getItem_arbitrary\n");
+
+    uint8_t numItems = 0;
+
+    CHECK_ZXERR(tx_getNumItems_arbitrary(&numItems))
+
+    if (displayIdx > numItems) {
+        return zxerr_no_data;
+    }
+
+    MEMZERO(outKey, outKeyLen);
+    MEMZERO(outVal, outValLen);
+    snprintf(outKey, outKeyLen, "?");
+    snprintf(outVal, outValLen, " ");
+    *pageCount = 0;
+
+    if (displayIdx == 0) {
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "Domain");
+        pageString(outVal, outValLen, arbitrary_sign_domain, pageIdx, pageCount);
+    }
+
+    // TODO: Display JSON data in a human readable format
+    if (displayIdx == 1) {
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "Data");
+        pageString(outVal, outValLen, (char *)pData, pageIdx, pageCount);
+    }
+
+    return zxerr_ok;
+}
+
+zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
+    *num_items = 2;
     return zxerr_ok;
 }

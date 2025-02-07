@@ -192,19 +192,19 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
 }
 
 __Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
+    zemu_log("handle_arbitrary_sign\n");
     if (!process_chunk(tx, rx)) {
         THROW(APDU_CODE_OK);
     }
 
-    // TODO: Extract domain from the buffer
-    // TODO: Extract data from the buffer
+    set_arbitrary_sign_domain((char *) (G_io_apdu_buffer + OFFSET_DATA + TO_SIGN_SIZE));
+    uint8_t domain_len = get_arbitrary_sign_domain_length();
 
-    // TODO: Extract toSign from the buffer
-    // TODO: Sign toSign
+    set_pData(G_io_apdu_buffer + OFFSET_DATA + TO_SIGN_SIZE + domain_len + 1)   ;
 
-    app_sign();
-
-    // TODO: Display domain and data on the screen
+    view_review_init(tx_getItem_arbitrary, tx_getNumItems_arbitrary, app_sign_arbitrary);
+    view_review_show(REVIEW_TXN);
+    *flags |= IO_ASYNCH_REPLY;
 }
 
 __Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile uint32_t *tx)
