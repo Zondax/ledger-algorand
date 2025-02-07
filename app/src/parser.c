@@ -22,7 +22,7 @@
 #include "coin.h"
 #include "parser_common.h"
 #include "parser_impl.h"
-#include "parser.h"
+#include "common/parser.h"
 #include "parser_encoding.h"
 
 #include "base64.h"
