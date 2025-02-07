@@ -179,6 +179,10 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
     snprintf(outVal, outValLen, " ");
     *pageCount = 0;
 
+    if (displayIdx < 0) {
+        snprintf(outVal, outValLen, "Review message");
+    }
+
     if (displayIdx == 0) {
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Domain");
