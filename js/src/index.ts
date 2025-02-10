@@ -342,6 +342,20 @@ export default class AlgorandApp {
                   throw new Error('Bad JSON');
               }
 
+              console.log('clientDataJson', clientDataJson)
+
+              if (!clientDataJson.origin) {
+                throw new Error('Missing Origin');
+              }
+
+              if (!clientDataJson.challenge) {
+                throw new Error('Missing Challenge');
+              }
+
+              if (!clientDataJson.type) {
+                throw new Error('Missing Type');
+              }
+
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
                   throw new Error('Bad JSON');
@@ -353,9 +367,6 @@ export default class AlgorandApp {
               // Craft authenticatorData from domain
               // sha256
               const rp_id_hash: Buffer = crypto.createHash('sha256').update(domain).digest();
-
-              // attestedCredentialData = aaguid (16 bytes) || credential_id_length (2 bytes) || credential_id || credential_public_key || extensions
-              // authenticator_data = rp_id_hash (32 bytes) || flags (1 byte) || sign_count (4 bytes) || attested_credential_data
 
               // check that the first 32 bytes of authenticatorDataHash are the same as the sha256 of domain
               if(Buffer.compare(authenticatorData.slice(0, 32), rp_id_hash) !== 0) {

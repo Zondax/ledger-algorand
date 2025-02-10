@@ -47,7 +47,7 @@ describe('Arbitrary Sign', function () {
       const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       const authRequest: StdSigData = {
-        data: Buffer.from('{"testing":"0","json_data":[{"name":"Arbitrary Sign"}]}').toString('base64'),
+        data: Buffer.from('eyJjaGFsbGVuZ2UiOiJlU1pWc1ltdk5DakpHSDVhOVdXSWpLcDVqbTVERnhsd0JCQXc5emM4RlpNPSIsIm9yaWdpbiI6Imh0dHBzOi8vYXJjNjAuaW8iLCJ0eXBlIjoiYXJjNjAuY3JlYXRlIn0').toString('base64'),
         signer: pubKey,
         domain: "arc60.io",
         requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
