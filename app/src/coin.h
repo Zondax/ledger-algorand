@@ -65,7 +65,12 @@ extern "C" {
 #define P1_FIRST 0x00
 #define P1_FIRST_ACCOUNT_ID 0x01
 #define P1_MORE  0x80
-#define P1_WITH_REQUEST_USER_APPROVAL  0x80
+
+// Use b5-b1 to indicate number of txns in a group
+// Example : 16 txns -> P1 = 0bXX10000X
+// Example :  5 txns -> P1 = 0bXX00101X
+#define P1_NUM_OF_TXNS_IN_GROUP_MASK 0x2E
+#define P1_NUM_OF_TXNS_IN_GROUP(p1) ((p1 & P1_NUM_OF_TXNS_IN_GROUP_MASK) >> 1)
 
 #define P2_LAST  0x00
 #define P2_MORE  0x80

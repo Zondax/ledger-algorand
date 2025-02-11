@@ -33,6 +33,21 @@
 #include "zxmacros.h"
 
 static bool tx_initialized = false;
+
+typedef struct {
+    uint8_t num_of_validated_txns;
+    uint8_t num_of_txns;
+    bool initialized;
+} group_txn_t;
+
+static group_txn_t group_txn = {0, 0, false};
+
+static void group_txn_reset() {
+    group_txn.num_of_validated_txns = 0;
+    group_txn.num_of_txns = 0;
+    group_txn.initialized = false;
+}
+
 static const unsigned char tmpBuff[] = {'T', 'X'};
 
 __Z_INLINE void extractHDPath() {
@@ -48,8 +63,10 @@ __Z_INLINE void extractHDPath() {
     }
 }
 
-__Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
+__Z_INLINE uint8_t convertP1P2(uint8_t p1, const uint8_t p2)
 {
+    p1 &= ~P1_NUM_OF_TXNS_IN_GROUP_MASK;
+
     if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
         return P1_INIT;
     } else if (p1 == P1_MORE && p2 == P2_MORE) {
@@ -72,6 +89,17 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     if (rx < OFFSET_DATA) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
+
+    uint8_t num_of_txns = P1_NUM_OF_TXNS_IN_GROUP(P1);
+
+    if (num_of_txns != 0) {
+        if (num_of_txns > 16) {
+            THROW(APDU_CODE_INVALIDP1P2);
+        }
+        group_txn.num_of_txns = num_of_txns;
+        group_txn.initialized = true;
+    }
+
 
     uint32_t added;
     uint8_t accountIdSize = 0;
@@ -139,6 +167,23 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
+/* Steps for group txn:
+   1. Receive first txn
+   2. Validate txn
+   3. If valid, send SW OK / If invalid, send SW ERROR and reset everything
+
+   Loop until numOfTxns - 1:
+   4. Receive next txn
+   5. Validate txn
+   6. If valid, send SW OK / If invalid, send SW ERROR and reset everything
+
+   7. Receive last txn
+   8. Validate txn
+   9. If valid, sign group txn and send SW OK + signature / If invalid, send SW ERROR
+   10. Reset everything
+
+   On screen: Show BLS warning, Group ID, Group Txn Hash, Signer and Max Fees
+*/
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
     if (!process_chunk(tx, rx)) {
@@ -156,7 +201,17 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
             *flags |= IO_ASYNCH_REPLY;
             view_blindsign_error_show();
         }
+        group_txn_reset();
         THROW(APDU_CODE_DATA_INVALID);
+    }
+
+    // Send SW OK until last txn in group
+    if (group_txn.initialized) {
+        if (group_txn.num_of_validated_txns < group_txn.num_of_txns - 1) {
+            group_txn.num_of_validated_txns++;
+            THROW(APDU_CODE_OK);
+        }
+        group_txn_reset();
     }
 
     view_review_init(tx_getItem, tx_getNumItems, app_sign);

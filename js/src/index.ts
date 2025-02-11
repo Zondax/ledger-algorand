@@ -225,7 +225,7 @@ export default class AlgorandApp {
       .then(processGetAddrResponse, processErrorResponse);
   }
 
-  async signSendChunk(chunkIdx: number, chunkNum: number, accountId: number, chunk: Buffer): Promise<ResponseSign> {
+  async signSendChunk(chunkIdx: number, chunkNum: number, accountId: number, chunk: Buffer, numberOfTxs?: number): Promise<ResponseSign> {
     let p1 = P1_VALUES.MSGPACK_ADD
     let p2 = P2_VALUES.MSGPACK_ADD
 
@@ -235,6 +235,12 @@ export default class AlgorandApp {
     if (chunkIdx === chunkNum) {
       p2 = P2_VALUES.MSGPACK_LAST
     }
+
+    console.log('p1', p1)
+    if (numberOfTxs) {
+      p1 |= numberOfTxs << 1
+    }
+    console.log('p1', p1)
 
     return this.transport
       .send(CLA, INS.SIGN_MSGPACK, p1, p2, chunk, [
@@ -279,12 +285,12 @@ export default class AlgorandApp {
       }, processErrorResponse);
   }
 
-  async sign(accountId = 0, message: string | Buffer) {
+  async sign(accountId = 0, message: string | Buffer, numberOfTxs = 0) {
     return this.signGetChunks(accountId, message).then(chunks => {
-      return this.signSendChunk(1, chunks.length, accountId, chunks[0]).then(async result => {
+      return this.signSendChunk(1, chunks.length, accountId, chunks[0], numberOfTxs).then(async result => {
         for (let i = 1; i < chunks.length; i += 1) {
           // eslint-disable-next-line no-await-in-loop,no-param-reassign
-          result = await this.signSendChunk(1 + i, chunks.length, accountId, chunks[i])
+          result = await this.signSendChunk(1 + i, chunks.length, accountId, chunks[i], numberOfTxs)
           if (result.return_code !== ERROR_CODE.NoError) {
             break
           }
@@ -297,5 +303,31 @@ export default class AlgorandApp {
         }
       }, processErrorResponse)
     })
+  }
+
+  async signGroup(accountId = 0, groupTxn: Buffer[]) {
+    const numOfTxns = groupTxn.length
+    let result: ResponseSign = {
+      returnCode: LedgerError.UnknownError,
+      errorMessage: 'Unknown error',
+      // legacy
+      return_code: LedgerError.UnknownError,
+      error_message: 'Unknown error',
+      signature: Buffer.from([]),
+    };
+
+    if (numOfTxns === 0) {
+      throw new Error('No transactions to sign')
+    }
+
+    for (const txn of groupTxn) {
+      result = await this.sign(accountId, txn, numOfTxns);
+
+      if (result.return_code !== ERROR_CODE.NoError) {
+        throw new Error(`Error signing transaction in group`);
+      }
+    }
+
+    return result;
   }
 }
