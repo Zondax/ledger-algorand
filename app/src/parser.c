@@ -19,6 +19,7 @@
 #include <zxformat.h>
 #include <zxtypes.h>
 
+#include "tx.h"
 #include "coin.h"
 #include "parser_common.h"
 #include "parser_impl.h"
@@ -691,6 +692,30 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     uint8_t numItems = 0;
     CHECK_ERROR(parser_getNumItems(&numItems))
     CHECK_APP_CANARY()
+
+    if (tx_group_is_initialized()) {
+        switch (displayIdx) {
+            case 0xFF:
+                snprintf(outKey, outKeyLen, "Review Group Transaction");
+                snprintf(outVal, outValLen, "Total Transactions: %d", tx_group_get_num_of_txns());
+                return parser_ok;
+            case 0:
+                snprintf(outKey, outKeyLen, "Transaction Group ID");
+                char buff[80] = {0};
+                base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->groupID, sizeof(ctx->parser_tx_obj->groupID));
+                pageString(outVal, outValLen, buff, pageIdx, pageCount);
+                return parser_ok;
+            case 1:
+                snprintf(outKey, outKeyLen, "Transaction Group Hash");
+                base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->group_txn_values.sha256, sizeof(ctx->parser_tx_obj->group_txn_values.sha256));
+                pageString(outVal, outValLen, buff, pageIdx, pageCount);
+                return parser_ok;
+            case 2:
+                snprintf(outKey, outKeyLen, "Max Fees");
+                return _toStringBalance((uint64_t*) &ctx->parser_tx_obj->group_txn_values.max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
+                                        outVal, outValLen, pageIdx, pageCount);
+        }
+    }
 
     uint8_t commonItems = 0;
     CHECK_ERROR(parser_getCommonNumItems(&commonItems))

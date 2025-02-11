@@ -20,6 +20,7 @@
 #include "common/parser.h"
 #include <string.h>
 #include "zxmacros.h"
+#include "lib_cxng/src/cx_sha256.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 #define RAM_BUFFER_SIZE 8192
@@ -45,6 +46,59 @@ storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 
 static parser_tx_t parser_tx_obj;
 static parser_context_t ctx_parsed_tx;
+static group_txn_state_t group_txn;
+
+static cx_sha256_t sha256_ctx;
+
+parser_error_t compute_incremental_sha256(const uint8_t *buffer, uint32_t length, uint8_t *out_hash) {
+    static bool sha256_initialized = false;
+    if (!sha256_initialized) {
+        cx_sha256_init_no_throw(&sha256_ctx);
+        sha256_initialized = true;
+    }
+    
+    if (length > 0) {
+        if (cx_sha256_update(&sha256_ctx, buffer, length) != CX_OK) {
+            return parser_update_hash_failed;
+        }
+    }
+    
+    if (out_hash != NULL) {
+        cx_sha256_final(&sha256_ctx, out_hash);
+        sha256_initialized = false;
+    }
+    return parser_ok;
+}
+
+void tx_group_state_reset() {
+    group_txn.num_of_validated_txns = 0;
+    group_txn.num_of_txns = 0;
+    group_txn.initialized = 0;
+}
+
+uint8_t tx_group_get_num_of_txns() {
+    return group_txn.num_of_txns;
+}
+
+uint8_t tx_group_get_num_of_validated_txns() {
+    return group_txn.num_of_validated_txns;
+}
+
+void tx_group_increment_num_of_validated_txns() {
+    group_txn.num_of_validated_txns++;
+}
+
+uint8_t tx_group_is_initialized() {
+    return group_txn.initialized;
+}
+
+void tx_group_initialize() {
+    group_txn.initialized = 1;
+}
+
+void tx_group_set_num_of_txns(uint8_t num_of_txns) {
+    group_txn.num_of_txns = num_of_txns;
+}
 
 void tx_initialize()
 {
@@ -90,6 +144,18 @@ const char *tx_parse()
         return parser_getErrorDescription(err);
     }
 
+    if (tx_group_is_initialized()) {
+        if (tx_group_get_num_of_validated_txns() < tx_group_get_num_of_txns() - 1) {
+            err = compute_incremental_sha256(tx_get_buffer(), tx_get_buffer_length(), NULL);
+            if(parser_ok != err) {
+                return parser_getErrorDescription(err);
+            }
+        } else {
+            compute_incremental_sha256(tx_get_buffer(), tx_get_buffer_length(), parser_tx_obj.group_txn_values.sha256);
+        }
+        parser_tx_obj.group_txn_values.max_fees += parser_tx_obj.fee;
+    }
+
     err = parser_validate(&ctx_parsed_tx);
     CHECK_APP_CANARY()
 
@@ -108,6 +174,12 @@ void tx_parse_reset()
 
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
+    if (tx_group_is_initialized()) {
+        // Group ID, Group Txn sha256, Max Fees
+        *num_items = 3;
+        return zxerr_ok;
+    }
+
     parser_error_t err = parser_getNumItems(num_items);
     if (err != parser_ok) {
         return zxerr_unknown;

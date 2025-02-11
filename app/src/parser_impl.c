@@ -17,6 +17,7 @@
 #include "parser_impl.h"
 #include "msgpack.h"
 #include "app_mode.h"
+#include "tx.h"
 
 static uint8_t num_items;
 static uint8_t common_num_items;
@@ -42,7 +43,7 @@ static parser_error_t _findKey(parser_context_t *c, const char *key);
     }
 
 #define DISPLAY_APP_ITEM(appIdx, len, counter, v)   \
-    if (!app_mode_blindsign()) {                    \
+    if (!app_mode_blindsign() && !tx_group_is_initialized()) {                    \
         for(uint8_t j = 0; j < len; j++) {          \
             CHECK_ERROR(addItem(appIdx))            \
             counter++;                              \
@@ -50,8 +51,12 @@ static parser_error_t _findKey(parser_context_t *c, const char *key);
     }
 
 #define DISPLAY_COMMON_ITEM(appIdx, len, counter, v)                                \
-    if (v->type == TX_APPLICATION && app_mode_blindsign()) {                       \
+    if (v->type == TX_APPLICATION && app_mode_blindsign()) {                        \
         if (appIdx == IDX_COMMON_SENDER || appIdx == IDX_COMMON_REKEY_TO) {         \
+            DISPLAY_ITEM(appIdx, len, counter)                                      \
+        }                                                                           \
+    } else if (tx_group_is_initialized()) {                                         \
+        if (appIdx == IDX_COMMON_GROUP_ID) {                                        \
             DISPLAY_ITEM(appIdx, len, counter)                                      \
         }                                                                           \
     } else {                                                                        \
@@ -1267,6 +1272,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Buffer too small";
         case parser_unknown_transaction:
             return "Unknown transaction";
+        case parser_update_hash_failed:
+            return "Failed to update hash";
         case parser_key_not_found:
             return "Key not found";
         case parser_msgpack_unexpected_type:

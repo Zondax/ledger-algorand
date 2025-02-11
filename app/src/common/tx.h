@@ -52,3 +52,11 @@ zxerr_t tx_getItem(int8_t displayIdx,
                    char *outKey, uint16_t outKeyLen,
                    char *outValue, uint16_t outValueLen,
                    uint8_t pageIdx, uint8_t *pageCount);
+
+void tx_group_state_reset();
+uint8_t tx_group_get_num_of_txns();
+void tx_group_set_num_of_txns(uint8_t num_of_txns);
+uint8_t tx_group_get_num_of_validated_txns();
+void tx_group_increment_num_of_validated_txns();
+uint8_t tx_group_is_initialized();
+void tx_group_initialize();

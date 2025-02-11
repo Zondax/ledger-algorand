@@ -58,7 +58,7 @@ typedef enum {
     parser_buffer_too_small,
 
     parser_unknown_transaction,
-
+    parser_update_hash_failed,
     parser_key_not_found,
 
     //Msgpack specific

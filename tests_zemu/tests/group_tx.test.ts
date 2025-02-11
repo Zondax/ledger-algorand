@@ -40,6 +40,7 @@ async function createGroupTransaction() {
     const sender1 = algosdk.generateAccount();
     const sender2 = algosdk.generateAccount();
     const sender3 = algosdk.generateAccount();
+    const sender4 = algosdk.generateAccount();
 
     try {
         const params = await algodClient.getTransactionParams().do();
@@ -65,7 +66,14 @@ async function createGroupTransaction() {
             suggestedParams: params,
         });
 
-        const txns = [txn1, txn2, txn3];
+        const txn4 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+            sender: sender1.addr,
+            receiver: sender4.addr,
+            amount: 400000,
+            suggestedParams: params,
+        });
+
+        const txns = [txn1, txn2, txn3, txn4];
 
         const groupID = algosdk.computeGroupID(txns);
         txns.forEach(txn => txn.group = groupID);

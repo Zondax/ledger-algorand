@@ -34,20 +34,6 @@
 
 static bool tx_initialized = false;
 
-typedef struct {
-    uint8_t num_of_validated_txns;
-    uint8_t num_of_txns;
-    bool initialized;
-} group_txn_t;
-
-static group_txn_t group_txn = {0, 0, false};
-
-static void group_txn_reset() {
-    group_txn.num_of_validated_txns = 0;
-    group_txn.num_of_txns = 0;
-    group_txn.initialized = false;
-}
-
 static const unsigned char tmpBuff[] = {'T', 'X'};
 
 __Z_INLINE void extractHDPath() {
@@ -96,10 +82,11 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
         if (num_of_txns > 16) {
             THROW(APDU_CODE_INVALIDP1P2);
         }
-        group_txn.num_of_txns = num_of_txns;
-        group_txn.initialized = true;
+        tx_group_set_num_of_txns(num_of_txns);
+        tx_group_initialize();
+    } else {
+        tx_group_state_reset();
     }
-
 
     uint32_t added;
     uint8_t accountIdSize = 0;
@@ -182,7 +169,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
    9. If valid, sign group txn and send SW OK + signature / If invalid, send SW ERROR
    10. Reset everything
 
-   On screen: Show BLS warning, Group ID, Group Txn Hash, Signer and Max Fees
+   With BLS Mode => On screen: Show BLS warning, Group ID, Group Txn Hash, Signer and Max Fees
 */
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
@@ -201,17 +188,15 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
             *flags |= IO_ASYNCH_REPLY;
             view_blindsign_error_show();
         }
-        group_txn_reset();
         THROW(APDU_CODE_DATA_INVALID);
     }
 
     // Send SW OK until last txn in group
-    if (group_txn.initialized) {
-        if (group_txn.num_of_validated_txns < group_txn.num_of_txns - 1) {
-            group_txn.num_of_validated_txns++;
+    if (tx_group_is_initialized()) {
+        if (tx_group_get_num_of_validated_txns() < tx_group_get_num_of_txns() - 1) {
+            tx_group_increment_num_of_validated_txns();
             THROW(APDU_CODE_OK);
         }
-        group_txn_reset();
     }
 
     view_review_init(tx_getItem, tx_getNumItems, app_sign);
