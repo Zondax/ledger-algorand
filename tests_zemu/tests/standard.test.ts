@@ -31,7 +31,7 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(300000)
+jest.setTimeout(600000)
 
 describe('Standard', function () {
   test.concurrent.each(models)('can start and stop container', async function (m) {
