@@ -41,7 +41,7 @@ typedef struct
     uint8_t buffer[FLASH_BUFFER_SIZE];
 } storage_t;
 
-char arbitrary_sign_domain[256];
+char arbitrary_sign_domain[50];
 
 void set_arbitrary_sign_domain(const char *domain) {
     strncpy(arbitrary_sign_domain, domain, sizeof(arbitrary_sign_domain));
@@ -56,9 +56,9 @@ static parser_tx_t parser_tx_obj;
 static parser_context_t ctx_parsed_tx;
 
 typedef struct {
-    char *json_key_positions[20];
-    char *json_value_positions[20];
-    uint16_t json_value_lengths[20];
+    char *json_key_positions[15];
+    char *json_value_positions[15];
+    uint16_t json_value_lengths[15];
 } tx_parsed_json_t;
 
 tx_parsed_json_t tx_parsed_json;
@@ -188,24 +188,20 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
         return zxerr_ok;
     }
 
-    if (displayIdx >= 1) {
-        size_t key_len = 0;
-        char *key_pos = tx_parsed_json.json_key_positions[displayIdx - 1];
+    size_t key_len = 0;
+    char *key_pos = tx_parsed_json.json_key_positions[displayIdx - 1];
 
-        while (key_pos[key_len++] != '"')
-            ;
+    while (key_pos[key_len++] != '"')
+        ;
 
-        snprintf(outKey, outKeyLen, "%s", tx_parsed_json.json_key_positions[displayIdx - 1]);
-        outKey[key_len - 1] = '\0';
+    snprintf(outKey, outKeyLen, "%s", tx_parsed_json.json_key_positions[displayIdx - 1]);
+    outKey[key_len - 1] = '\0';
 
-        char tmpBuf[256];
-        snprintf(tmpBuf, sizeof(tmpBuf), "%s", tx_parsed_json.json_value_positions[displayIdx - 1]);
-        tmpBuf[tx_parsed_json.json_value_lengths[displayIdx - 1]] = '\0';
-        pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
-        return zxerr_ok;
-    }
-
-    return zxerr_no_data;
+    char tmpBuf[256];
+    snprintf(tmpBuf, sizeof(tmpBuf), "%s", tx_parsed_json.json_value_positions[displayIdx - 1]);
+    tmpBuf[tx_parsed_json.json_value_lengths[displayIdx - 1]] = '\0';
+    pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
+    return zxerr_ok;
 }
 
 zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
