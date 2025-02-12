@@ -24,7 +24,6 @@
 
 void set_arbitrary_sign_domain(const char *domain);
 uint8_t get_arbitrary_sign_domain_length();
-void set_pData(uint8_t *data);
 
 void tx_initialize();
 
@@ -50,6 +49,8 @@ uint8_t *tx_get_buffer();
 /// This function should be called as soon as full buffer data is loaded.
 /// \return It returns NULL if data is valid or error message otherwise.
 const char *tx_parse();
+
+void tx_parse_arbitrary();
 
 /// Return the number of items in the transaction
 zxerr_t tx_getNumItems(uint8_t *num_items);

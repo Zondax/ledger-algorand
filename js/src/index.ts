@@ -344,18 +344,6 @@ export default class AlgorandApp {
 
               console.log('clientDataJson', clientDataJson)
 
-              if (!clientDataJson.origin) {
-                throw new Error('Missing Origin');
-              }
-
-              if (!clientDataJson.challenge) {
-                throw new Error('Missing Challenge');
-              }
-
-              if (!clientDataJson.type) {
-                throw new Error('Missing Type');
-              }
-
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
                   throw new Error('Bad JSON');
@@ -401,17 +389,38 @@ export default class AlgorandApp {
          data
      ])
 
-     console.log('message', message)
+     const chunks = [];
+     for (let i = 0; i < message.length; i += CHUNK_SIZE) {
+       let end = i + CHUNK_SIZE;
+       if (end > message.length) {
+         end = message.length;
+       }
+       chunks.push(message.slice(i, end));
+     }
 
-     const response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, 0, 0, message)
-     const return_code = response.slice(-2)[0] * 256 + response.slice(-2)[1]
+     console.log('chunks', chunks.map(chunk => chunk.toString('hex')))
 
-    return {
+     let return_code = 0
+     let response = Buffer.from([])
+     for (let i = 0; i < chunks.length; i++) {
+       const isLastChunk = i === chunks.length - 1;
+       const p1 = i === 0 ? P1_VALUES.MSGPACK_FIRST : P1_VALUES.MSGPACK_ADD;
+       const p2 = isLastChunk ? P2_VALUES.MSGPACK_LAST : P2_VALUES.MSGPACK_ADD;
+
+       response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, p1, p2, chunks[i]);
+       return_code = response.slice(-2)[0] * 256 + response.slice(-2)[1]
+
+       if (return_code !== ERROR_CODE.NoError) {
+         break;
+       }
+     }
+
+     return {
       signature: response.slice(0, response.length - 2),
-      returnCode: return_code,
-      errorMessage: errorCodeToString(return_code),
-      return_code: return_code,
-      error_message: errorCodeToString(return_code),
+       returnCode: return_code,
+       errorMessage: errorCodeToString(return_code),
+       return_code: return_code,
+       error_message: errorCodeToString(return_code),
     }
   }
 }

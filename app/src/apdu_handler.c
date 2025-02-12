@@ -197,10 +197,7 @@ __Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_
         THROW(APDU_CODE_OK);
     }
 
-    set_arbitrary_sign_domain((char *) (G_io_apdu_buffer + OFFSET_DATA + TO_SIGN_SIZE));
-    uint8_t domain_len = get_arbitrary_sign_domain_length();
-
-    set_pData(G_io_apdu_buffer + OFFSET_DATA + TO_SIGN_SIZE + domain_len + 1)   ;
+    tx_parse_arbitrary();
 
     view_review_init(tx_getItem_arbitrary, tx_getNumItems_arbitrary, app_sign_arbitrary);
     view_review_show(REVIEW_TXN);
