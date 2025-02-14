@@ -17,6 +17,7 @@
 #include "tx.h"
 #include "apdu_codes.h"
 #include "buffering.h"
+#include "app_mode.h"
 #include "common/parser.h"
 #include <string.h>
 #include "zxmacros.h"
@@ -71,21 +72,21 @@ parser_error_t compute_incremental_sha256(const uint8_t *buffer, uint32_t length
 }
 
 void tx_group_state_reset() {
-    group_txn.num_of_validated_txns = 0;
     group_txn.num_of_txns = 0;
     group_txn.initialized = 0;
+    group_txn.num_of_txns_reviewed = 0;
 }
 
 uint8_t tx_group_get_num_of_txns() {
     return group_txn.num_of_txns;
 }
 
-uint8_t tx_group_get_num_of_validated_txns() {
-    return group_txn.num_of_validated_txns;
+uint8_t tx_group_get_num_of_txns_reviewed() {
+    return group_txn.num_of_txns_reviewed;
 }
 
-void tx_group_increment_num_of_validated_txns() {
-    group_txn.num_of_validated_txns++;
+void tx_group_increment_num_of_txns_reviewed() {
+    group_txn.num_of_txns_reviewed++;
 }
 
 uint8_t tx_group_is_initialized() {
@@ -144,8 +145,8 @@ const char *tx_parse()
         return parser_getErrorDescription(err);
     }
 
-    if (tx_group_is_initialized()) {
-        if (tx_group_get_num_of_validated_txns() < tx_group_get_num_of_txns() - 1) {
+    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
+        if (tx_group_get_num_of_txns_reviewed() < tx_group_get_num_of_txns() - 1) {
             err = compute_incremental_sha256(tx_get_buffer(), tx_get_buffer_length(), NULL);
             if(parser_ok != err) {
                 return parser_getErrorDescription(err);
@@ -174,7 +175,7 @@ void tx_parse_reset()
 
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
-    if (tx_group_is_initialized()) {
+    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
         // Group ID, Group Txn sha256, Max Fees
         *num_items = 3;
         return zxerr_ok;

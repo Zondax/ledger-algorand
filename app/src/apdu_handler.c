@@ -22,6 +22,7 @@
 #include <os.h>
 #include <ux.h>
 
+#include "app_mode.h"
 #include "view.h"
 #include "view_internal.h"
 #include "actions.h"
@@ -82,8 +83,10 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
         if (num_of_txns > 16) {
             THROW(APDU_CODE_INVALIDP1P2);
         }
-        tx_group_set_num_of_txns(num_of_txns);
-        tx_group_initialize();
+        if (!tx_group_is_initialized()) {
+            tx_group_initialize();
+            tx_group_set_num_of_txns(num_of_txns);
+        }
     } else {
         tx_group_state_reset();
     }
@@ -173,6 +176,10 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
 */
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
+    if (tx_group_get_num_of_txns_reviewed() >= tx_group_get_num_of_txns()) {
+        tx_group_state_reset();
+    }
+
     if (!process_chunk(tx, rx)) {
         THROW(APDU_CODE_OK);
     }
@@ -191,17 +198,25 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         THROW(APDU_CODE_DATA_INVALID);
     }
 
-    // Send SW OK until last txn in group
-    if (tx_group_is_initialized()) {
-        if (tx_group_get_num_of_validated_txns() < tx_group_get_num_of_txns() - 1) {
-            tx_group_increment_num_of_validated_txns();
-            THROW(APDU_CODE_OK);
+    // For BLS Mode in Group Transactions : Send signature without waiting for user confirmation.
+    // Confirmation happens when the last txn is received (Batch confirmation).
+    // The JS Package will only release the signatures if user confirms the batch.
+    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
+        if (tx_group_get_num_of_txns_reviewed() < tx_group_get_num_of_txns() - 1) {
+            tx_group_increment_num_of_txns_reviewed();
+            app_sign();
+            return;
         }
     }
 
     view_review_init(tx_getItem, tx_getNumItems, app_sign);
     view_review_show(REVIEW_TXN);
+
     *flags |= IO_ASYNCH_REPLY;
+
+    if (tx_group_is_initialized()) {
+        tx_group_increment_num_of_txns_reviewed();
+    }
 }
 
 __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, __Z_UNUSED uint32_t rx)

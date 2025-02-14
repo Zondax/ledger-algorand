@@ -25,7 +25,8 @@
     "url": "https://github.com/zondax/ledger-algorand/issues"
   },
   "dependencies": {
-    "@ledgerhq/hw-transport": "^6.28.0"
+    "@ledgerhq/hw-transport": "^6.28.0",
+    "@msgpack/msgpack": "^2.8.0"
   },
   "devDependencies": {
     "@types/ledgerhq__hw-transport": "^4.21.4",

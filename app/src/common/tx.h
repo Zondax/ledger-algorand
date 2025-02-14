@@ -55,6 +55,8 @@ zxerr_t tx_getItem(int8_t displayIdx,
 
 void tx_group_state_reset();
 uint8_t tx_group_get_num_of_txns();
+uint8_t tx_group_get_num_of_txns_reviewed();
+void tx_group_increment_num_of_txns_reviewed();
 void tx_group_set_num_of_txns(uint8_t num_of_txns);
 uint8_t tx_group_get_num_of_validated_txns();
 void tx_group_increment_num_of_validated_txns();

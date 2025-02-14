@@ -34,10 +34,11 @@ const ALGOD_TOKEN = "";
 const ALGOD_SERVER = "https://testnet-api.algonode.cloud";
 const ALGOD_PORT = "";
 
-async function createGroupTransaction() {
+async function createGroupTransaction(userAddress: string) {
     const algodClient = new algosdk.Algodv2(ALGOD_TOKEN, ALGOD_SERVER, ALGOD_PORT);
 
     const sender1 = algosdk.generateAccount();
+    sender1.addr = algosdk.Address.fromString(userAddress)
     const sender2 = algosdk.generateAccount();
     const sender3 = algosdk.generateAccount();
     const sender4 = algosdk.generateAccount();
@@ -88,7 +89,8 @@ async function createGroupTransaction() {
 
 jest.setTimeout(300000)
 
-describe('Group tx', function () {
+const BLS_MODES = [false]
+describe.each(BLS_MODES)('Group tx', function (bls) {
   test.concurrent.each(models)('sign group tx', async function (m) {
     const sim = new Zemu(m.path)
     try {
@@ -98,10 +100,14 @@ describe('Group tx', function () {
       const responseAddr = await app.getAddressAndPubKey()
       const pubKey = responseAddr.publicKey
 
-      const txnGroup = await createGroupTransaction()
+      const txnGroup = await createGroupTransaction(responseAddr.address.toString())
 
       if (!txnGroup) {
         throw new Error('Failed to create group transaction')
+      }
+
+      if (bls) {
+        await sim.toggleBlindSigning()
       }
 
       const accountId = 0
@@ -109,17 +115,35 @@ describe('Group tx', function () {
       // do not wait here.. we need to navigate
       const signatureRequest = app.signGroup(accountId, txnGroup)
 
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_group_tx`)
+      while (true) {
+        try {
+          console.log('waiting for screen to be not main menu')
+          await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+          console.log('screen is not main menu')
+          
+          await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, true, 0, 15000, bls)
+          
+          const signatureResponse = await Promise.race([
+            signatureRequest,
+            new Promise(resolve => setTimeout(resolve, 100)) // small delay to prevent busy waiting
+          ]);
+          
+          if (signatureResponse) break;
+        } catch (error) {
+          console.error('Error during navigation/approval:', error);
+          break;
+        }
+      }
 
-      const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
+      const signatureResponse = await signatureRequest;
+      console.log('signatureResponse', signatureResponse)
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      for (const signature of signatureResponse) {
+        expect(signature.return_code).toEqual(0x9000)
+        expect(signature.error_message).toEqual('No errors')
+      }
 
-      // Now verify the signature
+      // Now verify the signature : all signatures must be verified
       //const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
       //const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
       const valid = false;

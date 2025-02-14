@@ -27,6 +27,7 @@ import {
   processErrorResponse,
 } from "./common";
 import {CLA, INS, PKLEN} from "./config";
+import { decode } from '@msgpack/msgpack';
 
 export {LedgerError};
 export * from "./types";
@@ -236,11 +237,9 @@ export default class AlgorandApp {
       p2 = P2_VALUES.MSGPACK_LAST
     }
 
-    console.log('p1', p1)
     if (numberOfTxs) {
       p1 |= numberOfTxs << 1
     }
-    console.log('p1', p1)
 
     return this.transport
       .send(CLA, INS.SIGN_MSGPACK, p1, p2, chunk, [
@@ -306,28 +305,65 @@ export default class AlgorandApp {
   }
 
   async signGroup(accountId = 0, groupTxn: Buffer[]) {
-    const numOfTxns = groupTxn.length
-    let result: ResponseSign = {
-      returnCode: LedgerError.UnknownError,
-      errorMessage: 'Unknown error',
-      // legacy
-      return_code: LedgerError.UnknownError,
-      error_message: 'Unknown error',
-      signature: Buffer.from([]),
-    };
+    let numOfTxns = groupTxn.length
+    let results: ResponseSign[] = [];
+    let txnIsToSign: boolean[] = new Array(numOfTxns).fill(true);
+
+    let responsePubKey = await this.getPubkey(accountId)
+    let senderPubKey = responsePubKey.publicKey.toString('hex')
 
     if (numOfTxns === 0) {
       throw new Error('No transactions to sign')
     }
 
-    for (const txn of groupTxn) {
-      result = await this.sign(accountId, txn, numOfTxns);
+    for (let i = 0; i < groupTxn.length; i++) {
+      let sender = this.parseTxSender(groupTxn[i])
 
-      if (result.return_code !== ERROR_CODE.NoError) {
-        throw new Error(`Error signing transaction in group`);
+      if (sender !== senderPubKey) {
+        numOfTxns -= 1
+        txnIsToSign[i] = false
       }
     }
 
-    return result;
+    if (numOfTxns <= 0) {
+      throw new Error('No transactions were meant to be signed by the device')
+    }
+
+    for (let i = 0; i < groupTxn.length; i++) {
+      let result: ResponseSign
+
+      if (txnIsToSign[i]) {
+        result = await this.sign(accountId, groupTxn[i], numOfTxns);
+
+        if (result.return_code !== ERROR_CODE.NoError) {
+          throw new Error(`Error signing transaction in group`);
+        }
+      } else {
+        result = {
+          return_code: 0x6985,
+          error_message: 'Not the sender',
+          signature: Buffer.from([]),
+          returnCode: 0x6985,
+          errorMessage: 'Not the sender'
+        }
+      }
+
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  parseTxSender(txn: Buffer): string {
+    try {
+      const decoded = decode(txn);
+      if (typeof decoded === 'object' && decoded !== null && 'snd' in decoded) {
+        // @ts-ignore - We know snd exists from the check above
+        return Buffer.from(decoded.snd).toString('hex');
+      }
+      throw new Error('Invalid transaction format: snd field not found');
+    } catch (e) {
+      throw new Error(`Failed to parse msgpack`);
+    }
   }
 }
