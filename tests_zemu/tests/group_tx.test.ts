@@ -305,7 +305,6 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
       let lastImageIdx = 0
       while (true) {
         try {
-          console.log('waiting for screen to be not main menu')
           await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
           lastImageIdx = await sim.navigateUntilText('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, approveKeyword, true, true, lastImageIdx, 15000, true, true, bls)
           sim.deleteEvents()
@@ -315,8 +314,6 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
             new Promise(resolve => setTimeout(resolve, 100)) // small delay to prevent busy waiting
           ]);
 
-          console.log('transaction approved')
-          
           if (signatureResponse) break;
         } catch (error) {
           console.error('Error during navigation/approval:', error);
@@ -326,7 +323,6 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
 
       await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, lastImageIdx)
       const signatureResponse = await signatureRequest;
-      console.log('signatureResponse', signatureResponse)
 
       // Now verify the signature : all signatures must be verified except the 
       // ones that are not meant to be signed by the device
