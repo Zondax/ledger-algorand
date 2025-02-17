@@ -14,7 +14,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 
-import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
+import Zemu, { DEFAULT_START_OPTIONS, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
 import AlgorandApp from '@zondax/ledger-algorand'
 import { APP_SEED, models } from './common'
@@ -22,6 +22,7 @@ import { APP_SEED, models } from './common'
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
 import algosdk from 'algosdk'
+import { DEFAULT_NANO_APPROVE_KEYWORD, DEFAULT_STAX_APPROVE_KEYWORD } from '@zondax/zemu/dist/constants'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -74,6 +75,8 @@ async function createGroupTransaction(userAddress: string) {
             suggestedParams: params,
         });
 
+        txn4.fee = BigInt(30000)
+
         const txns = [txn1, txn2, txn3, txn4];
 
         const groupID = algosdk.computeGroupID(txns);
@@ -89,7 +92,14 @@ async function createGroupTransaction(userAddress: string) {
 
 jest.setTimeout(300000)
 
-const BLS_MODES = [false]
+const preComputedTxnGroup = [
+  '8aa3616d74ce000186a0a3666565cd03e8a26676ce02e89fb2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c4206721def20bcdd40921332346679fa8c5d7b2e6337fc8d105e3bac5340ca2b4aca26c76ce02e8a39aa3726376c420ff8a555ee30e82f2f696a75e3daf18b683d090d9e9e9a6056247316085497032a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a3706179',
+  '8aa3616d74cdc350a3666565cd03e8a26676ce02e89fb2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c4206721def20bcdd40921332346679fa8c5d7b2e6337fc8d105e3bac5340ca2b4aca26c76ce02e8a39aa3726376c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a3736e64c420ff8a555ee30e82f2f696a75e3daf18b683d090d9e9e9a6056247316085497032a474797065a3706179',
+  '8aa3616d74ce000493e0a3666565cd03e8a26676ce02e89fb2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c4206721def20bcdd40921332346679fa8c5d7b2e6337fc8d105e3bac5340ca2b4aca26c76ce02e8a39aa3726376c4206138ace34a59f2d671a670aabfc4f5efa21a321b76e9ee574d377760c17ad10fa3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a3706179',
+  '8aa3616d74ce00061a80a3666565cd7530a26676ce02e89fb2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c4206721def20bcdd40921332346679fa8c5d7b2e6337fc8d105e3bac5340ca2b4aca26c76ce02e8a39aa3726376c420a0dcbe5643c97bb243d4e8f938e2c80df74f80d39c18249ffb5e24b5e173e4f6a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a3706179'
+]
+
+const BLS_MODES = [true, false]
 describe.each(BLS_MODES)('Group tx', function (bls) {
   test.concurrent.each(models)('sign group tx', async function (m) {
     const sim = new Zemu(m.path)
@@ -100,11 +110,15 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
       const responseAddr = await app.getAddressAndPubKey()
       const pubKey = responseAddr.publicKey
 
-      const txnGroup = await createGroupTransaction(responseAddr.address.toString())
+      // When needing new test cases, create them with createGroupTransaction
+      //const txnGroup = await createGroupTransaction(responseAddr.address.toString())
+      const txnGroup = preComputedTxnGroup.map(txn => Buffer.from(txn, 'hex'))
 
       if (!txnGroup) {
         throw new Error('Failed to create group transaction')
       }
+
+      const approveKeyword =  isTouchDevice(m.name) ? DEFAULT_STAX_APPROVE_KEYWORD : DEFAULT_NANO_APPROVE_KEYWORD
 
       if (bls) {
         await sim.toggleBlindSigning()
@@ -115,18 +129,22 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
       // do not wait here.. we need to navigate
       const signatureRequest = app.signGroup(accountId, txnGroup)
 
+      let imageIdx = 0
+      let lastImageIdx = 0
       while (true) {
         try {
           console.log('waiting for screen to be not main menu')
           await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-          console.log('screen is not main menu')
-          
-          await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, true, 0, 15000, bls)
+          lastImageIdx = await sim.navigateUntilText('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, approveKeyword, true, true, imageIdx, 15000, true, true, bls)
+          sim.deleteEvents()
+          imageIdx += 5
           
           const signatureResponse = await Promise.race([
             signatureRequest,
             new Promise(resolve => setTimeout(resolve, 100)) // small delay to prevent busy waiting
           ]);
+
+          console.log('transaction approved')
           
           if (signatureResponse) break;
         } catch (error) {
@@ -135,19 +153,24 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
         }
       }
 
+      await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, lastImageIdx)
       const signatureResponse = await signatureRequest;
       console.log('signatureResponse', signatureResponse)
 
-      for (const signature of signatureResponse) {
-        expect(signature.return_code).toEqual(0x9000)
-        expect(signature.error_message).toEqual('No errors')
+      // Now verify the signature : all signatures must be verified except the 
+      // second txn, which has a different sender
+      for (let i = 0; i < signatureResponse.length; i++) {
+        if (i === 1) {
+          expect(signatureResponse[i].return_code).toEqual(0x6985)
+          expect(signatureResponse[i].error_message).toEqual('Not the sender')
+          continue;
+        };
+        expect(signatureResponse[i].return_code).toEqual(0x9000)
+        expect(signatureResponse[i].error_message).toEqual('No errors')
+        const prehash = Buffer.concat([Buffer.from('TX'), txnGroup[i]])
+        const valid = ed25519.verify(signatureResponse[i].signature, prehash, pubKey)
+        expect(valid).toEqual(true)
       }
-
-      // Now verify the signature : all signatures must be verified
-      //const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
-      //const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
-      const valid = false;
-      expect(valid).toEqual(true)
     } finally {
       await sim.close()
     }

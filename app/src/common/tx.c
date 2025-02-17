@@ -197,7 +197,7 @@ zxerr_t tx_getItem(int8_t displayIdx,
 
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
-    if (displayIdx > numItems) {
+    if (displayIdx >= numItems) {
         return zxerr_no_data;
     }
 
