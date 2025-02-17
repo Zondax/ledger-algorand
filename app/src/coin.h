@@ -69,7 +69,7 @@ extern "C" {
 // Use b5-b1 to indicate number of txns in a group
 // Example : 16 txns -> P1 = 0bXX10000X
 // Example :  5 txns -> P1 = 0bXX00101X
-#define P1_NUM_OF_TXNS_IN_GROUP_MASK 0x2E
+#define P1_NUM_OF_TXNS_IN_GROUP_MASK 0x3E
 #define P1_NUM_OF_TXNS_IN_GROUP(p1) ((p1 & P1_NUM_OF_TXNS_IN_GROUP_MASK) >> 1)
 
 #define P2_LAST  0x00
