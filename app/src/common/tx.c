@@ -146,14 +146,6 @@ const char *tx_parse()
     }
 
     if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        if (tx_group_get_num_of_txns_reviewed() < tx_group_get_num_of_txns() - 1) {
-            err = compute_incremental_sha256(tx_get_buffer(), tx_get_buffer_length(), NULL);
-            if(parser_ok != err) {
-                return parser_getErrorDescription(err);
-            }
-        } else {
-            compute_incremental_sha256(tx_get_buffer(), tx_get_buffer_length(), parser_tx_obj.group_txn_values.sha256);
-        }
         parser_tx_obj.group_txn_values.max_fees += parser_tx_obj.fee;
     }
 

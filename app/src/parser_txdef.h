@@ -218,7 +218,6 @@ typedef struct {
 
 typedef struct {
   uint64_t max_fees;
-  uint8_t sha256[32];
 } group_txn_values_t;
 
 typedef struct {

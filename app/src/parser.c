@@ -701,25 +701,32 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     if (tx_group_is_initialized()) {
         if (app_mode_blindsign_required()) {
             switch (displayIdx) {
-                case 0xFF:
+                case 0xFF: {
                     snprintf(outKey, outKeyLen, "Review Group Transaction");
                     snprintf(outVal, outValLen, "Total Transactions: %d", tx_group_get_num_of_txns());
                     return parser_ok;
-                case 0:
-                    snprintf(outKey, outKeyLen, "Transaction Group ID");
+                }
+                case 0: {
+                    snprintf(outKey, outKeyLen, "Group ID");
                     char buff[80] = {0};
                     base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->groupID, sizeof(ctx->parser_tx_obj->groupID));
                     pageString(outVal, outValLen, buff, pageIdx, pageCount);
                     return parser_ok;
-                case 1:
-                    snprintf(outKey, outKeyLen, "Transaction Group Hash");
-                    base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->group_txn_values.sha256, sizeof(ctx->parser_tx_obj->group_txn_values.sha256));
+                }
+                case 1: {
+                    snprintf(outKey, outKeyLen, "Sender");
+                    char buff[80] = {0};
+                    if (encodePubKey((uint8_t*) buff, sizeof(buff), ctx->parser_tx_obj->sender) == 0) {
+                        return parser_unexpected_buffer_end;
+                    }
                     pageString(outVal, outValLen, buff, pageIdx, pageCount);
                     return parser_ok;
-                case 2:
+                }
+                case 2: {
                     snprintf(outKey, outKeyLen, "Max Fees");
                     return _toStringBalance((uint64_t*) &ctx->parser_tx_obj->group_txn_values.max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
                                             outVal, outValLen, pageIdx, pageCount);
+                }
             }
         } else {
             if (displayIdx == 0xFF) {
