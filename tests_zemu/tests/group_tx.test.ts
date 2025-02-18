@@ -14,9 +14,9 @@
  *  limitations under the License.
  ******************************************************************************* */
 
-import Zemu, { DEFAULT_START_OPTIONS, isTouchDevice } from '@zondax/zemu'
+import Zemu, { DEFAULT_START_OPTIONS, IDeviceModel, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
+import AlgorandApp, { ResponseSign } from '@zondax/ledger-algorand'
 import { APP_SEED, models } from './common'
 
 // @ts-ignore
@@ -272,8 +272,18 @@ const preComputedTxnGroup = [
   '8aa46170616e03a46170696401a3666565cd03e8a26676ce02e8a7a2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c420deb6db46b69fd9616dd6be3888b8ac2636b844d78732bf137639c0a3b79c9ecda26c76ce02e8ab8aa3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a46170706c',
 ]
 
-const BLS_MODES = [true, false]
-describe.each(BLS_MODES)('Group tx', function (bls) {
+const GROUP_TEST_CASES = [
+    {
+        bls: true,
+        preComputedTxnGroup: preComputedTxnGroup,
+    },
+    {
+        bls: false,
+        preComputedTxnGroup: preComputedTxnGroup,
+    },
+]
+
+describe.each(GROUP_TEST_CASES)('Group tx', function (params) {
   test.concurrent.each(models)('sign group tx', async function (m) {
     const sim = new Zemu(m.path)
     try {
@@ -285,15 +295,13 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
 
       // When needing new test cases, create them with createGroupTransaction
       //const txnGroup = await createGroupTransaction(responseAddr.address.toString())
-      const txnGroup = preComputedTxnGroup.map(txn => Buffer.from(txn, 'hex'))
+      const txnGroup = params.preComputedTxnGroup.map(txn => Buffer.from(txn, 'hex'))
 
       if (!txnGroup) {
         throw new Error('Failed to create group transaction')
       }
 
-      const approveKeyword =  isTouchDevice(m.name) ? DEFAULT_STAX_APPROVE_KEYWORD : DEFAULT_NANO_APPROVE_KEYWORD
-
-      if (bls) {
+      if (params.bls) {
         await sim.toggleBlindSigning()
       }
 
@@ -302,41 +310,69 @@ describe.each(BLS_MODES)('Group tx', function (bls) {
       // do not wait here.. we need to navigate
       const signatureRequest = app.signGroup(accountId, txnGroup)
 
-      let lastImageIdx = 0
-      while (true) {
-        try {
-          await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-          lastImageIdx = await sim.navigateUntilText('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, approveKeyword, true, true, lastImageIdx, 15000, true, true, bls)
-          sim.deleteEvents()
-          
-          const signatureResponse = await Promise.race([
-            signatureRequest,
-            new Promise(resolve => setTimeout(resolve, 100)) // small delay to prevent busy waiting
-          ]);
-
-          if (signatureResponse) break;
-        } catch (error) {
-          console.error('Error during navigation/approval:', error);
-          break;
-        }
-      }
-
-      await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_group_tx_${bls ? 'blindsign' : 'normal'}`, lastImageIdx)
-      const signatureResponse = await signatureRequest;
+      const signatureResponse = await navigateTxnGroup(sim, m, params, signatureRequest, "group_tx")
 
       // Now verify the signature : all signatures must be verified except the 
       // ones that are not meant to be signed by the device
-      for (let i = 0; i < signatureResponse.length; i++) {
-        if (parseTxSender(txnGroup[i]) !== pubKey.toString('hex')) {
-          expect(signatureResponse[i].return_code).toEqual(0x6985)
-          expect(signatureResponse[i].error_message).toEqual('Not the sender')
-          continue;
-        };
-        expect(signatureResponse[i].return_code).toEqual(0x9000)
-        expect(signatureResponse[i].error_message).toEqual('No errors')
-        const prehash = Buffer.concat([Buffer.from('TX'), txnGroup[i]])
-        const valid = ed25519.verify(signatureResponse[i].signature, prehash, pubKey)
-        expect(valid).toEqual(true)
+      verifySignatures(signatureResponse, txnGroup, pubKey)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('single tx in group tx', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const txnGroup = [Buffer.from('8aa3616d74ce000186a0a3666565cd03e8a26676ce02e8a7a2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c420deb6db46b69fd9616dd6be3888b8ac2636b844d78732bf137639c0a3b79c9ecda26c76ce02e8ab8aa3726376c420dd779effe6683ee300e60e2cf717116946e38386254f4663df6052b11220e947a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a3706179', 'hex')]
+
+      if (params.bls) {
+        await sim.toggleBlindSigning()
+      }
+
+      const accountId = 0
+
+      try {
+        const signatureRequest = await app.signGroup(accountId, txnGroup)
+        expect(false).toBe(true)
+      } catch (e: any) {
+        expect(e.message).toEqual('Single transaction in group')
+      }
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('too many txs in group tx', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const txnGroup = params.preComputedTxnGroup.map(txn => Buffer.from(txn, 'hex'))
+      
+      // Add txn number 17
+      txnGroup.push(Buffer.from('8aa3616d74ce000186a0a3666565cd03e8a26676ce02e8a7a2a367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c420deb6db46b69fd9616dd6be3888b8ac2636b844d78732bf137639c0a3b79c9ecda26c76ce02e8ab8aa3726376c420dd779effe6683ee300e60e2cf717116946e38386254f4663df6052b11220e947a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a3706179', 'hex'))
+
+      if (params.bls) {
+        await sim.toggleBlindSigning()
+      }
+
+      const accountId = 0
+
+      try {
+        const signatureRequest = await app.signGroup(accountId, txnGroup)
+        expect(false).toBe(true)
+      } catch (e: any) {
+        expect(e.message).toEqual('Too many transactions in group')
       }
     } finally {
       await sim.close()
@@ -356,4 +392,47 @@ function parseTxSender(txn: Buffer): string {
   } catch (e) {
     throw new Error(`Failed to parse msgpack`);
   }
+}
+
+async function navigateTxnGroup(sim: Zemu, m: IDeviceModel, params: any, signatureRequest: Promise<ResponseSign[]>, name: string) {
+    let lastImageIdx = 0
+    const approveKeyword =  isTouchDevice(m.name) ? DEFAULT_STAX_APPROVE_KEYWORD : DEFAULT_NANO_APPROVE_KEYWORD
+
+    while (true) {
+    try {
+        await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+        lastImageIdx = await sim.navigateUntilText('.', `${m.prefix.toLowerCase()}-sign_${name}${params.bls ? '_blindsign' : ''}`, approveKeyword, true, true, lastImageIdx, 15000, true, true, params.bls)
+        sim.deleteEvents()
+        
+        const signatureResponse = await Promise.race([
+        signatureRequest,
+        new Promise(resolve => setTimeout(resolve, 100))
+        ]);
+
+        if (signatureResponse) break;
+    } catch (error) {
+        console.error('Error during navigation/approval:', error);
+        break;
+    }
+    }
+
+    await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_${name}${params.bls ? '_blindsign' : ''}`, lastImageIdx)
+    const signatureResponse = await signatureRequest;
+    return signatureResponse
+}
+
+function verifySignatures(signatureResponse: ResponseSign[], txnGroup: Buffer[], pubKey: Buffer) {
+    for (let i = 0; i < signatureResponse.length; i++) {
+        if (parseTxSender(txnGroup[i]) !== pubKey.toString('hex')) {
+            expect(signatureResponse[i].return_code).toEqual(0x6985)
+            expect(signatureResponse[i].error_message).toEqual('Not the sender')
+            continue;
+        };
+
+        expect(signatureResponse[i].return_code).toEqual(0x9000)
+        expect(signatureResponse[i].error_message).toEqual('No errors')
+        const prehash = Buffer.concat([Buffer.from('TX'), txnGroup[i]])
+        const valid = ed25519.verify(signatureResponse[i].signature, prehash, pubKey)
+        expect(valid).toEqual(true)
+    }
 }

@@ -309,12 +309,16 @@ export default class AlgorandApp {
     let results: ResponseSign[] = [];
     let txnIsToSign: boolean[] = new Array(numOfTxns).fill(true);
 
-    let responsePubKey = await this.getPubkey(accountId)
-    let senderPubKey = responsePubKey.publicKey.toString('hex')
-
     if (numOfTxns === 0) {
       throw new Error('No transactions to sign')
+    } else if (numOfTxns === 1) {
+      throw new Error('Single transaction in group')
+    } else if (numOfTxns > 16) {
+      throw new Error('Too many transactions in group')
     }
+
+    let responsePubKey = await this.getPubkey(accountId)
+    let senderPubKey = responsePubKey.publicKey.toString('hex')
 
     for (let i = 0; i < groupTxn.length; i++) {
       let sender = this.parseTxSender(groupTxn[i])
