@@ -21,12 +21,11 @@
 #include "common/parser.h"
 #include <string.h>
 #include "zxmacros.h"
-#include "lib_cxng/src/cx_sha256.h"
 
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if !defined(TARGET_NANOS)
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
-#elif defined(TARGET_NANOS)
+#else
 #define RAM_BUFFER_SIZE 256
 #define FLASH_BUFFER_SIZE 8192
 #endif
@@ -43,33 +42,14 @@ typedef struct
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #define N_appdata (*(NV_VOLATILE storage_t *)PIC(&N_appdata_impl))
+#else
+storage_t N_appdata_impl;
+#define N_appdata N_appdata_impl
 #endif
 
 static parser_tx_t parser_tx_obj;
 static parser_context_t ctx_parsed_tx;
 static group_txn_state_t group_txn;
-
-static cx_sha256_t sha256_ctx;
-
-parser_error_t compute_incremental_sha256(const uint8_t *buffer, uint32_t length, uint8_t *out_hash) {
-    static bool sha256_initialized = false;
-    if (!sha256_initialized) {
-        cx_sha256_init_no_throw(&sha256_ctx);
-        sha256_initialized = true;
-    }
-    
-    if (length > 0) {
-        if (cx_sha256_update(&sha256_ctx, buffer, length) != CX_OK) {
-            return parser_update_hash_failed;
-        }
-    }
-    
-    if (out_hash != NULL) {
-        cx_sha256_final(&sha256_ctx, out_hash);
-        sha256_initialized = false;
-    }
-    return parser_ok;
-}
 
 void tx_group_state_reset() {
     group_txn.num_of_txns = 0;
@@ -168,7 +148,7 @@ void tx_parse_reset()
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
     if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        // Group ID, Group Txn sha256, Max Fees
+        // Group ID, Max Fees, Sender
         *num_items = 3;
         return zxerr_ok;
     }

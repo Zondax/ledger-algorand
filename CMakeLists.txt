@@ -129,12 +129,14 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/base64.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/base58.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/bignum.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/buffering.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/hexutils.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxmacros.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxformat.c
         ####
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/tx.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_encoding.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/algo_asa.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/sha512/sha512.c

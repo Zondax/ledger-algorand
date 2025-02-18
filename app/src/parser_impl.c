@@ -1274,8 +1274,6 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Buffer too small";
         case parser_unknown_transaction:
             return "Unknown transaction";
-        case parser_update_hash_failed:
-            return "Failed to update hash";
         case parser_key_not_found:
             return "Key not found";
         case parser_msgpack_unexpected_type:
