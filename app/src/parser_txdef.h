@@ -217,10 +217,6 @@ typedef struct {
 } txn_application;
 
 typedef struct {
-  uint64_t max_fees;
-} group_txn_values_t;
-
-typedef struct {
     uint8_t initialized;
     uint8_t num_of_txns;
     uint8_t num_of_txns_reviewed;
@@ -251,7 +247,6 @@ typedef struct{
   uint8_t lease[32];
 
   uint16_t note_len;
-  group_txn_values_t group_txn_values;
 } parser_tx_t;
 
 typedef parser_tx_t txn_t;

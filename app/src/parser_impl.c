@@ -816,6 +816,10 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
     }
     DISPLAY_COMMON_ITEM(IDX_COMMON_FEE, 1, common_num_items, v)
 
+    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
+        group_max_fees += v->fee;
+    }
+
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
         DISPLAY_COMMON_ITEM(IDX_COMMON_GEN_ID, 1, common_num_items, v)

@@ -21,6 +21,8 @@
 #define SHA_256_HASH_SIZE 32
 #define TO_SIGN_SIZE (2 * SHA_256_HASH_SIZE)
 
+extern uint64_t group_max_fees;
+
 void set_arbitrary_sign_domain(const char *domain);
 uint8_t get_arbitrary_sign_domain_length();
 

@@ -33,6 +33,9 @@
 #include "common/parser.h"
 #include "zxmacros.h"
 
+#define MAX_NUM_OF_TXNS_IN_GROUP 16
+#define MIN_NUM_OF_TXNS_IN_GROUP 2
+
 static bool tx_initialized = false;
 
 static const unsigned char tmpBuff[] = {'T', 'X'};
@@ -80,7 +83,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     uint8_t num_of_txns = P1_NUM_OF_TXNS_IN_GROUP(P1);
 
     if (num_of_txns != 0) {
-        if (num_of_txns > 16 || num_of_txns == 1) {
+        if (num_of_txns > MAX_NUM_OF_TXNS_IN_GROUP || num_of_txns < MIN_NUM_OF_TXNS_IN_GROUP) {
             THROW(APDU_CODE_INVALIDP1P2);
         }
         if (!tx_group_is_initialized()) {

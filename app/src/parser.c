@@ -729,7 +729,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                 }
                 case 2: {
                     snprintf(outKey, outKeyLen, "Max Fees");
-                    return _toStringBalance((uint64_t*) &ctx->parser_tx_obj->group_txn_values.max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
+                    return _toStringBalance((uint64_t*) &group_max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
                                             outVal, outValLen, pageIdx, pageCount);
                 }
             }

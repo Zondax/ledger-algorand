@@ -346,10 +346,10 @@ export default class AlgorandApp {
       } else {
         result = {
           return_code: 0x6985,
-          error_message: 'Not the sender',
+          error_message: 'The sender in the transaction is not the same as the device',
           signature: Buffer.from([]),
           returnCode: 0x6985,
-          errorMessage: 'Not the sender'
+          errorMessage: 'The sender in the transaction is not the same as the device'
         }
       }
 

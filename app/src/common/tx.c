@@ -43,6 +43,7 @@ typedef struct
 } storage_t;
 
 char arbitrary_sign_domain[50];
+uint64_t group_max_fees;
 
 void set_arbitrary_sign_domain(const char *domain) {
     strncpy(arbitrary_sign_domain, domain, sizeof(arbitrary_sign_domain));
@@ -66,12 +67,13 @@ typedef struct {
 
 tx_parsed_json_t tx_parsed_json;
 
-static group_txn_state_t group_txn;
+static group_txn_state_t group_txn = {0};
 
 void tx_group_state_reset() {
     group_txn.num_of_txns = 0;
     group_txn.initialized = 0;
     group_txn.num_of_txns_reviewed = 0;
+    group_max_fees = 0;
 }
 
 uint8_t tx_group_get_num_of_txns() {
@@ -140,10 +142,6 @@ const char *tx_parse()
     if (err != parser_ok)
     {
         return parser_getErrorDescription(err);
-    }
-
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        parser_tx_obj.group_txn_values.max_fees += parser_tx_obj.fee;
     }
 
     err = parser_validate(&ctx_parsed_tx);

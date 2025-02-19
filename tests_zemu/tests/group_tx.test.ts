@@ -296,9 +296,6 @@ describe.each(GROUP_TEST_CASES)('Group tx', function (params) {
       // When needing new test cases, create them with createGroupTransaction
       //const txnGroup = await createGroupTransaction(responseAddr.address.toString())
       const txnGroup = params.preComputedTxnGroup.map(txn => Buffer.from(txn, 'hex'))
-      for (const txn of txnGroup) {
-        console.log(txn.toString('hex'))
-      }
 
       if (!txnGroup) {
         throw new Error('Failed to create group transaction')
@@ -314,6 +311,43 @@ describe.each(GROUP_TEST_CASES)('Group tx', function (params) {
       const signatureRequest = app.signGroup(accountId, txnGroup)
 
       const signatureResponse = await navigateTxnGroup(sim, m, params, signatureRequest, "group_tx")
+
+      // Now verify the signature : all signatures must be verified except the 
+      // ones that are not meant to be signed by the device
+      verifySignatures(signatureResponse, txnGroup, pubKey)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('sign large fees', async function (m) {
+    if (!params.bls) {
+        return
+    }
+
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      // One Txn with a fee of 0.001 ALGO and one with a fee of 3.000 ALGO
+      const txns = [
+        '89a46170617288a2616ea854657374436f696ea163c4200d3db9f38df06f3f94aa5f102ff8a08204f43647f5beb285c56afb48cc55f670a2646302a166c4204413f5569a4c3379ed52c2bef3eb15f9dbf36db5040fb4d1f31ef26906431e27a16dc4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a172c4205c2b209c1cfc125e368af3f7d2c1c9412c4e47d9e989bdcb22fb4189664a4f86a174ce000f4240a2756ea4434f494ea3666565ce002dc6c0a26676ce02e9d1faa367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c42003d69143acf746f4036e8d014563ef2323b5a75bab6232000f8d44acb54547fea26c76ce02e9d5e2a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a461636667',
+        '8aa46170616e03a46170696401a3666565cd03e8a26676ce02e9d1faa367656eac746573746e65742d76312e30a26768c4204863b518a4b3c84ec810f22d4f1081cb0f71f059a7ac20dec62f7f70e5093a22a3677270c42003d69143acf746f4036e8d014563ef2323b5a75bab6232000f8d44acb54547fea26c76ce02e9d5e2a3736e64c4201eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8a474797065a46170706c'
+      ]
+      const txnGroup = txns.map(txn => Buffer.from(txn, 'hex'))
+
+      await sim.toggleBlindSigning()
+
+      const accountId = 0
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.signGroup(accountId, txnGroup)
+
+      const signatureResponse = await navigateTxnGroup(sim, m, params, signatureRequest, "large_fees_group_tx")
 
       // Now verify the signature : all signatures must be verified except the 
       // ones that are not meant to be signed by the device
@@ -428,7 +462,7 @@ function verifySignatures(signatureResponse: ResponseSign[], txnGroup: Buffer[],
     for (let i = 0; i < signatureResponse.length; i++) {
         if (parseTxSender(txnGroup[i]) !== pubKey.toString('hex')) {
             expect(signatureResponse[i].return_code).toEqual(0x6985)
-            expect(signatureResponse[i].error_message).toEqual('Not the sender')
+            expect(signatureResponse[i].error_message).toEqual('The sender in the transaction is not the same as the device')
             continue;
         };
 
