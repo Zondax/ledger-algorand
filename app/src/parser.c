@@ -702,8 +702,13 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         if (app_mode_blindsign_required()) {
             switch (displayIdx) {
                 case 0xFF: {
+                    #if defined(TARGET_STAX) || defined(TARGET_FLEX)
                     snprintf(outKey, outKeyLen, "Review Group Transaction");
                     snprintf(outVal, outValLen, "Total Transactions: %d", tx_group_get_num_of_txns());
+                    #else
+                    snprintf(outKey, outKeyLen, "Review Group Tx");
+                    snprintf(outVal, outValLen, "Total Txs: %d", tx_group_get_num_of_txns());
+                    #endif
                     return parser_ok;
                 }
                 case 0: {
@@ -730,8 +735,13 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             }
         } else {
             if (displayIdx == 0xFF) {
+                #if defined(TARGET_STAX) || defined(TARGET_FLEX)
                 snprintf(outKey, outKeyLen, "Review Group Transaction");
                 snprintf(outVal, outValLen, "Transactions to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
+                #else
+                snprintf(outKey, outKeyLen, "Review Group Tx");
+                snprintf(outVal, outValLen, "Txs to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
+                #endif
                 return parser_ok;
             }
         }
