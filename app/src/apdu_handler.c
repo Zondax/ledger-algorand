@@ -157,23 +157,6 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
-/* Steps for group txn:
-   1. Receive first txn
-   2. Validate txn
-   3. If valid, send SW OK / If invalid, send SW ERROR and reset everything
-
-   Loop until numOfTxns - 1:
-   4. Receive next txn
-   5. Validate txn
-   6. If valid, send SW OK / If invalid, send SW ERROR and reset everything
-
-   7. Receive last txn
-   8. Validate txn
-   9. If valid, sign group txn and send SW OK + signature / If invalid, send SW ERROR
-   10. Reset everything
-
-   With BLS Mode => On screen: Show BLS warning, Group ID, Group Txn Hash, Signer and Max Fees
-*/
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
     if (tx_group_get_num_of_txns_reviewed() >= tx_group_get_num_of_txns()) {
