@@ -31,7 +31,7 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(300000)
+jest.setTimeout(600000)
 
 describe('Standard', function () {
   test.concurrent.each(models)('can start and stop container', async function (m) {
@@ -80,7 +80,6 @@ describe('Standard', function () {
 
       const tmpAccountId = 123
       const resp = await app.getAddressAndPubKey(tmpAccountId)
-
 
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')

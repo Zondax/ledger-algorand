@@ -79,6 +79,7 @@ extern "C" {
 #define INS_GET_PUBLIC_KEY  0x03
 #define INS_GET_ADDRESS     0x04
 #define INS_SIGN_MSGPACK    0x08
+#define INS_ARBITRARY_SIGN  0x10
 
 #ifdef __cplusplus
 }
