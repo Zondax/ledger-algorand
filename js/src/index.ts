@@ -413,8 +413,6 @@ export default class AlgorandApp {
                   throw new Error('Bad JSON');
               }
 
-              console.log('clientDataJson', clientDataJson)
-
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
                   throw new Error('Bad JSON');
@@ -431,12 +429,12 @@ export default class AlgorandApp {
               if(Buffer.compare(authenticatorData.slice(0, 32), rp_id_hash) !== 0) {
                   throw new Error('Failed Domain Auth');
               }
-              
               const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
               const authenticatorDataHash: Buffer = crypto.createHash('sha256').update(authenticatorData).digest();
 
               // Concatenate clientDataJsonHash and authenticatorData
               toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash]);
+
               break;
 
           default:
@@ -468,8 +466,6 @@ export default class AlgorandApp {
       }
       chunks.push(message.slice(i, end));
     }
-
-    console.log('chunks', chunks.map(chunk => chunk.toString('hex')))
 
     let return_code = 0
     let response = Buffer.from([])

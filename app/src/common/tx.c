@@ -248,7 +248,7 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
 }
 
 zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
-    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen("TX") + strlen(arbitrary_sign_domain) + 1);
+    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen(arbitrary_sign_domain) + 1);
     int count = 1;
     bool in_string = false;
     
@@ -266,9 +266,9 @@ zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
 
 // JSON parser for maximum of 1 nesting level in JSON
 void tx_parse_arbitrary() {
-    set_arbitrary_sign_domain((char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen("TX")));
+    set_arbitrary_sign_domain((char *) (tx_get_buffer() + TO_SIGN_SIZE));
 
-    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen("TX") + strlen(arbitrary_sign_domain) + 1);
+    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen(arbitrary_sign_domain) + 1);
 
     uint8_t idx = 0;
     while (*json) {

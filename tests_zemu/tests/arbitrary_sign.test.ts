@@ -80,8 +80,7 @@ describe('Arbitrary Sign', function () {
 
 
         // Now verify the signature
-        const prehash = Buffer.concat([Buffer.from('TX'), toSign])
-        const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
+        const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
         expect(valid).toEqual(true)
       } finally {
         await sim.close()

@@ -70,7 +70,7 @@ __Z_INLINE uint8_t convertP1P2(uint8_t p1, const uint8_t p2)
     return 0xFF;
 }
 
-__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
+__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx, bool isTx)
 {
     const uint8_t P1 = G_io_apdu_buffer[OFFSET_P1];
     const uint8_t P2 = G_io_apdu_buffer[OFFSET_P2];
@@ -106,7 +106,10 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
                 extractHDPath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
             }
-            tx_append((unsigned char*)tmpBuff, 2);
+
+            if (isTx) {
+                tx_append((unsigned char*)tmpBuff, 2);
+            }
 
             if (rx < (OFFSET_DATA + accountIdSize)) {
                 THROW(APDU_CODE_WRONG_LENGTH);
@@ -148,7 +151,11 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
                 extractHDPath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
             }
-            tx_append((unsigned char*)tmpBuff, 2);
+
+            if (isTx) {
+                tx_append((unsigned char*)tmpBuff, 2);
+            }
+
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - (OFFSET_DATA + accountIdSize));
             tx_initialized = false;
             if (added != rx - (OFFSET_DATA + accountIdSize)) {
@@ -166,7 +173,7 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         tx_group_state_reset();
     }
 
-    if (!process_chunk(tx, rx)) {
+    if (!process_chunk(tx, rx, true)) {
         THROW(APDU_CODE_OK);
     }
 
@@ -234,7 +241,7 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
 
 __Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
     zemu_log("handle_arbitrary_sign\n");
-    if (!process_chunk(tx, rx)) {
+    if (!process_chunk(tx, rx, false)) {
         THROW(APDU_CODE_OK);
     }
 
