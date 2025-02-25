@@ -1,5 +1,6 @@
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
-import AlgorandApp, { ScopeType} from '@zondax/ledger-algorand'
+import pkg from '@zondax/ledger-algorand'
+const { AlgorandApp, ScopeType } = pkg
 import { canonify } from '@truestamp/canonify';
 import * as crypto from 'crypto'
 // @ts-ignore
@@ -29,26 +30,8 @@ async function main() {
 
       const signatureResponse = await signatureRequest
 
-      let decodedData = Buffer.from(authRequest.data, 'base64');
+      console.log('signatureResponse', signatureResponse)
 
-      let clientDataJson = JSON.parse(decodedData.toString());
-
-      const canonifiedClientDataJson = canonify(clientDataJson);
-      if (!canonifiedClientDataJson) {
-        throw new Error('Wrong JSON');
-      }
-
-      const clientDataJsonHash = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
-      const authenticatorDataHash = crypto.createHash('sha256').update(authRequest.authenticationData).digest();
-      const toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash])
-
-      // Now verify the signature
-      const prehash = Buffer.concat([Buffer.from('TX'), toSign])
-      const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
-
-      console.log('Valid Signature', valid)
-
-      if (!valid) throw new Error('Signature verification failed');
   } catch (e) {
     console.error(e)
   }

@@ -16,7 +16,7 @@
 
 import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp, { ScopeType, StdSigData } from '@zondax/ledger-algorand'
+import { AlgorandApp, ScopeType, StdSigData } from '@zondax/ledger-algorand'
 import { APP_SEED, models, ARBITRARY_SIGN_TEST_CASES } from './common'
 
 // @ts-ignore

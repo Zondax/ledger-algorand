@@ -21,7 +21,7 @@
     "try_group": "node try_group_tx.mjs"
   },
   "dependencies": {
-    "@zondax/ledger-algorand": "../js",
+    "@zondax/ledger-algorand": "^0.0.1",
     "@zondax/zemu": "^0.54.0",
     "algosdk": "^3.1.0",
     "@msgpack/msgpack": "^2.8.0"
