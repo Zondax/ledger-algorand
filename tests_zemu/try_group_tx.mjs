@@ -1,5 +1,6 @@
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
-import AlgorandApp from '@zondax/ledger-algorand'
+import pkg from '@zondax/ledger-algorand'
+const { AlgorandApp } = pkg
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
 import algosdk from 'algosdk'

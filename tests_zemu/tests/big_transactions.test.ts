@@ -16,7 +16,7 @@
 
 import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
+import { AlgorandApp } from '@zondax/ledger-algorand'
 import { APP_SEED, models, APPLICATION_LONG_TEST_CASES, txApplicationLong } from './common'
 
 // @ts-ignore
