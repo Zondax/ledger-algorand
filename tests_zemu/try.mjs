@@ -1,5 +1,5 @@
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
-import AlgorandApp from '@zondax/ledger-algorand'
+import { AlgorandApp } from '@zondax/ledger-algorand'
 
 const txAssetFreeze = [
   136, 164, 102, 97, 100, 100, 196, 32, 75, 42, 74, 217, 212, 217, 0, 234, 22, 249, 220, 238, 83, 75, 156, 1, 137, 218, 161, 172, 188, 202,

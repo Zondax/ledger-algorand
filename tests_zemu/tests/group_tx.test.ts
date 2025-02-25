@@ -16,7 +16,7 @@
 
 import Zemu, { DEFAULT_START_OPTIONS, IDeviceModel, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp, { ResponseSign } from '@zondax/ledger-algorand'
+import { AlgorandApp, ResponseSign } from '@zondax/ledger-algorand'
 import { APP_SEED, models } from './common'
 
 // @ts-ignore
