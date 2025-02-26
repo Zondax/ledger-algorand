@@ -53,7 +53,7 @@ describe('Arbitrary Sign', function () {
           domain: "arc60.io",
           requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
           authenticationData: authData,
-          hdPath: "m/44'/60'/0'/0/0"
+          hdPath: "m/44'/283'/0'/0/0"
         }
 
         // do not wait here.. we need to navigate
