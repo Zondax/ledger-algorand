@@ -245,7 +245,16 @@ __Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_
         THROW(APDU_CODE_OK);
     }
 
-    tx_parse_arbitrary();
+    const char *error_msg = tx_parse_arbitrary();
+    CHECK_APP_CANARY()
+
+    if (error_msg != NULL) {
+        zemu_log("error_msg\n");
+        int error_msg_length = strlen(error_msg);
+        memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
+        *tx += (error_msg_length);
+        THROW(APDU_CODE_DATA_INVALID);
+    }
 
     view_review_init(tx_getItem_arbitrary, tx_getNumItems_arbitrary, app_sign_arbitrary);
     view_review_show(REVIEW_TXN);

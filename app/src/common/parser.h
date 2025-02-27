@@ -31,6 +31,9 @@ parser_error_t parser_parse(parser_context_t *ctx,
                             size_t dataLen,
                             parser_tx_t *tx_obj);
 
+parser_error_t parser_parse_arbitrary(const uint8_t *buf, arbitrary_sign_data_t *arbitrary_sign_data, tx_parsed_json_t *tx_parsed_json);
+parser_error_t parser_getNumItems_arbitrary(uint8_t *num_items);
+
 //// verifies tx fields
 parser_error_t parser_validate(parser_context_t *ctx);
 
