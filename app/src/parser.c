@@ -26,6 +26,7 @@
 #include "parser_impl.h"
 #include "common/parser.h"
 #include "parser_encoding.h"
+#include "crypto.h"
 
 #include "base64.h"
 #include "algo_asa.h"
@@ -995,4 +996,31 @@ parser_error_t parser_getTxnText(parser_context_t *ctx,
     }
 
     return parser_ok;
+}
+
+parser_error_t parser_check_sender(parser_context_t *ctx) {
+    uint8_t pk[PK_LEN_25519] = {0};
+    zxerr_t err = crypto_extractPublicKey(pk, sizeof(pk));
+
+    if (err != zxerr_ok) {
+        return parser_unexpected_error;
+    }
+
+    // Addr from device
+    uint8_t address[100] = {0};
+    uint32_t addressLen = encodePubKey(address, sizeof(address), pk);
+
+    // Addr parsed from transaction
+    uint8_t sender[100] = {0};
+    uint32_t senderLen = encodePubKey(sender, sizeof(sender), ctx->parser_tx_obj->sender);
+
+    if (senderLen != addressLen) {
+        return parser_invalid_address;
+    }
+
+    if (memcmp(sender, address, senderLen) == 0) {
+        return parser_ok;
+    }
+
+    return parser_invalid_address;
 }

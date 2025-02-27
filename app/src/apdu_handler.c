@@ -202,7 +202,11 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         }
     }
 
-    view_review_init(tx_getItem, tx_getNumItems, app_sign);
+    zxerr_t err = tx_check_sender();
+
+    viewfunc_accept_t callback = (err == zxerr_ok) ? app_sign : app_reject;
+
+    view_review_init(tx_getItem, tx_getNumItems, callback);
     view_review_show(tx_group_is_initialized() ? REVIEW_GROUP_TXN : REVIEW_TXN);
 
     *flags |= IO_ASYNCH_REPLY;

@@ -306,3 +306,11 @@ const char *tx_parse_arbitrary() {
 
     return NULL;
 }
+
+zxerr_t tx_check_sender() {
+    parser_error_t err = parser_check_sender(&ctx_parsed_tx);
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
+    return zxerr_ok;
+}
