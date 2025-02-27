@@ -53,7 +53,7 @@ describe('Arbitrary Sign', function () {
           domain: "arc60.io",
           requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
           authenticationData: authData,
-          hdPath: "m/44'/60'/0'/0/0"
+          hdPath: "m/44'/283'/0'/0/0"
         }
 
         // do not wait here.. we need to navigate
@@ -65,19 +65,7 @@ describe('Arbitrary Sign', function () {
 
         const signatureResponse = await signatureRequest
 
-        let decodedData = Buffer.from(authRequest.data, 'base64');
-
-        let clientDataJson = JSON.parse(decodedData.toString());
-
-        const canonifiedClientDataJson = canonify(clientDataJson);
-        if (!canonifiedClientDataJson) {
-          throw new Error('Wrong JSON');
-        }
-
-        const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
-        const authenticatorDataHash: Buffer = crypto.createHash('sha256').update(authRequest.authenticationData).digest();
-        const toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash])
-
+        const toSign = buildToSign(authRequest)
 
         // Now verify the signature
         const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
@@ -87,4 +75,135 @@ describe('Arbitrary Sign', function () {
       }
     })
   })
+
+  test.concurrent.each(models)('arbitrary sign - no hdpath', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
+        authenticationData: authData,
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary-no-hdpath`)
+
+      const signatureResponse = await signatureRequest
+
+      let decodedData = Buffer.from(authRequest.data, 'base64');
+
+      const toSign = buildToSign(authRequest)
+
+      // Now verify the signature
+      const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
+      expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('arbitrary sign - no requestId', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary-no-requestId`)
+
+      const signatureResponse = await signatureRequest
+
+      const toSign = buildToSign(authRequest)
+
+      // Now verify the signature
+      const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
+      expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('arbitrary sign - no hd path and no requestId', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary-no-hdpath-no-requestId`)
+
+      const signatureResponse = await signatureRequest
+
+      const toSign = buildToSign(authRequest)
+
+      // Now verify the signature
+      const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
+      expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
 })
+
+function buildToSign(authRequest: StdSigData) {
+  let decodedData = Buffer.from(authRequest.data, 'base64');
+
+  let clientDataJson = JSON.parse(decodedData.toString());
+
+  const canonifiedClientDataJson = canonify(clientDataJson);
+  if (!canonifiedClientDataJson) {
+    throw new Error('Wrong JSON');
+  }
+
+  const clientDataJsonHash: Buffer = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
+  const authenticatorDataHash: Buffer = crypto.createHash('sha256').update(authRequest.authenticationData).digest();
+  const toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash])
+  return toSign
+}

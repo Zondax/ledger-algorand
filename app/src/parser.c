@@ -32,6 +32,7 @@
 
 #include "crypto.h"
 
+static uint8_t num_items_arbitrary = 0;
 
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
@@ -40,6 +41,160 @@ parser_error_t parser_parse(parser_context_t *ctx,
     CHECK_ERROR(parser_init(ctx, data, dataLen))
     ctx->parser_tx_obj = tx_obj;
     return _read(ctx, tx_obj);
+}
+
+parser_error_t parser_getNumItems_arbitrary(uint8_t *num_items) {
+    *num_items = num_items_arbitrary - 1;
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_domain(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->domain = *buf;
+
+    while (**buf)
+        (*buf)++;
+
+    (*buf)++;
+
+    num_items_arbitrary++;
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_signer(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->signer = *buf;
+
+    while (**buf)
+        (*buf)++;
+
+    (*buf)++;
+
+    num_items_arbitrary++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_request_id(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+
+    if (**buf) {
+        arbitrary_sign_data->requestId = *buf;
+        num_items_arbitrary++;
+        (*buf)++;
+
+        while (**buf)
+            (*buf)++;
+    } else {
+        arbitrary_sign_data->requestId = NULL;
+    }
+
+    (*buf)++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_hd_path(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+
+    if (**buf) {
+        arbitrary_sign_data->hdPath = *buf;
+        num_items_arbitrary++;
+        (*buf)++;
+
+        while (**buf)
+            (*buf)++;
+    } else {
+        arbitrary_sign_data->hdPath = NULL;
+    }
+
+    (*buf)++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_auth_data(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->authDataLen = **buf;
+    (*buf)++;
+
+    arbitrary_sign_data->authData = *buf;
+    *buf += arbitrary_sign_data->authDataLen;
+
+    num_items_arbitrary++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_json_data(const uint8_t *buf, arbitrary_sign_data_t *arbitrary_sign_data, tx_parsed_json_t *tx_parsed_json) {
+    arbitrary_sign_data->data = buf;
+    char *json = (char *)buf;
+
+    uint8_t idx = 0;
+    while (*json) {
+        while (*json && *json != '"') json++;
+
+        char *key_start = ++json;
+        char *key_end = key_start;
+        while (*key_end && *key_end != '"') key_end++;
+        
+        tx_parsed_json->json_key_positions[idx] = key_start;
+        json = key_end + 1;
+
+        while (*json && *json != ':') json++;
+        if (*json == ':') json++;
+
+        while (*json && (*json == ' ' || *json == '\t' || *json == '\n')) json++;
+        
+        if (*json == '"') {
+            char *value_start = ++json;
+            char *value_end = value_start;
+            while (*value_end && *value_end != '"') value_end++;
+            
+            tx_parsed_json->json_value_positions[idx] = value_start;
+            tx_parsed_json->json_value_lengths[idx] = value_end - value_start;
+            json = value_end + 1;
+        } else {
+            char *value_start = json;
+            char *value_end = value_start;
+            
+            if (*json == '[') {
+                value_start = json;
+                int bracket_count = 1;
+                value_end = value_start + 1;
+                
+                while (*value_end && bracket_count > 0) {
+                    if (*value_end == '[') bracket_count++;
+                    if (*value_end == ']') bracket_count--;
+                    value_end++;
+                }
+            } else {
+                while (*value_end && *value_end != ',' && *value_end != '}') value_end++;
+            }
+            
+            tx_parsed_json->json_value_positions[idx] = value_start;
+            tx_parsed_json->json_value_lengths[idx] = value_end - value_start;
+            json = value_end + 1;
+        }
+        idx++;
+        num_items_arbitrary++;
+    }
+    return parser_ok;
+}
+
+parser_error_t parser_parse_arbitrary(const uint8_t *buf, arbitrary_sign_data_t *arbitrary_sign_data, tx_parsed_json_t *tx_parsed_json) {
+    num_items_arbitrary = 0;
+
+    const uint8_t *pBuf = buf + TO_SIGN_SIZE;
+
+    CHECK_ERROR(parser_parse_domain(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_signer(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_request_id(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_hd_path(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_auth_data(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_json_data(pBuf, arbitrary_sign_data, tx_parsed_json))
+
+    return parser_ok;
 }
 
 parser_error_t parser_validate(parser_context_t *ctx) {

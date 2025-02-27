@@ -42,12 +42,9 @@ typedef struct
     uint8_t buffer[FLASH_BUFFER_SIZE];
 } storage_t;
 
-char arbitrary_sign_domain[50];
-uint64_t group_max_fees;
+arbitrary_sign_data_t arbitrary_sign_data;
 
-void set_arbitrary_sign_domain(const char *domain) {
-    strncpy(arbitrary_sign_domain, domain, sizeof(arbitrary_sign_domain));
-}
+uint64_t group_max_fees;
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
@@ -59,11 +56,6 @@ storage_t N_appdata_impl;
 
 static parser_tx_t parser_tx_obj;
 static parser_context_t ctx_parsed_tx;
-typedef struct {
-    char *json_key_positions[15];
-    char *json_value_positions[15];
-    uint16_t json_value_lengths[15];
-} tx_parsed_json_t;
 
 tx_parsed_json_t tx_parsed_json;
 
@@ -219,6 +211,7 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
     MEMZERO(outVal, outValLen);
     *pageCount = 0;
 
+
     if (displayIdx < 0) {
         snprintf(outKey, outKeyLen, "Review message");
         return zxerr_ok;
@@ -227,95 +220,89 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
     if (displayIdx == 0) {
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Domain");
-        pageString(outVal, outValLen, arbitrary_sign_domain, pageIdx, pageCount);
+        pageString(outVal, outValLen, (char *)arbitrary_sign_data.domain, pageIdx, pageCount);
+        return zxerr_ok;
+    }
+
+    if (displayIdx == 1) {
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "Signer");
+        pageString(outVal, outValLen, (char *)arbitrary_sign_data.signer, pageIdx, pageCount);
+        return zxerr_ok;
+    }
+
+    if (arbitrary_sign_data.requestId) {
+        if (displayIdx == 2) {
+            *pageCount = 1;
+            snprintf(outKey, outKeyLen, "Request ID");
+            pageString(outVal, outValLen, (char *)arbitrary_sign_data.requestId, pageIdx, pageCount);
+            return zxerr_ok;
+        }
+    } else {
+        displayIdx++;
+    }
+
+    if (arbitrary_sign_data.hdPath) {
+        if (displayIdx == 3) {
+            *pageCount = 1;
+            snprintf(outKey, outKeyLen, "HD Path");
+            pageString(outVal, outValLen, (char *)arbitrary_sign_data.hdPath, pageIdx, pageCount);
+            return zxerr_ok;
+        }
+    } else {
+        displayIdx++;
+    }
+
+    if (displayIdx == 4) {
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "Auth Data");
+        pageStringHex(outVal, outValLen, (char *)arbitrary_sign_data.authData, arbitrary_sign_data.authDataLen, pageIdx, pageCount);
         return zxerr_ok;
     }
 
     size_t key_len = 0;
-    char *key_pos = tx_parsed_json.json_key_positions[displayIdx - 1];
+    uint8_t idx = displayIdx - 5;
+    char *key_pos = tx_parsed_json.json_key_positions[idx];
 
     while (key_pos[key_len++] != '"')
         ;
 
-    snprintf(outKey, outKeyLen, "%s", tx_parsed_json.json_key_positions[displayIdx - 1]);
+    if (key_len > outKeyLen) {
+        key_len = outKeyLen;
+    }
+
+    snprintf(outKey, key_len, "%s", tx_parsed_json.json_key_positions[idx]);
     outKey[key_len - 1] = '\0';
 
     char tmpBuf[256];
-    snprintf(tmpBuf, sizeof(tmpBuf), "%s", tx_parsed_json.json_value_positions[displayIdx - 1]);
-    tmpBuf[tx_parsed_json.json_value_lengths[displayIdx - 1]] = '\0';
+    snprintf(tmpBuf, sizeof(tmpBuf), "%s", tx_parsed_json.json_value_positions[idx]);
+    tmpBuf[tx_parsed_json.json_value_lengths[idx]] = '\0';
     pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
+
     return zxerr_ok;
 }
 
 zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
-    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen(arbitrary_sign_domain) + 1);
-    int count = 1;
-    bool in_string = false;
-    
-    while (*json) {
-        if (*json == '"') {
-            in_string = !in_string;
-        } else if (!in_string && *json == ':') {
-            count++;
-        }
-        json++;
+    parser_error_t err = parser_getNumItems_arbitrary(num_items);
+    if (err != parser_ok) {
+        return zxerr_unknown;
     }
-    *num_items = count;
     return zxerr_ok;
 }
 
-// JSON parser for maximum of 1 nesting level in JSON
-void tx_parse_arbitrary() {
-    set_arbitrary_sign_domain((char *) (tx_get_buffer() + TO_SIGN_SIZE));
+const char *tx_parse_arbitrary() {
+    MEMZERO(&arbitrary_sign_data, sizeof(arbitrary_sign_data_t));
 
-    char *json = (char *) (tx_get_buffer() + TO_SIGN_SIZE + strlen(arbitrary_sign_domain) + 1);
+    const uint8_t* buf = tx_get_buffer();
 
-    uint8_t idx = 0;
-    while (*json) {
-        while (*json && *json != '"') json++;
+    parser_error_t err = parser_parse_arbitrary(buf, &arbitrary_sign_data, &tx_parsed_json);
 
-        char *key_start = ++json;
-        char *key_end = key_start;
-        while (*key_end && *key_end != '"') key_end++;
-        
-        tx_parsed_json.json_key_positions[idx] = key_start;
-        json = key_end + 1;
+    CHECK_APP_CANARY()
 
-        while (*json && *json != ':') json++;
-        if (*json == ':') json++;
-
-        while (*json && (*json == ' ' || *json == '\t' || *json == '\n')) json++;
-        
-        if (*json == '"') {
-            char *value_start = ++json;
-            char *value_end = value_start;
-            while (*value_end && *value_end != '"') value_end++;
-            
-            tx_parsed_json.json_value_positions[idx] = value_start;
-            tx_parsed_json.json_value_lengths[idx] = value_end - value_start;
-            json = value_end + 1;
-        } else {
-            char *value_start = json;
-            char *value_end = value_start;
-            
-            if (*json == '[') {
-                value_start = json;
-                int bracket_count = 1;
-                value_end = value_start + 1;
-                
-                while (*value_end && bracket_count > 0) {
-                    if (*value_end == '[') bracket_count++;
-                    if (*value_end == ']') bracket_count--;
-                    value_end++;
-                }
-            } else {
-                while (*value_end && *value_end != ',' && *value_end != '}') value_end++;
-            }
-            
-            tx_parsed_json.json_value_positions[idx] = value_start;
-            tx_parsed_json.json_value_lengths[idx] = value_end - value_start;
-            json = value_end + 1;
-        }
-        idx++;
+    if (err != parser_ok)
+    {
+        return parser_getErrorDescription(err);
     }
+
+    return NULL;
 }

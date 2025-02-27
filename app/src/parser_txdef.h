@@ -152,6 +152,22 @@ typedef struct {
 
 // TXs structs
 typedef struct {
+    const uint8_t* domain;
+    const uint8_t* signer;
+    const uint8_t* requestId;
+    const uint8_t* hdPath;
+    uint8_t authDataLen;
+    const uint8_t* authData;
+    const uint8_t* data;
+} arbitrary_sign_data_t;
+
+typedef struct {
+    char *json_key_positions[15];
+    char *json_value_positions[15];
+    uint16_t json_value_lengths[15];
+} tx_parsed_json_t;
+
+typedef struct {
   uint8_t receiver[32];
   uint64_t amount;
   uint8_t close[32];

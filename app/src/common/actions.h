@@ -42,6 +42,8 @@ __Z_INLINE zxerr_t app_fill_address() {
 __Z_INLINE void app_sign_arbitrary() {
     zxerr_t err = crypto_sign((uint8_t *) G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, tx_get_buffer(), TO_SIGN_SIZE);
 
+    zemu_log_stack("app_sign_arbitrary");
+
     if (err != zxerr_ok) {
         set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);
         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
