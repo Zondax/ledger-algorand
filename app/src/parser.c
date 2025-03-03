@@ -30,8 +30,6 @@
 #include "base64.h"
 #include "algo_asa.h"
 
-#include "crypto.h"
-
 static uint8_t num_items_arbitrary = 0;
 
 parser_error_t parser_parse(parser_context_t *ctx,
@@ -100,6 +98,7 @@ static parser_error_t parser_parse_hd_path(const uint8_t **buf, arbitrary_sign_d
 
         while (**buf)
             (*buf)++;
+
     } else {
         arbitrary_sign_data->hdPath = NULL;
     }
