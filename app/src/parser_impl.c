@@ -36,33 +36,27 @@ DEC_READFIX_UNSIGNED(64);
 static parser_error_t addItem(uint8_t displayIdx);
 static parser_error_t _findKey(parser_context_t *c, const char *key);
 
-#define DISPLAY_ITEM(type, len, counter)                                        \
-    if (!tx_group_is_initialized() || !app_mode_blindsign_required()) {        \
-        for(uint8_t j = 0; j < len; j++) {                                      \
-            CHECK_ERROR(addItem(type))                                          \
-            counter++;                                                          \
-        }                                                                       \
-    }                                                                           \
-
-#define DISPLAY_APP_ITEM(appIdx, len, counter, v)               \
-    if (!app_mode_blindsign() && !tx_group_is_initialized()) {  \
-        for(uint8_t j = 0; j < len; j++) {                      \
-            CHECK_ERROR(addItem(appIdx))                        \
-            counter++;                                          \
-        }                                                       \
+#define DISPLAY_ITEM(type, len, counter)        \
+    for(uint8_t j = 0; j < len; j++) {          \
+        CHECK_ERROR(addItem(type))              \
+        counter++;                              \
     }
 
-#define DISPLAY_COMMON_ITEM(appIdx, len, counter, v)                                        \
-    if (v->type == TX_APPLICATION && app_mode_blindsign() && !tx_group_is_initialized()) {  \
-        if (appIdx == IDX_COMMON_SENDER || appIdx == IDX_COMMON_REKEY_TO) {                 \
-            DISPLAY_ITEM(appIdx, len, counter)                                              \
-        }                                                                                   \
-    } else if (tx_group_is_initialized() && app_mode_blindsign_required()) {                \
-        if (appIdx == IDX_COMMON_GROUP_ID) {                                                \
-            DISPLAY_ITEM(appIdx, len, counter)                                              \
-        }                                                                                   \
-    } else {                                                                                \
-        DISPLAY_ITEM(appIdx, len, counter)                                                  \
+#define DISPLAY_APP_ITEM(appIdx, len, counter, v)   \
+    if (!app_mode_blindsign()) {                    \
+        for(uint8_t j = 0; j < len; j++) {          \
+            CHECK_ERROR(addItem(appIdx))            \
+            counter++;                              \
+        }                                           \
+    }
+
+#define DISPLAY_COMMON_ITEM(appIdx, len, counter, v)                                \
+    if (v->type == TX_APPLICATION && app_mode_blindsign()) {                        \
+        if (appIdx == IDX_COMMON_SENDER || appIdx == IDX_COMMON_REKEY_TO) {         \
+            DISPLAY_ITEM(appIdx, len, counter)                                      \
+        }                                                                           \
+    } else {                                                                        \
+        DISPLAY_ITEM(appIdx, len, counter)                                          \
     }
 
 parser_error_t parser_init_context(parser_context_t *ctx,
@@ -815,10 +809,6 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
         CHECK_ERROR(_readInteger(c, &v->fee))
     }
     DISPLAY_COMMON_ITEM(IDX_COMMON_FEE, 1, common_num_items, v)
-
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        group_max_fees += v->fee;
-    }
 
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
         CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
