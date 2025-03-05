@@ -44,8 +44,6 @@ typedef struct
 
 arbitrary_sign_data_t arbitrary_sign_data;
 
-uint64_t group_max_fees;
-
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #define N_appdata (*(NV_VOLATILE storage_t *)PIC(&N_appdata_impl))
@@ -58,39 +56,6 @@ static parser_tx_t parser_tx_obj;
 static parser_context_t ctx_parsed_tx;
 
 tx_parsed_json_t tx_parsed_json;
-
-static group_txn_state_t group_txn = {0};
-
-void tx_group_state_reset() {
-    group_txn.num_of_txns = 0;
-    group_txn.initialized = 0;
-    group_txn.num_of_txns_reviewed = 0;
-    group_max_fees = 0;
-}
-
-uint8_t tx_group_get_num_of_txns() {
-    return group_txn.num_of_txns;
-}
-
-uint8_t tx_group_get_num_of_txns_reviewed() {
-    return group_txn.num_of_txns_reviewed;
-}
-
-void tx_group_increment_num_of_txns_reviewed() {
-    group_txn.num_of_txns_reviewed++;
-}
-
-uint8_t tx_group_is_initialized() {
-    return group_txn.initialized;
-}
-
-void tx_group_initialize() {
-    group_txn.initialized = 1;
-}
-
-void tx_group_set_num_of_txns(uint8_t num_of_txns) {
-    group_txn.num_of_txns = num_of_txns;
-}
 
 void tx_initialize()
 {
@@ -154,12 +119,6 @@ void tx_parse_reset()
 
 zxerr_t tx_getNumItems(uint8_t *num_items)
 {
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        // Group ID, Max Fees, Sender
-        *num_items = 3;
-        return zxerr_ok;
-    }
-
     parser_error_t err = parser_getNumItems(num_items);
     if (err != parser_ok) {
         return zxerr_unknown;

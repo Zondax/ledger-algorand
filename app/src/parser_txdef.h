@@ -232,12 +232,6 @@ typedef struct {
 
 } txn_application;
 
-typedef struct {
-    uint8_t initialized;
-    uint8_t num_of_txns;
-    uint8_t num_of_txns_reviewed;
-} group_txn_state_t;
-
 typedef struct{
 
   union {

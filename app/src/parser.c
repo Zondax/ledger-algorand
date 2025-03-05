@@ -213,10 +213,6 @@ parser_error_t parser_validate(parser_context_t *ctx) {
 
 parser_error_t parser_getNumItems(uint8_t *num_items) {
     *num_items = _getNumItems();
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        // Add Group Txn Hash, Max Fees
-        *num_items += 2;
-    }
     if(*num_items == 0) {
         return parser_unexpected_number_items;
     }
@@ -851,55 +847,6 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     uint8_t numItems = 0;
     CHECK_ERROR(parser_getNumItems(&numItems))
     CHECK_APP_CANARY()
-
-    if (tx_group_is_initialized()) {
-        if (app_mode_blindsign_required()) {
-            switch (displayIdx) {
-                case 0xFF: {
-                    #if defined(TARGET_STAX) || defined(TARGET_FLEX)
-                    snprintf(outKey, outKeyLen, "Review Group Transaction");
-                    snprintf(outVal, outValLen, "Total Transactions: %d", tx_group_get_num_of_txns());
-                    #else
-                    snprintf(outKey, outKeyLen, "Review Group Tx");
-                    snprintf(outVal, outValLen, "Total Txs: %d", tx_group_get_num_of_txns());
-                    #endif
-                    return parser_ok;
-                }
-                case 0: {
-                    snprintf(outKey, outKeyLen, "Group ID");
-                    char buff[80] = {0};
-                    base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->groupID, sizeof(ctx->parser_tx_obj->groupID));
-                    pageString(outVal, outValLen, buff, pageIdx, pageCount);
-                    return parser_ok;
-                }
-                case 1: {
-                    snprintf(outKey, outKeyLen, "Sender");
-                    char buff[80] = {0};
-                    if (encodePubKey((uint8_t*) buff, sizeof(buff), ctx->parser_tx_obj->sender) == 0) {
-                        return parser_unexpected_buffer_end;
-                    }
-                    pageString(outVal, outValLen, buff, pageIdx, pageCount);
-                    return parser_ok;
-                }
-                case 2: {
-                    snprintf(outKey, outKeyLen, "Max Fees");
-                    return _toStringBalance((uint64_t*) &group_max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
-                                            outVal, outValLen, pageIdx, pageCount);
-                }
-            }
-        } else {
-            if (displayIdx == 0xFF) {
-                #if defined(TARGET_STAX) || defined(TARGET_FLEX)
-                snprintf(outKey, outKeyLen, "Review Group Transaction");
-                snprintf(outVal, outValLen, "Transactions to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
-                #else
-                snprintf(outKey, outKeyLen, "Review Group Tx");
-                snprintf(outVal, outValLen, "Txs to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
-                #endif
-                return parser_ok;
-            }
-        }
-    }
 
     uint8_t commonItems = 0;
     CHECK_ERROR(parser_getCommonNumItems(&commonItems))
