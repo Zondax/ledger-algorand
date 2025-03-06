@@ -14,6 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <ctype.h>
 #include <stdio.h>
 #include <zxmacros.h>
 #include <zxformat.h>
@@ -29,8 +30,13 @@
 
 #include "base64.h"
 #include "algo_asa.h"
+#include "crypto.h"
+
+uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
 static uint8_t num_items_arbitrary = 0;
+
+static parser_error_t validate_hd_path(const uint8_t *derivationPath);
 
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
@@ -95,6 +101,8 @@ static parser_error_t parser_parse_hd_path(const uint8_t **buf, arbitrary_sign_d
         arbitrary_sign_data->hdPath = *buf;
         num_items_arbitrary++;
         (*buf)++;
+
+        CHECK_ERROR(validate_hd_path(arbitrary_sign_data->hdPath));
 
         while (**buf)
             (*buf)++;
@@ -938,6 +946,37 @@ parser_error_t parser_getTxnText(parser_context_t *ctx,
             break;
         default:
             return parser_unknown_transaction;
+    }
+
+    return parser_ok;
+}
+
+static parser_error_t validate_hd_path(const uint8_t *derivationPath) {
+    if (derivationPath == NULL) {
+        return parser_unexpected_error;
+    }
+
+    const char *expectedFormat = "m/44'/283'/";
+    const char *expectedSuffix = "'/0/0";
+
+    if (strncmp((char*)derivationPath, expectedFormat, strlen(expectedFormat)) != 0) {
+        return parser_unexpected_value;
+    }
+
+    const uint8_t *p = derivationPath + strlen(expectedFormat);
+
+    uint32_t accountId = 0;
+    while (isdigit(*p)) {
+        accountId = accountId * 10 + (*p - '0');
+        p++;
+    }
+
+    if (strncmp((char*)p, expectedSuffix, strlen(expectedSuffix)) != 0) {
+        return parser_unexpected_value;
+    }
+
+    if ((HDPATH_2_DEFAULT | accountId) != hdPath[2]) {
+        return parser_unexpected_value;
     }
 
     return parser_ok;
