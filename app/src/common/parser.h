@@ -22,6 +22,8 @@ extern "C" {
 
 #include "parser_impl.h"
 
+extern uint32_t hdPath[];
+
 const char *parser_getErrorDescription(parser_error_t err);
 const char *parser_getMsgPackTypeDescription(uint8_t type);
 
