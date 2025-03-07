@@ -19,8 +19,7 @@
 #include "cx.h"
 #include "zxmacros.h"
 #include "parser_encoding.h"
-
-uint32_t hdPath[HDPATH_LEN_DEFAULT];
+#include "common/parser.h"
 
 zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen) {
     if (pubKey == NULL || pubKeyLen < PK_LEN_25519) {

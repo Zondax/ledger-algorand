@@ -14,6 +14,9 @@ async function main() {
       const responseAddr = await app.getAddressAndPubKey()
       const pubKey = responseAddr.publicKey
 
+      console.log(responseAddr)
+      console.log(pubKey)
+
       const authData = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       const authRequest = {
@@ -22,7 +25,7 @@ async function main() {
         domain: "arc60.io",
         requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
         authenticationData: authData,
-        hdPath: "m/44'/60'/0'/0/0"
+        hdPath: "m/44'/283'/0'/0/0"
       }
 
       // do not wait here.. we need to navigate
@@ -32,6 +35,25 @@ async function main() {
 
       console.log('signatureResponse', signatureResponse)
 
+      let decodedData = Buffer.from(authRequest.data, 'base64');
+
+      let clientDataJson = JSON.parse(decodedData.toString());
+
+      const canonifiedClientDataJson = canonify(clientDataJson);
+      if (!canonifiedClientDataJson) {
+        throw new Error('Wrong JSON');
+      }
+
+      const clientDataJsonHash = crypto.createHash('sha256').update(canonifiedClientDataJson).digest();
+      const authenticatorDataHash = crypto.createHash('sha256').update(authRequest.authenticationData).digest();
+      const toSign = Buffer.concat([clientDataJsonHash, authenticatorDataHash])
+
+      // Now verify the signature
+      const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
+
+      console.log('Valid Signature', valid)
+
+      if (!valid) throw new Error('Signature verification failed');
   } catch (e) {
     console.error(e)
   }

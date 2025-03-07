@@ -33,9 +33,6 @@
 #include "common/parser.h"
 #include "zxmacros.h"
 
-#define MAX_NUM_OF_TXNS_IN_GROUP 16
-#define MIN_NUM_OF_TXNS_IN_GROUP 2
-
 static bool tx_initialized = false;
 
 static const unsigned char tmpBuff[] = {'T', 'X'};
@@ -55,8 +52,6 @@ __Z_INLINE void extractHDPath() {
 
 __Z_INLINE uint8_t convertP1P2(uint8_t p1, const uint8_t p2)
 {
-    p1 &= ~P1_NUM_OF_TXNS_IN_GROUP_MASK;
-
     if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
         return P1_INIT;
     } else if (p1 == P1_MORE && p2 == P2_MORE) {
@@ -78,20 +73,6 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx, boo
 
     if (rx < OFFSET_DATA) {
         THROW(APDU_CODE_WRONG_LENGTH);
-    }
-
-    uint8_t num_of_txns = P1_NUM_OF_TXNS_IN_GROUP(P1);
-
-    if (num_of_txns != 0) {
-        if (num_of_txns > MAX_NUM_OF_TXNS_IN_GROUP || num_of_txns < MIN_NUM_OF_TXNS_IN_GROUP) {
-            THROW(APDU_CODE_INVALIDP1P2);
-        }
-        if (!tx_group_is_initialized()) {
-            tx_group_initialize();
-            tx_group_set_num_of_txns(num_of_txns);
-        }
-    } else {
-        tx_group_state_reset();
     }
 
     uint32_t added;
@@ -169,10 +150,6 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx, boo
 
 __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
 {
-    if (tx_group_get_num_of_txns_reviewed() >= tx_group_get_num_of_txns()) {
-        tx_group_state_reset();
-    }
-
     if (!process_chunk(tx, rx, true)) {
         THROW(APDU_CODE_OK);
     }
@@ -191,25 +168,10 @@ __Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t 
         THROW(APDU_CODE_DATA_INVALID);
     }
 
-    // For BLS Mode in Group Transactions : Send signature without waiting for user confirmation.
-    // Confirmation happens when the last txn is received (Batch confirmation).
-    // The JS Package will only release the signatures if user confirms the batch.
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        if (tx_group_get_num_of_txns_reviewed() < tx_group_get_num_of_txns() - 1) {
-            tx_group_increment_num_of_txns_reviewed();
-            app_sign();
-            return;
-        }
-    }
-
     view_review_init(tx_getItem, tx_getNumItems, app_sign);
-    view_review_show(tx_group_is_initialized() ? REVIEW_GROUP_TXN : REVIEW_TXN);
+    view_review_show(REVIEW_TXN);
 
     *flags |= IO_ASYNCH_REPLY;
-
-    if (tx_group_is_initialized()) {
-        tx_group_increment_num_of_txns_reviewed();
-    }
 }
 
 __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, __Z_UNUSED uint32_t rx)
@@ -245,7 +207,16 @@ __Z_INLINE void handle_arbitrary_sign(volatile uint32_t *flags, volatile uint32_
         THROW(APDU_CODE_OK);
     }
 
-    tx_parse_arbitrary();
+    const char *error_msg = tx_parse_arbitrary();
+    CHECK_APP_CANARY()
+
+    if (error_msg != NULL) {
+        zemu_log("error_msg\n");
+        int error_msg_length = strlen(error_msg);
+        memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
+        *tx += (error_msg_length);
+        THROW(APDU_CODE_DATA_INVALID);
+    }
 
     view_review_init(tx_getItem_arbitrary, tx_getNumItems_arbitrary, app_sign_arbitrary);
     view_review_show(REVIEW_TXN);

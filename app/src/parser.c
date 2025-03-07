@@ -14,6 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <ctype.h>
 #include <stdio.h>
 #include <zxmacros.h>
 #include <zxformat.h>
@@ -29,9 +30,17 @@
 
 #include "base64.h"
 #include "algo_asa.h"
-
 #include "crypto.h"
 
+#if !defined(TARGET_NANOS) && !defined(TARGET_NANOX) && !defined(TARGET_NANOS2) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+#define APPPATH "44'/283'"
+#endif
+
+uint32_t hdPath[HDPATH_LEN_DEFAULT];
+
+static uint8_t num_items_arbitrary = 0;
+
+static parser_error_t validate_hd_path(const uint8_t *derivationPath);
 
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
@@ -40,6 +49,163 @@ parser_error_t parser_parse(parser_context_t *ctx,
     CHECK_ERROR(parser_init(ctx, data, dataLen))
     ctx->parser_tx_obj = tx_obj;
     return _read(ctx, tx_obj);
+}
+
+parser_error_t parser_getNumItems_arbitrary(uint8_t *num_items) {
+    *num_items = num_items_arbitrary - 1;
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_domain(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->domain = *buf;
+
+    while (**buf)
+        (*buf)++;
+
+    (*buf)++;
+
+    num_items_arbitrary++;
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_signer(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->signer = *buf;
+
+    while (**buf)
+        (*buf)++;
+
+    (*buf)++;
+
+    num_items_arbitrary++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_request_id(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+
+    if (**buf) {
+        arbitrary_sign_data->requestId = *buf;
+        num_items_arbitrary++;
+        (*buf)++;
+
+        while (**buf)
+            (*buf)++;
+    } else {
+        arbitrary_sign_data->requestId = NULL;
+    }
+
+    (*buf)++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_hd_path(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+
+    if (**buf) {
+        arbitrary_sign_data->hdPath = *buf;
+        num_items_arbitrary++;
+        (*buf)++;
+
+        CHECK_ERROR(validate_hd_path(arbitrary_sign_data->hdPath));
+
+        while (**buf)
+            (*buf)++;
+
+    } else {
+        arbitrary_sign_data->hdPath = NULL;
+    }
+
+    (*buf)++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_auth_data(const uint8_t **buf, arbitrary_sign_data_t *arbitrary_sign_data) {
+    arbitrary_sign_data->authDataLen = **buf;
+    (*buf)++;
+
+    arbitrary_sign_data->authData = *buf;
+    *buf += arbitrary_sign_data->authDataLen;
+
+    num_items_arbitrary++;
+
+    return parser_ok;
+}
+
+static parser_error_t parser_parse_json_data(const uint8_t *buf, arbitrary_sign_data_t *arbitrary_sign_data, tx_parsed_json_t *tx_parsed_json) {
+    arbitrary_sign_data->data = buf;
+    char *json = (char *)buf;
+
+    uint8_t idx = 0;
+    while (*json) {
+        while (*json && *json != '"') json++;
+
+        char *key_start = ++json;
+        char *key_end = key_start;
+        while (*key_end && *key_end != '"') key_end++;
+        
+        tx_parsed_json->json_key_positions[idx] = key_start;
+        json = key_end + 1;
+
+        while (*json && *json != ':') json++;
+        if (*json == ':') json++;
+
+        while (*json && (*json == ' ' || *json == '\t' || *json == '\n')) json++;
+        
+        if (*json == '"') {
+            char *value_start = ++json;
+            char *value_end = value_start;
+            while (*value_end && *value_end != '"') value_end++;
+            
+            tx_parsed_json->json_value_positions[idx] = value_start;
+            tx_parsed_json->json_value_lengths[idx] = value_end - value_start;
+            json = value_end + 1;
+        } else {
+            char *value_start = json;
+            char *value_end = value_start;
+            
+            if (*json == '[') {
+                value_start = json;
+                int bracket_count = 1;
+                value_end = value_start + 1;
+                
+                while (*value_end && bracket_count > 0) {
+                    if (*value_end == '[') bracket_count++;
+                    if (*value_end == ']') bracket_count--;
+                    value_end++;
+                }
+            } else {
+                while (*value_end && *value_end != ',' && *value_end != '}') value_end++;
+            }
+            
+            tx_parsed_json->json_value_positions[idx] = value_start;
+            tx_parsed_json->json_value_lengths[idx] = value_end - value_start;
+            json = value_end + 1;
+        }
+        idx++;
+        num_items_arbitrary++;
+    }
+    return parser_ok;
+}
+
+parser_error_t parser_parse_arbitrary(const uint8_t *buf, arbitrary_sign_data_t *arbitrary_sign_data, tx_parsed_json_t *tx_parsed_json) {
+    num_items_arbitrary = 0;
+
+    const uint8_t *pBuf = buf + TO_SIGN_SIZE;
+
+    CHECK_ERROR(parser_parse_domain(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_signer(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_request_id(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_hd_path(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_auth_data(&pBuf, arbitrary_sign_data))
+
+    CHECK_ERROR(parser_parse_json_data(pBuf, arbitrary_sign_data, tx_parsed_json))
+
+    return parser_ok;
 }
 
 parser_error_t parser_validate(parser_context_t *ctx) {
@@ -59,10 +225,6 @@ parser_error_t parser_validate(parser_context_t *ctx) {
 
 parser_error_t parser_getNumItems(uint8_t *num_items) {
     *num_items = _getNumItems();
-    if (tx_group_is_initialized() && app_mode_blindsign_required()) {
-        // Add Group Txn Hash, Max Fees
-        *num_items += 2;
-    }
     if(*num_items == 0) {
         return parser_unexpected_number_items;
     }
@@ -698,55 +860,6 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     CHECK_ERROR(parser_getNumItems(&numItems))
     CHECK_APP_CANARY()
 
-    if (tx_group_is_initialized()) {
-        if (app_mode_blindsign_required()) {
-            switch (displayIdx) {
-                case 0xFF: {
-                    #if defined(TARGET_STAX) || defined(TARGET_FLEX)
-                    snprintf(outKey, outKeyLen, "Review Group Transaction");
-                    snprintf(outVal, outValLen, "Total Transactions: %d", tx_group_get_num_of_txns());
-                    #else
-                    snprintf(outKey, outKeyLen, "Review Group Tx");
-                    snprintf(outVal, outValLen, "Total Txs: %d", tx_group_get_num_of_txns());
-                    #endif
-                    return parser_ok;
-                }
-                case 0: {
-                    snprintf(outKey, outKeyLen, "Group ID");
-                    char buff[80] = {0};
-                    base64_encode(buff, sizeof(buff), (const uint8_t*) ctx->parser_tx_obj->groupID, sizeof(ctx->parser_tx_obj->groupID));
-                    pageString(outVal, outValLen, buff, pageIdx, pageCount);
-                    return parser_ok;
-                }
-                case 1: {
-                    snprintf(outKey, outKeyLen, "Sender");
-                    char buff[80] = {0};
-                    if (encodePubKey((uint8_t*) buff, sizeof(buff), ctx->parser_tx_obj->sender) == 0) {
-                        return parser_unexpected_buffer_end;
-                    }
-                    pageString(outVal, outValLen, buff, pageIdx, pageCount);
-                    return parser_ok;
-                }
-                case 2: {
-                    snprintf(outKey, outKeyLen, "Max Fees");
-                    return _toStringBalance((uint64_t*) &group_max_fees, COIN_AMOUNT_DECIMAL_PLACES, "", COIN_TICKER,
-                                            outVal, outValLen, pageIdx, pageCount);
-                }
-            }
-        } else {
-            if (displayIdx == 0xFF) {
-                #if defined(TARGET_STAX) || defined(TARGET_FLEX)
-                snprintf(outKey, outKeyLen, "Review Group Transaction");
-                snprintf(outVal, outValLen, "Transactions to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
-                #else
-                snprintf(outKey, outKeyLen, "Review Group Tx");
-                snprintf(outVal, outValLen, "Txs to review: %d", tx_group_get_num_of_txns() - tx_group_get_num_of_txns_reviewed());
-                #endif
-                return parser_ok;
-            }
-        }
-    }
-
     uint8_t commonItems = 0;
     CHECK_ERROR(parser_getCommonNumItems(&commonItems))
 
@@ -837,6 +950,40 @@ parser_error_t parser_getTxnText(parser_context_t *ctx,
             break;
         default:
             return parser_unknown_transaction;
+    }
+
+    return parser_ok;
+}
+
+static parser_error_t validate_hd_path(const uint8_t *derivationPath) {
+    if (derivationPath == NULL) {
+        return parser_unexpected_error;
+    }
+
+    char expectedFormat [100] = "m/";
+    strlcat(expectedFormat, APPPATH, sizeof(expectedFormat));
+    strlcat(expectedFormat, "/", sizeof(expectedFormat));
+
+    const char *expectedSuffix = "'/0/0";
+
+    if (strncmp((char*)derivationPath, expectedFormat, strlen(expectedFormat)) != 0) {
+        return parser_unexpected_value;
+    }
+
+    const uint8_t *p = derivationPath + strlen(expectedFormat);
+
+    uint32_t accountId = 0;
+    while (isdigit(*p)) {
+        accountId = accountId * 10 + (*p - '0');
+        p++;
+    }
+
+    if (strncmp((char*)p, expectedSuffix, strlen(expectedSuffix)) != 0) {
+        return parser_unexpected_value;
+    }
+
+    if ((HDPATH_2_DEFAULT | accountId) != hdPath[2]) {
+        return parser_unexpected_value;
     }
 
     return parser_ok;

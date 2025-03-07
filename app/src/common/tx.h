@@ -21,8 +21,6 @@
 #define SHA_256_HASH_SIZE 32
 #define TO_SIGN_SIZE (2 * SHA_256_HASH_SIZE)
 
-extern uint64_t group_max_fees;
-
 void set_arbitrary_sign_domain(const char *domain);
 uint8_t get_arbitrary_sign_domain_length();
 
@@ -51,7 +49,7 @@ uint8_t *tx_get_buffer();
 /// \return It returns NULL if data is valid or error message otherwise.
 const char *tx_parse();
 
-void tx_parse_arbitrary();
+const char *tx_parse_arbitrary();
 
 /// Return the number of items in the transaction
 zxerr_t tx_getNumItems(uint8_t *num_items);
@@ -64,13 +62,3 @@ zxerr_t tx_getItem(int8_t displayIdx,
 
 zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items);
-
-void tx_group_state_reset();
-uint8_t tx_group_get_num_of_txns();
-uint8_t tx_group_get_num_of_txns_reviewed();
-void tx_group_increment_num_of_txns_reviewed();
-void tx_group_set_num_of_txns(uint8_t num_of_txns);
-uint8_t tx_group_get_num_of_validated_txns();
-void tx_group_increment_num_of_validated_txns();
-uint8_t tx_group_is_initialized();
-void tx_group_initialize();
