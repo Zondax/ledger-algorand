@@ -32,6 +32,10 @@
 #include "algo_asa.h"
 #include "crypto.h"
 
+#if !defined(TARGET_NANOS) && !defined(TARGET_NANOX) && !defined(TARGET_NANOS2) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+#define APPPATH "44'/283'"
+#endif
+
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
 static uint8_t num_items_arbitrary = 0;
@@ -956,7 +960,10 @@ static parser_error_t validate_hd_path(const uint8_t *derivationPath) {
         return parser_unexpected_error;
     }
 
-    const char *expectedFormat = "m/44'/283'/";
+    char expectedFormat [100] = "m/";
+    strlcat(expectedFormat, APPPATH, sizeof(expectedFormat));
+    strlcat(expectedFormat, "/", sizeof(expectedFormat));
+
     const char *expectedSuffix = "'/0/0";
 
     if (strncmp((char*)derivationPath, expectedFormat, strlen(expectedFormat)) != 0) {

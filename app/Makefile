@@ -56,6 +56,8 @@ endif
 APPNAME = "Algorand"
 APPPATH = "44'/283'"
 
+DEFINES += APPPATH=\"$(APPPATH)\"
+
 else
 define error_message
 
