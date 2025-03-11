@@ -44,6 +44,10 @@ uint32_t tx_get_buffer_length();
 /// \return
 uint8_t *tx_get_buffer();
 
+/// Returns true if the flash buffer is in use
+/// \return
+uint8_t tx_is_flash_buffer_in_use();
+
 /// Parse message stored in transaction buffer
 /// This function should be called as soon as full buffer data is loaded.
 /// \return It returns NULL if data is valid or error message otherwise.
