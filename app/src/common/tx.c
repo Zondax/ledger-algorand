@@ -86,6 +86,11 @@ uint8_t *tx_get_buffer()
     return buffering_get_buffer()->data;
 }
 
+uint8_t tx_is_flash_buffer_in_use()
+{
+    return buffering_get_flash_buffer()->in_use;
+}
+
 const char *tx_parse()
 {
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));
@@ -251,6 +256,7 @@ zxerr_t tx_getNumItems_arbitrary(uint8_t *num_items) {
 
 const char *tx_parse_arbitrary() {
     MEMZERO(&arbitrary_sign_data, sizeof(arbitrary_sign_data_t));
+    MEMZERO(&tx_parsed_json, sizeof(tx_parsed_json_t));
 
     const uint8_t* buf = tx_get_buffer();
 

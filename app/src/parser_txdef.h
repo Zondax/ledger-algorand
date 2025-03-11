@@ -162,9 +162,9 @@ typedef struct {
 } arbitrary_sign_data_t;
 
 typedef struct {
-    char *json_key_positions[15];
-    char *json_value_positions[15];
-    uint16_t json_value_lengths[15];
+    char *json_key_positions[20];
+    char *json_value_positions[20];
+    uint16_t json_value_lengths[20];
 } tx_parsed_json_t;
 
 typedef struct {
