@@ -74,6 +74,10 @@ static parser_error_t parser_parse_signer(const uint8_t **buf, arbitrary_sign_da
     while (**buf)
         (*buf)++;
 
+    if (*buf - arbitrary_sign_data->signer != (PK_LEN_25519 * 2)) {
+        return parser_invalid_address;
+    }
+
     (*buf)++;
 
     num_items_arbitrary++;

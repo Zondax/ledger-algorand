@@ -19,6 +19,7 @@
 #include "buffering.h"
 #include "app_mode.h"
 #include "common/parser.h"
+#include "parser_encoding.h"
 #include <string.h>
 #include "zxmacros.h"
 #include "zxformat.h"
@@ -191,7 +192,11 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
     if (displayIdx == 1) {
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Signer");
-        pageString(outVal, outValLen, (char *)arbitrary_sign_data.signer, pageIdx, pageCount);
+        char buff[80] = {0};
+        if (encodePubKey((uint8_t*) buff, sizeof(buff), arbitrary_sign_data.signer) == 0) {
+            return zxerr_encoding_failed;
+        }
+        pageString(outVal, outValLen, buff, pageIdx, pageCount);
         return zxerr_ok;
     }
 
