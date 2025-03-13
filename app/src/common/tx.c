@@ -192,11 +192,20 @@ zxerr_t tx_getItem_arbitrary(int8_t displayIdx, char *outKey, uint16_t outKeyLen
     if (displayIdx == 1) {
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Signer");
-        char buff[80] = {0};
-        if (encodePubKey((uint8_t*) buff, sizeof(buff), arbitrary_sign_data.signer) == 0) {
+
+        char hex_str_pk[PK_LEN_25519 * 2] = {0};
+        memcpy(hex_str_pk, arbitrary_sign_data.signer, PK_LEN_25519 * 2);
+
+        uint8_t pk[PK_LEN_25519] = {0};
+        hexstr_to_array(pk, sizeof(pk), hex_str_pk, sizeof(hex_str_pk));
+
+        char addr[80] = {0};
+
+        if (encodePubKey((uint8_t*) addr, sizeof(addr), pk) == 0) {
             return zxerr_encoding_failed;
         }
-        pageString(outVal, outValLen, buff, pageIdx, pageCount);
+
+        pageString(outVal, outValLen, addr, pageIdx, pageCount);
         return zxerr_ok;
     }
 
