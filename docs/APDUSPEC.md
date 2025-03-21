@@ -162,6 +162,48 @@ signature.
 | 0x80  | 0x08       | 0x00                 | 0x00 | N1   | MsgPack txn   |
 
 
+### INS_SIGN_DATA
 
+#### Command
+
+| Field   | Type        | Content                   | Expected   |
+| ------- | --------    | ------------------------- | ---------- |
+| CLA     | byte (1)    | Application Identifier    | 0x80       |
+| INS     | byte (1)    | Instruction ID            | 0x10       |
+| P1      | byte (1)    | First?                    | (depends)  |
+| P2      | byte (1)    | More?                     | (depends)  |
+| LC      | byte (1)    | Bytes in payload          | (depends)  |
+| Payload | byte (var)  | hdPath + Arbitrary data   | (depends)  |
+
+If one single APDU may contain a whole transaction, `P1` and `P2` are both `0x00`.
+
+First APDU message
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x00                 | 0x80 | N1   | hdPath    |
+
+...
+
+APDU message i
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x80                 | 0x80 | Ni   | Arb. data chunk #i   |
+
+...
+
+Last APDU message
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x80                 | 0x00 | NI   | Arb. data last chunk |
+
+#### Response
+
+| Field          | Type      | Content           | Note                     |
+| -------------- | --------- | ----------------- | ------------------------ |
+| Signature      | byte (64) | Signed data       |                          |
+| SW1-SW2        | byte (2)  | Return code       | see list of return codes |
 
 ---
