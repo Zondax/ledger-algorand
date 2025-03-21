@@ -19,7 +19,7 @@
     "try": "node try.mjs"
   },
   "dependencies": {
-    "@zondax/ledger-algorand": "../js",
+    "@zondax/ledger-algorand": "file:../../ledger-algorand-js",
     "@zondax/zemu": "^0.53.0"
   },
   "devDependencies": {

@@ -16,7 +16,7 @@
 
 import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
+import { AlgorandApp } from '@zondax/ledger-algorand'
 import { APP_SEED, models, APPLICATION_LONG_TEST_CASES, txApplicationLong } from './common'
 
 // @ts-ignore
@@ -30,6 +30,7 @@ const defaultOptions = {
 }
 
 const accountId = 123
+const hdPath = `m/44'/283'/${accountId}'/0/0`
 
 jest.setTimeout(300000)
 
@@ -53,24 +54,21 @@ describe('BigTransactions', function () {
         const txBlob = Buffer.from(data.tx, 'hex')
 
         console.log(sim.getMainMenuSnapshot())
-        const responseAddr = await app.getAddressAndPubKey(accountId)
-        const pubKey = responseAddr.publicKey
+        const responseAddr = await app.getAddressAndPubKey(hdPath)
+        const pubKey = responseAddr.pubkey
 
         if (data.blindsign_mode) {
           await sim.toggleBlindSigning()
         }
 
         // do not wait here.. we need to navigate
-        const signatureRequest = app.sign(accountId, txBlob)
+        const signatureRequest = app.sign(hdPath, txBlob)
 
         // Wait until we are not in the main menu
         await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
         await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_big_${data.name}`,true, 0, 15000, data.blindsign_mode)
 
         const signatureResponse = await signatureRequest
-
-        expect(signatureResponse.return_code).toEqual(0x9000)
-        expect(signatureResponse.error_message).toEqual('No errors')
 
         // Now verify the signature
         const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
