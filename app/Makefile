@@ -1,6 +1,6 @@
 #*******************************************************************************
 #  Ledger App
-#  (c) 2018 - 2022 Zondax AG
+#  (c) 2018 - 2025 Zondax AG
 #  (c) 2017 Ledger
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,12 +22,6 @@ endif
 
 MY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
-
-include $(BOLOS_SDK)/Makefile.defines
-
-$(info ************ TARGET_NAME  = [$(TARGET_NAME)])
-
 ## Display whether this is a production build or for internal use
 PRODUCTION_BUILD ?= 1
 ifeq ($(PRODUCTION_BUILD), 1)
@@ -46,6 +40,9 @@ ifndef COIN
 COIN=ALGO
 endif
 
+VARIANT_PARAM=COIN
+VARIANT_VALUES=$(COIN)
+
 include $(CURDIR)/Makefile.version
 
 $(info COIN  = [$(COIN)])
@@ -59,6 +56,8 @@ endif
 APPNAME = "Algorand"
 APPPATH = "44'/283'"
 
+DEFINES += APPPATH=\"$(APPPATH)\"
+
 else
 define error_message
 
@@ -70,7 +69,20 @@ endif
 
 APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS) --path $(APPPATH)
 
+include $(BOLOS_SDK)/Makefile.target
+
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.devices
+
+# Support for U2F transport
+DEFINES += HAVE_U2F HAVE_IO_U2F U2F_PROXY_MAGIC=\"algo\" USB_SEGMENT_SIZE=64 BLE_SEGMENT_SIZE=32
+SDK_SOURCE_PATH += lib_u2f
+
+LDFLAGS  += -z muldefs
+APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
+
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
+
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
 
 $(info TARGET_NAME  = [$(TARGET_NAME)])
 $(info ICONNAME  = [$(ICONNAME)])
@@ -79,14 +91,11 @@ ifndef ICONNAME
 $(error ICONNAME is not set)
 endif
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
-
-# Support for U2F transport
-DEFINES += HAVE_U2F HAVE_IO_U2F U2F_PROXY_MAGIC=\"algo\" USB_SEGMENT_SIZE=64 BLE_SEGMENT_SIZE=32
-SDK_SOURCE_PATH += lib_u2f
-
-LDFLAGS  += -z muldefs
-APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
+# Enable QR code display for Flex and Stax
+ ENABLE_NBGL_QRCODE ?= 1
+ 
+# make rust a prerequisite for all object files 
+$(OBJECT_FILES): | rust
 
 .PHONY: rust
 rust:
@@ -98,23 +107,9 @@ rust_clean:
 
 clean: rust_clean
 
-# load, delete and listvariants are provided to comply with Ledger requirements
-.PHONY: load
-load:
-	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
-
-.PHONY: delete
-delete:
-	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
-
-# Import generic rules from the SDK
-include $(BOLOS_SDK)/Makefile.rules
 
 #add dependency on custom makefile filename
 dep/%.d: %.c Makefile
-
-listvariants:
-	@echo VARIANTS COIN ALGO
 
 .PHONY: version
 version:
