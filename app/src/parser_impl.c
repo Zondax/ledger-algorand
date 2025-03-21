@@ -35,6 +35,12 @@ DEC_READFIX_UNSIGNED(64);
 static parser_error_t addItem(uint8_t displayIdx);
 static parser_error_t _findKey(parser_context_t *c, const char *key);
 
+static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v);
+static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v);
+static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v);
+static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v);
+static parser_error_t _readRequestId(parser_context_t *c);
+
 #define DISPLAY_ITEM(type, len, counter)        \
     for(uint8_t j = 0; j < len; j++) {          \
         CHECK_ERROR(addItem(type))              \
@@ -1196,6 +1202,60 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     }
 
     num_items = common_num_items + tx_num_items + 1;
+    return parser_ok;
+}
+
+parser_error_t _read_arbitrary(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    // TODO
+    /*
+        4 + dataBuffer);
+        4 + signerBuffer);
+        4 + domainBuffer);
+        4 + authDataBuffer);
+        4 + requestIdBuffer);
+    */
+
+    CHECK_ERROR(_readData(c, v))
+    CHECK_ERROR(_readSigner(c, v))
+    CHECK_ERROR(_readDomain(c, v))
+    CHECK_ERROR(_readAuthData(c, v))
+    CHECK_ERROR(_readRequestId(c))
+    return parser_ok;
+}
+
+static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    // TODO : Read len
+    // TODO : read and store data
+    return parser_ok;
+}
+
+static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    // TODO : Read len
+    // TODO : read and store pubkey
+    return parser_ok;
+}
+
+static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    // TODO : Read len
+    // TODO : read and store domain
+    return parser_ok;
+}
+
+static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    // TODO : Read len
+    // TODO : read and store authData
+    return parser_ok;
+}
+
+static parser_error_t _readRequestId(parser_context_t *c)
+{
+    // TODO : Read len
+    // TODO : read requestId (No need to store because no validations will come)
     return parser_ok;
 }
 

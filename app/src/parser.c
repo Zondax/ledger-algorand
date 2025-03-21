@@ -34,10 +34,17 @@
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
                             size_t dataLen,
-                            parser_tx_t *tx_obj) {
+                            void *tx_obj,
+                            txn_content_e content) {
     CHECK_ERROR(parser_init(ctx, data, dataLen))
-    ctx->parser_tx_obj = tx_obj;
-    return _read(ctx, tx_obj);
+    if (content == MsgPack) {
+        ctx->parser_tx_obj = (parser_tx_t *) tx_obj;
+        return _read(ctx, (parser_tx_t *) tx_obj);
+    } else if (content == ArbitraryData) {
+        ctx->parser_arbitrary_data_obj = (parser_arbitrary_data_t *) tx_obj;
+        return _read_arbitrary(ctx, (parser_arbitrary_data_t *) tx_obj);
+    }
+    return parser_unexpected_error;
 }
 
 parser_error_t parser_validate(parser_context_t *ctx) {

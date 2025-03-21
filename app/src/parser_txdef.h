@@ -318,6 +318,18 @@ typedef enum {
   IDX_CLEAR,
 } txn_application_index_e;
 
+typedef enum {
+  MsgPack = 0,
+  ArbitraryData,
+} txn_content_e;
+
+typedef struct {
+  uint8_t* dataBuffer;
+  uint8_t* signerBuffer;
+  uint8_t* domainBuffer;
+  uint8_t* authDataBuffer;
+} parser_arbitrary_data_t;
+
 #define MAX_NOTE_LEN 1024
 #define PAGE_LEN 2048
 

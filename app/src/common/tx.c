@@ -44,6 +44,7 @@ storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #endif
 
 static parser_tx_t parser_tx_obj;
+static parser_arbitrary_data_t parser_arbitrary_data_obj;
 static parser_context_t ctx_parsed_tx;
 
 void tx_initialize()
@@ -75,14 +76,27 @@ uint8_t *tx_get_buffer()
     return buffering_get_buffer()->data;
 }
 
-const char *tx_parse()
+const char *tx_parse(txn_content_e content)
 {
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));
 
-    uint8_t err = parser_parse(&ctx_parsed_tx,
-                               tx_get_buffer()+2,   // 'TX' is prepended to input buffer
-                               tx_get_buffer_length(),
-                               &parser_tx_obj);
+    uint8_t err = parser_unexpected_error;
+    if (content == MsgPack) {
+        err = parser_parse(&ctx_parsed_tx,
+                                   tx_get_buffer()+2,   // 'TX' is prepended to input buffer
+                                   tx_get_buffer_length(),
+                                   (void *) &parser_tx_obj,
+                                   content);
+    } else if (content == ArbitraryData) {
+        err = parser_parse(&ctx_parsed_tx,
+                                   tx_get_buffer(),
+                                   tx_get_buffer_length(),
+                                   (void *) &parser_arbitrary_data_obj,
+                                   content);
+    } else {
+        return parser_getErrorDescription(parser_unexpected_error);
+    }
+
     CHECK_APP_CANARY()
 
     if (err != parser_ok)

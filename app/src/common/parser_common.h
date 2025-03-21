@@ -91,6 +91,7 @@ typedef struct {
     uint16_t bufferLen;
     uint16_t offset;
     parser_tx_t *parser_tx_obj;
+    parser_arbitrary_data_t *parser_arbitrary_data_obj;
 } parser_context_t;
 
 #ifdef __cplusplus
