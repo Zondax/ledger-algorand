@@ -62,8 +62,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
       const resp = await app.getVersion()
 
-      console.log(resp)
-
       expect(resp).toHaveProperty('testMode')
       expect(resp).toHaveProperty('major')
       expect(resp).toHaveProperty('minor')
@@ -80,8 +78,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const resp = await app.getAddressAndPubKey(hdPath)
-
-      console.log(resp)
 
       const expected_pk = '0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377'
       const expected_address = 'BX63ZW4O5PWWFDH3J33QEB5YN7IN5XOKPDUQ5DCZ232EDY4DWN3XKUQRCA'
@@ -101,8 +97,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const resp = await app.getPubkey(hdPath)
-
-      console.log(resp)
 
       const expected_pk = '0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377'
       expect(resp.pubkey.toString('hex')).toEqual(expected_pk)
@@ -128,7 +122,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
 
       const resp = await respRequest
-      console.log(resp)
     } finally {
       await sim.close()
     }
@@ -179,7 +172,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -197,7 +189,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetXfer)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(hdPath)
       const pubKey = responseAddr.pubkey
 
@@ -209,7 +200,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_transfer`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -227,7 +217,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetConfig)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(hdPath)
       const pubKey = responseAddr.pubkey
 
@@ -239,7 +228,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_config`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -257,7 +245,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txKeyreg)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(hdPath)
       const pubKey = responseAddr.pubkey
 
@@ -269,7 +256,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_keyreg`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -287,7 +273,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txPayment)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(hdPath)
       const pubKey = responseAddr.pubkey
 
@@ -299,7 +284,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_payment`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])

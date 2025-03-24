@@ -53,7 +53,6 @@ describe('BigTransactions', function () {
 
         const txBlob = Buffer.from(data.tx, 'hex')
 
-        console.log(sim.getMainMenuSnapshot())
         const responseAddr = await app.getAddressAndPubKey(hdPath)
         const pubKey = responseAddr.pubkey
 
