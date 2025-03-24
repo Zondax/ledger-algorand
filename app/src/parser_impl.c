@@ -1211,15 +1211,6 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
 parser_error_t _read_arbitrary(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    // TODO
-    /*
-        4 + dataBuffer);
-        4 + signerBuffer);
-        4 + domainBuffer);
-        4 + authDataBuffer);
-        4 + requestIdBuffer);
-    */
-
     CHECK_ERROR(_readData(c, v))
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readDomain(c, v))

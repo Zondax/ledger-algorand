@@ -39,13 +39,12 @@ jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
                             size_t dataLen,
-                            void *tx_obj,
-                            txn_content_e content) {
+                            void *tx_obj) {
     CHECK_ERROR(parser_init(ctx, data, dataLen))
-    if (content == MsgPack) {
+    if (ctx->content == MsgPack) {
         ctx->parser_tx_obj = (parser_tx_t *) tx_obj;
         return _read(ctx, (parser_tx_t *) tx_obj);
-    } else if (content == ArbitraryData) {
+    } else if (ctx->content == ArbitraryData) {
         ctx->parser_arbitrary_data_obj = (parser_arbitrary_data_t *) tx_obj;
         return _read_arbitrary(ctx, (parser_arbitrary_data_t *) tx_obj);
     }
@@ -687,12 +686,11 @@ static parser_error_t parser_printTxApplication(parser_context_t *ctx,
     return parser_display_idx_out_of_range;
 }
 
-
-parser_error_t parser_getItem(parser_context_t *ctx,
-                              uint8_t displayIdx,
-                              char *outKey, uint16_t outKeyLen,
-                              char *outVal, uint16_t outValLen,
-                              uint8_t pageIdx, uint8_t *pageCount) {
+static parser_error_t parser_getItemMsgPack(parser_context_t *ctx,
+                                           uint8_t displayIdx,
+                                           char *outKey, uint16_t outKeyLen,
+                                           char *outVal, uint16_t outValLen,
+                                           uint8_t pageIdx, uint8_t *pageCount) {
     if (ctx == NULL || outKey == NULL || outVal == NULL || pageCount == NULL) {
         return parser_unexpected_value;
     }
@@ -765,6 +763,41 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     }
 
     return parser_display_idx_out_of_range;
+}
+
+static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
+                                             uint8_t displayIdx,
+                                             char *outKey, uint16_t outKeyLen,
+                                             char *outVal, uint16_t outValLen,
+                                             uint8_t pageIdx, uint8_t *pageCount) {
+    if (ctx == NULL || outKey == NULL || outVal == NULL || pageCount == NULL) {
+        return parser_unexpected_value;
+    }
+
+    // TODO: Implement
+
+    cleanOutput(outKey, outKeyLen, outVal, outValLen);
+    *pageCount = 0;
+
+    return parser_display_idx_out_of_range;
+}
+
+parser_error_t parser_getItem(parser_context_t *ctx,
+                              uint8_t displayIdx,
+                              char *outKey, uint16_t outKeyLen,
+                              char *outVal, uint16_t outValLen,
+                              uint8_t pageIdx, uint8_t *pageCount) {
+    if (ctx == NULL || outKey == NULL || outVal == NULL || pageCount == NULL) {
+        return parser_unexpected_value;
+    }
+
+    if (ctx->content == MsgPack) {
+        return parser_getItemMsgPack(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    } else if (ctx->content == ArbitraryData) {
+        return parser_getItemArbitrary(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    return parser_unexpected_error;
 }
 
 parser_error_t parser_getTxnText(parser_context_t *ctx,

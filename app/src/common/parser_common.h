@@ -100,6 +100,7 @@ typedef struct {
     const uint8_t *buffer;
     uint16_t bufferLen;
     uint16_t offset;
+    txn_content_e content;
     parser_tx_t *parser_tx_obj;
     parser_arbitrary_data_t *parser_arbitrary_data_obj;
 } parser_context_t;

@@ -83,6 +83,7 @@ const char *tx_parse(txn_content_e content)
     uint8_t err = parser_unexpected_error;
     void *parser_obj = NULL;
     uint8_t offset = 0;
+    ctx_parsed_tx.content = content;
 
     if (content == MsgPack) {
         parser_obj = (void *) &parser_tx_obj;
@@ -96,8 +97,7 @@ const char *tx_parse(txn_content_e content)
     err = parser_parse(&ctx_parsed_tx,
                                    tx_get_buffer()+offset,
                                    tx_get_buffer_length(),
-                                   parser_obj,
-                                   content);
+                                   parser_obj);
     CHECK_APP_CANARY()
 
     if (err != parser_ok)
