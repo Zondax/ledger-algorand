@@ -102,9 +102,6 @@ def generate_random_fido2_configs(count: int = 1) -> List[Dict[str, Any]]:
         # Generate random challenge (base64 encoded 32 bytes)
         challenge = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
         
-        # Choose random request type
-        request_type = random.choice(request_types)
-        
         # Generate random signer (hex string of 32 bytes)
         # TODO: Use device pubkey (if there is hdPath, derive pk from it)
         signer = secrets.token_hex(32)
@@ -115,20 +112,30 @@ def generate_random_fido2_configs(count: int = 1) -> List[Dict[str, Any]]:
         # Generate auth data as sha256 hash of the domain
         auth_data = hashlib.sha256(domain.encode()).hexdigest()
         
-        # Create base fields for FIDO2 request
+        # Create base fields for FIDO2 request (required fields)
         fido2_data = {
-            "challenge": challenge,
             "origin": origin,
-            "rpId": domain
+            "challenge": challenge,
         }
         
-        # Randomly add optional parameters
+        # Add optional fields with probability
+        if random.choice([True, False]):
+            fido2_data["type"] = random.choice(request_types)
+            
+        if random.choice([True, False]):
+            fido2_data["rpId"] = domain
+            
+        if random.choice([True, False]):
+            # Generate random userId (base64 encoded 16 bytes)
+            fido2_data["userId"] = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
+            
         if random.choice([True, False]):
             fido2_data["timeout"] = random.randint(30000, 600000)  # timeout in milliseconds
-
+            
         if random.choice([True, False]):
-            fido2_data["type"] = request_type
-
+            # Simple extension example
+            fido2_data["extensions"] = {"appid": f"https://{domain}/app"}
+        
         # Build fields list
         fields = []
         
