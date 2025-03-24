@@ -84,6 +84,16 @@ typedef enum {
     parser_msgpack_array_too_big,
     parser_msgpack_array_type_expected,
 
+    // Arbitrary sign specific
+    parser_invalid_scope,
+    parser_failed_decoding,
+    parser_invalid_signer,
+    parser_missing_domain,
+    parser_missing_authenticated_data,
+    parser_bad_json,
+    parser_failed_domain_auth,
+    parser_failed_hd_path,
+
 } parser_error_t;
 
 typedef struct {

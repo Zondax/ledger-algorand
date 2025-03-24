@@ -22,6 +22,7 @@
 #include <parser_txdef.h>
 #include <parser.h>
 #include "parser_impl.h"
+#include "parser_txdef.h"
 
 using namespace std;
 
@@ -321,10 +322,11 @@ TEST(SCALE, ParseFreezeAssets) {
     parser_error_t err;
     parser_tx_t tx_item;
     parser_tx_t parser_obj;
+    txn_content_e content = MsgPack;
 
     uint8_t buffer[] = {136,164,102,97,100,100,196,32,0,128,113,56,42,181,180,185,179,217,45,25,67,96,137,24,105,245,42,140,102,1,108,119,121,112,6,24,192,121,191,145,164,102,97,105,100,205,4,210,163,102,101,101,205,8,202,162,102,118,205,3,232,162,103,104,196,32,72,99,181,24,164,179,200,78,200,16,242,45,79,16,129,203,15,113,240,89,167,172,32,222,198,47,127,112,229,9,58,34,162,108,118,205,7,208,163,115,110,100,196,32,171,254,108,36,82,141,12,209,97,249,95,84,239,5,200,187,60,138,223,232,41,229,170,243,199,2,0,70,121,158,251,185,164,116,121,112,101,164,97,102,114,122};
     uint16_t bufferLen = sizeof(buffer);
-    err = parser_parse(&ctx, buffer, bufferLen, &parser_obj);
+    err = parser_parse(&ctx, buffer, bufferLen, &parser_obj, content);
     EXPECT_EQ(err, parser_ok) << parser_getErrorDescription(err);
 }
 

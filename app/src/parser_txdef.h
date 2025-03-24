@@ -324,10 +324,14 @@ typedef enum {
 } txn_content_e;
 
 typedef struct {
-  uint8_t* dataBuffer;
-  uint8_t* signerBuffer;
-  uint8_t* domainBuffer;
-  uint8_t* authDataBuffer;
+  const uint8_t* dataBuffer;
+  uint16_t dataLen;
+  const uint8_t* signerBuffer;
+  uint16_t signerLen;
+  const uint8_t* domainBuffer;
+  uint16_t domainLen;
+  const uint8_t* authDataBuffer;
+  uint16_t authDataLen;
 } parser_arbitrary_data_t;
 
 #define MAX_NOTE_LEN 1024

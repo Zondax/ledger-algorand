@@ -22,6 +22,17 @@ extern "C" {
 
 #include "parser_impl.h"
 
+#include "jsmn.h"
+
+#if defined(TARGET_NANOS)
+#define MAX_NUMBER_OF_JSMN_TOKENS 30
+#else
+#define MAX_NUMBER_OF_JSMN_TOKENS 80
+#endif
+
+extern jsmn_parser p;
+extern jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
+
 const char *parser_getErrorDescription(parser_error_t err);
 const char *parser_getMsgPackTypeDescription(uint8_t type);
 

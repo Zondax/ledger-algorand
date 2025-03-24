@@ -97,6 +97,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
 
     parser_context_t ctx;
     parser_error_t err;
+    txn_content_e content = MsgPack;
 
     uint8_t buffer[20000];
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
@@ -105,7 +106,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     // Since we depend on default values, we need to initialize this every time (as we do in the app)
     memset(&tx_obj, 0, sizeof(tx_obj));
 
-    err = parser_parse(&ctx, buffer, bufferLen, &tx_obj);
+    err = parser_parse(&ctx, buffer, bufferLen, (void *) &tx_obj, content);
     ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
 
     auto output = dumpUI(&ctx, 39, 39);

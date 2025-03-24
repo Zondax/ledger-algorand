@@ -22,6 +22,7 @@
 #include "coin.h"
 #include "parser_common.h"
 #include "parser_impl.h"
+#include "parser_txdef.h"
 #include "common/parser.h"
 #include "parser_encoding.h"
 
@@ -30,6 +31,10 @@
 
 #include "crypto.h"
 
+#include "jsmn.h"
+
+jsmn_parser p;
+jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
 
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
