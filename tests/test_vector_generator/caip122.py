@@ -61,7 +61,7 @@ def create_caip122_request_blob(fields):
     request_id = next((f["value"] for f in fields if f["name"] == "Request ID"), "")
 
     # Convert to bytes
-    signer_bytes = bytes.fromhex(signer)
+    signer_bytes = signer.encode('utf-8')
     domain_bytes = domain.encode('utf-8')
     auth_data_bytes = auth_data.encode('utf-8')
     request_id_bytes = request_id.encode('utf-8')
@@ -142,9 +142,19 @@ def generate_random_caip122_configs(count: int = 1) -> List[Dict[str, Any]]:
         request_id_caip122 = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
         request_id_external = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
         
-        # Generate random signer (hex string of 32 bytes)
+        # Generate random signer as an Algorand address
+        # Algorand addresses are 58 characters long in base32 encoding
         # TODO: Use device pubkey (if there is hdPath, derive pk from it)
-        signer = secrets.token_hex(32)
+        pubkey = secrets.token_bytes(32)
+
+        def sha512_256(data):
+            return hashlib.sha512(data).digest()[:32]
+            
+        # Convert to Algorand address format
+        checksum = sha512_256(pubkey)[:4]
+        addr_bytes = bytes([1]) + pubkey + checksum
+        signer = base64.b32encode(addr_bytes).decode('ascii')
+        signer = signer.rstrip('=')
         
         # Generate auth data as sha256 hash of the domain
         auth_data = hashlib.sha256(domain_external.encode()).hexdigest()
