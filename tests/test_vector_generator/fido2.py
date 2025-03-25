@@ -125,8 +125,8 @@ def generate_random_fido2_configs(count: int = 1) -> List[Dict[str, Any]]:
         signer = base64.b32encode(addr_bytes).decode('ascii')
         signer = signer.rstrip('=')
 
-        # Generate random request ID (base64 encoded 16 bytes)
-        request_id = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
+        # Generate random request ID (base64 encoded 32 bytes)
+        request_id = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
         
         # Generate auth data as sha256 hash of the domain
         auth_data = hashlib.sha256(domain.encode()).hexdigest()

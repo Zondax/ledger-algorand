@@ -155,9 +155,9 @@ def generate_random_caip122_configs(count: int = 1) -> List[Dict[str, Any]]:
         # Generate random nonce (base64 encoded 32 bytes)
         nonce = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
         
-        # Generate random request IDs (base64 encoded 16 bytes)
-        request_id_caip122 = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
-        request_id_external = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
+        # Generate random request IDs (base64 encoded 32 bytes)
+        request_id_caip122 = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
+        request_id_external = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
         
         # Generate random signer as an Algorand address
         # Algorand addresses are 58 characters long in base32 encoding
