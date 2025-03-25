@@ -33,7 +33,7 @@ The general structure of commands and responses is as follows:
 | 0x6D00      | INS not supported       |
 | 0x6E00      | CLA not supported       |
 | 0x6F00      | Unknown                 |
-| 0x8000      | Success                 |
+| 0x9000      | Success                 |
 
 ---
 
@@ -162,6 +162,104 @@ signature.
 | 0x80  | 0x08       | 0x00                 | 0x00 | N1   | MsgPack txn   |
 
 
+### INS_SIGN_ARBITRARY_DATA
 
+#### Command
+
+| Field   | Type        | Content                   | Expected   |
+| ------- | --------    | ------------------------- | ---------- |
+| CLA     | byte (1)    | Application Identifier    | 0x80       |
+| INS     | byte (1)    | Instruction ID            | 0x10       |
+| P1      | byte (1)    | First/More/Last           | (depends)  |
+| P2      | byte (1)    | N/A                       | 0x00       |
+| LC      | byte (1)    | Bytes in payload          | (depends)  |
+| Payload | byte (var)  | hdPath + Arbitrary data   | (depends)  |
+
+First APDU message (only contains hdPath)
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x00                 | 0x00 | N1   | hdPath    |
+
+
+APDU message `i`
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x01                 | 0x00 | Ni   | Arb. data chunk `i`   |
+
+
+Last APDU message
+
+| CLA   | INS        | P1                   | P2   | LC   | Payload   |
+|-------|------------|----------------------|------|------|-----------|
+| 0x80  | 0x10       | 0x02                 | 0x00 | NI   | Arb. data last chunk |
+
+##### Arbitrary Data Chunks
+
+| Range     | Field                  | Restrictions             | Max Size  |
+|-----------|----------------------- |--------------------------| --------- |
+| 0..31     | Signer                 | -                        | 32 bytes  |
+| 32        | Scope                  | see Supported Scopes     | 1 byte    |
+| 33        | Encoding               | see Supported Encodings  | 1 byte    |
+| 34        | Data Len               |                          | TBD       |
+|           | Data                   | Canonical JSON           | 512 bytes |
+|           | Domain Len             |                          | TBD       |
+|           | Domain                 | Representable ASCII      | 256 bytes |
+|           | Request ID  Len        |                          | TBD       |
+|           | Request ID             | Representable Hex String | 256 bytes |
+|           | Authenticated Data Len |                          | TBD       |
+|           | Authenticated Data     | Encoding format TBD      | 256 bytes |
+
+##### Supported Scopes
+- AUTH : 1
+
+##### Supported Encodings
+- Base64 : 1
+
+### Checks performed by the wallet
+
+- Authenticated Data's first 32 bytes must be equal to sha256(Domain)
+- Domain is representable ASCII (Values in range 32..127)
+- Request ID is representable Hex String (0-9, A-F)
+- Data is a canonical JSON
+- hdPath is BIP44 and starts with 44'/283'
+- hdPath hardening restrictions
+
+#### Response
+
+##### OK
+
+| Field          | Type      | Content                                                 |
+| -------------- | --------- | ------------------------------------------------------- |
+| Signature      | byte (64) | Signed [sha256(data) + sha256(Authenticated Data)]      |
+| SW1-SW2        | byte (2)  | 0x9000                                                  |
+
+##### Error
+| Field          | Type      | Content           | Note                     |
+| -------------- | --------- | ----------------- | ------------------------ |
+| SW1-SW2        | byte (2)  | Return code       | see Arbitrary Sign Return Codes |
+
+
+### Arbitrary Sign Return codes
+
+| Return code | Description                  |
+| ----------- | ---------------------------- |
+| 0x6400      | Execution Error              |
+| 0x6982      | Empty buffer                 |
+| 0x6983      | Output buffer too small      |
+| 0x6986      | Command not allowed          |
+| 0x6988      | Invalid scope                |
+| 0x6989      | Failed decoding              |
+| 0x698A      | Invalid signer               |
+| 0x698B      | Missing domain               |
+| 0x698C      | Missing authenticated data   |
+| 0x698D      | Bad JSON                     |
+| 0x698E      | Failed domain authentication |
+| 0x698F      | Failed HD path               |
+| 0x6D00      | INS not supported            |
+| 0x6E00      | CLA not supported            |
+| 0x6F00      | Unknown                      |
+| 0x9000      | Success                      |
 
 ---
