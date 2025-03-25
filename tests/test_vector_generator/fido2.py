@@ -7,6 +7,15 @@ from typing import List, Dict, Any
 
 from common import append_field_to_blob
 
+# from https://github.com/algorandfoundation/ARCs/blob/dcad03c0171e4d9d43164b12dc292a6bc799020d/assets/arc-0060/arc60wallet.api.ts
+
+# type?: string;
+# origin: string;
+# challenge: string;
+# rpId?: string;
+# userId?: string;
+# extensions?: any
+
 def create_fido2_request_blob(fields):
     """
     Create a binary blob from FIDO2/WebAuthn request fields.
@@ -138,10 +147,7 @@ def generate_random_fido2_configs(count: int = 1) -> List[Dict[str, Any]]:
         if random.choice([True, False]):
             # Generate random userId (base64 encoded 16 bytes)
             fido2_data["userId"] = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
-            
-        if random.choice([True, False]):
-            fido2_data["timeout"] = random.randint(30000, 600000)  # timeout in milliseconds
-            
+
         if random.choice([True, False]):
             # Simple extension example
             fido2_data["extensions"] = {"appid": f"https://{domain}/app"}

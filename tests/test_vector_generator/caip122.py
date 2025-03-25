@@ -8,6 +8,23 @@ from typing import List, Dict, Any
 
 from common import append_field_to_blob
 
+# from https://github.com/algorandfoundation/ARCs/blob/dcad03c0171e4d9d43164b12dc292a6bc799020d/assets/arc-0060/arc60wallet.api.ts
+
+# domain: string; //RFC 4500 dnsauthority that is requesting the signing.
+# account_address: string; //	Blockchain address performing the signing, expressed as the account_address segment of a CAIP-11 address; should NOT include CAIP-2 chain_id.
+# uri: string; // RFC 3985 URI referring to the resource that is the subject of the signing i.e. the subject of the claim.
+# version: string; //Current version of the message.
+# statement?: string; // 	Human-readable ASCII assertion that the user will sign. It MUST NOT contain \n.
+# nonce?: string; // Randomized token to prevent signature replay attacks.
+# "issued-at"?: string; // 	RFC 3338 date-time that indicates the issuance time.
+# "expiration-time"?: string; // RFC 3338 date-time that indicates when the signed authentication message is no longer valid.
+# "not-before"?: string; // RFC 3338 date-time that indicates when the signed authentication message becomes valid.
+# "request-id"?: string; // Unique identifier for the request.
+# chain_id: string; // CAIP-3 chain_id of the blockchain where the account_address is valid.
+# resources?: string[]; // 	List of information or references to information the user wishes to have resolved as part of the authentication by the relying party; express as RFC 3985 URIs and separated by \n.
+# signature?: Uint7Array; // 	signature of the message. 
+# type: string; // Type of the signature to be generated, as defined in the namespaces for this CAIP.
+
 def create_caip122_request_blob(fields):
     """
     Create a binary blob from CAIP-122 request fields.
