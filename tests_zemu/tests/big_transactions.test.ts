@@ -16,8 +16,9 @@
 
 import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
+import { AlgorandApp } from '@zondax/ledger-algorand'
 import { APP_SEED, models, txApplicationLong } from './common'
+import { expect, test, describe, beforeEach } from 'vitest'
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
@@ -31,7 +32,10 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(300000)
+// Timeout is now handled in vitest.config.ts
+beforeEach(() => {
+  // This is handled by the vitest.config.ts file
+})
 
 describe('BigTransactions', function () {
   test.concurrent.each(models)('can start and stop container', async function (m) {

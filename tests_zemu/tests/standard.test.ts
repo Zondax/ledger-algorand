@@ -17,10 +17,11 @@
 import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
 import { AlgorandApp } from '@zondax/ledger-algorand'
-import { APP_SEED, models, APPLICATION_TEST_CASES, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
+import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
+import { expect, test, describe, vi, beforeEach } from 'vitest'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -31,7 +32,10 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(600000)
+// Set timeout for all tests (replaces jest.setTimeout)
+beforeEach(() => {
+  // This is handled by the vitest.config.ts file
+})
 
 describe('Standard', function () {
   test.concurrent.each(models)('can start and stop container', async function (m) {

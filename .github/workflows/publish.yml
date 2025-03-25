@@ -20,13 +20,15 @@ jobs:
         with:
           registry-url: "https://registry.npmjs.org"
           scope: "@zondax"
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
       - name: Build package
         run: |
           cd js
-          yarn install
-          yarn build
+          bun install
+          bun run build
       - name: Get latest release version number
         id: get_version
         run: |

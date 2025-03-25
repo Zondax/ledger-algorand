@@ -84,9 +84,10 @@ jobs:
       - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
       - name: Install node
         uses: actions/setup-node@v3
-      - name: Install yarn
-        run: |
-          npm install -g yarn
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
       - name: Build Ledger app
         run: make test_all
       - name: Upload Snapshots (only failure)
