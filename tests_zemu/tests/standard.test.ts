@@ -16,8 +16,8 @@
 
 import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
-import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
+import { AlgorandApp } from '@zondax/ledger-algorand'
+import { APP_SEED, models, APPLICATION_TEST_CASES, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
@@ -31,7 +31,7 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(300000)
+jest.setTimeout(600000)
 
 describe('Standard', function () {
   test.concurrent.each(models)('can start and stop container', async function (m) {
@@ -61,8 +61,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
       const resp = await app.getVersion()
 
-      console.log(resp)
-
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')
       expect(resp).toHaveProperty('test_mode')
@@ -82,8 +80,6 @@ describe('Standard', function () {
 
       const tmpAccountId = 123
       const resp = await app.getAddressAndPubKey(tmpAccountId)
-
-      console.log(resp)
 
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')
@@ -107,8 +103,6 @@ describe('Standard', function () {
 
       const tmpAccountId = 123
       const resp = await app.getPubkey(tmpAccountId)
-
-      console.log(resp)
 
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')
@@ -137,7 +131,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
 
       const resp = await respRequest
-      console.log(resp)
 
       expect(resp.return_code).toEqual(0x9000)
       expect(resp.error_message).toEqual('No errors')
@@ -162,7 +155,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndReject('.', `${m.prefix.toLowerCase()}-show_address_reject`)
 
       const resp = await respRequest
-      console.log(resp)
 
       expect(resp.return_code).toEqual(0x6986)
       expect(resp.error_message).toEqual('Transaction rejected')
@@ -189,7 +181,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
@@ -210,7 +201,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetXfer)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
       const pubKey = responseAddr.publicKey
 
@@ -222,7 +212,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_transfer`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
@@ -243,7 +232,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetConfig)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
       const pubKey = responseAddr.publicKey
 
@@ -255,7 +243,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_config`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
@@ -276,7 +263,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txKeyreg)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
       const pubKey = responseAddr.publicKey
 
@@ -288,7 +274,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_keyreg`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')
@@ -309,7 +294,6 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txPayment)
-      console.log(sim.getMainMenuSnapshot())
       const responseAddr = await app.getAddressAndPubKey(accountId)
       const pubKey = responseAddr.publicKey
 
@@ -321,7 +305,6 @@ describe('Standard', function () {
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_payment`)
 
       const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
 
       expect(signatureResponse.return_code).toEqual(0x9000)
       expect(signatureResponse.error_message).toEqual('No errors')

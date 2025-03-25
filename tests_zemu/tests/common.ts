@@ -10,12 +10,20 @@ const APP_PATH_SP = resolve('../app/output/app_s2.elf')
 const APP_PATH_ST = resolve('../app/output/app_stax.elf')
 const APP_PATH_FL = resolve('../app/output/app_flex.elf')
 
-export const models: IDeviceModel[] = [
+export const touchableModels: IDeviceModel[] = [
+  { name: 'stax', prefix: 'ST', path: APP_PATH_ST },
+  { name: 'flex', prefix: 'FL', path: APP_PATH_FL },
+]
+
+export const clickableModels: IDeviceModel[] = [
   { name: 'nanos', prefix: 'S', path: APP_PATH_S },
   { name: 'nanox', prefix: 'X', path: APP_PATH_X },
   { name: 'nanosp', prefix: 'SP', path: APP_PATH_SP },
-  { name: 'stax', prefix: 'ST', path: APP_PATH_ST },
-  { name: 'flex', prefix: 'FL', path: APP_PATH_FL },
+]
+
+export const models: IDeviceModel[] = [
+    ...clickableModels,
+    ...touchableModels,
 ]
 
 export const txAssetFreeze = [
