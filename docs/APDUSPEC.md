@@ -162,7 +162,7 @@ signature.
 | 0x80  | 0x08       | 0x00                 | 0x00 | N1   | MsgPack txn   |
 
 
-### INS_SIGN_DATA
+### INS_SIGN_ARBITRARY_DATA
 
 #### Command
 
@@ -181,7 +181,7 @@ First APDU message
 
 | CLA   | INS        | P1                   | P2   | LC   | Payload   |
 |-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x10       | 0x00                 | 0x80 | N1   | hdPath    |
+| 0x80  | 0x10       | 0x02                 | 0x80 | N1   | hdPath    |
 
 ...
 
