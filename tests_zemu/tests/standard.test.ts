@@ -15,8 +15,7 @@
  ******************************************************************************* */
 
 import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
-// @ts-ignore
-import { AlgorandApp } from '@zondax/ledger-algorand'
+import AlgorandApp from '@zondax/ledger-algorand'
 import { APP_SEED, models, txApplication, txAssetConfig, txAssetFreeze, txAssetXfer, txKeyreg, txPayment } from './common'
 
 // @ts-ignore

@@ -36,6 +36,6 @@ default:
 endif
 
 test_all:
-	cd tests_zemu && yarn install
+	cd tests_zemu && bun install
 	make
 	make zemu_test
