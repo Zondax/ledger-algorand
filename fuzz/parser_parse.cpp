@@ -20,7 +20,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     parser_context_t ctx;
     parser_error_t rc;
 
-    rc = parser_parse(&ctx, data, size, &txObj);
+    txn_content_e content = MsgPack;
+
+    rc = parser_parse(&ctx, data, size, &txObj, content);
     if (rc != parser_ok)
     {
         return 0;
@@ -33,7 +35,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
 
     uint8_t num_items;
-    rc = parser_getNumItems(&num_items);
+    rc = parser_getNumItems(&num_items, ctx.content);
     if (rc != parser_ok)
     {
         // fprintf(stderr,

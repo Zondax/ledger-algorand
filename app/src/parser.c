@@ -33,20 +33,18 @@
 
 #include "jsmn.h"
 
-jsmn_parser p;
-jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
-
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
                             size_t dataLen,
-                            void *tx_obj) {
-    CHECK_ERROR(parser_init(ctx, data, dataLen))
-    if (ctx->content == MsgPack) {
+                            void *tx_obj,
+                            txn_content_e content) {
+    CHECK_ERROR(parser_init(ctx, data, dataLen, content))
+    if (content == MsgPack) {
         ctx->parser_tx_obj = (parser_tx_t *) tx_obj;
         return _read(ctx, (parser_tx_t *) tx_obj);
-    } else if (ctx->content == ArbitraryData) {
+    } else if (content == ArbitraryData) {
         ctx->parser_arbitrary_data_obj = (parser_arbitrary_data_t *) tx_obj;
-        return _read_arbitrary(ctx, (parser_arbitrary_data_t *) tx_obj);
+        return _read_arbitrary_data(ctx, (parser_arbitrary_data_t *) tx_obj);
     }
     return parser_unexpected_error;
 }
@@ -54,7 +52,7 @@ parser_error_t parser_parse(parser_context_t *ctx,
 parser_error_t parser_validate(parser_context_t *ctx) {
     // Iterate through all items to check that all can be shown and are valid
     uint8_t numItems = 0;
-    CHECK_ERROR(parser_getNumItems(&numItems))
+    CHECK_ERROR(parser_getNumItems(&numItems, ctx->content))
 
     char tmpKey[40];
     char tmpVal[40];
@@ -66,8 +64,12 @@ parser_error_t parser_validate(parser_context_t *ctx) {
     return parser_ok;
 }
 
-parser_error_t parser_getNumItems(uint8_t *num_items) {
-    *num_items = _getNumItems();
+parser_error_t parser_getNumItems(uint8_t *num_items, txn_content_e content) {
+    if (content == MsgPack) {
+        *num_items = _getNumItems();
+    } else if (content == ArbitraryData) {
+        *num_items = _getNumItemsArbitrary();
+    }
     if(*num_items == 0) {
         return parser_unexpected_number_items;
     }
@@ -699,7 +701,7 @@ static parser_error_t parser_getItemMsgPack(parser_context_t *ctx,
     *pageCount = 0;
 
     uint8_t numItems = 0;
-    CHECK_ERROR(parser_getNumItems(&numItems))
+    CHECK_ERROR(parser_getNumItems(&numItems, ctx->content))
     CHECK_APP_CANARY()
 
     uint8_t commonItems = 0;

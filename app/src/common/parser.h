@@ -22,17 +22,6 @@ extern "C" {
 
 #include "parser_impl.h"
 
-#include "jsmn.h"
-
-#if defined(TARGET_NANOS)
-#define MAX_NUMBER_OF_JSMN_TOKENS 30
-#else
-#define MAX_NUMBER_OF_JSMN_TOKENS 80
-#endif
-
-extern jsmn_parser p;
-extern jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
-
 const char *parser_getErrorDescription(parser_error_t err);
 const char *parser_getMsgPackTypeDescription(uint8_t type);
 
@@ -40,13 +29,14 @@ const char *parser_getMsgPackTypeDescription(uint8_t type);
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
                             size_t dataLen,
-                            void *tx_obj);
+                            void *tx_obj,
+                            txn_content_e content);
 
 //// verifies tx fields
 parser_error_t parser_validate(parser_context_t *ctx);
 
 //// returns the number of items in the current parsing context
-parser_error_t parser_getNumItems(uint8_t *num_items);
+parser_error_t parser_getNumItems(uint8_t *num_items, txn_content_e content);
 
 // retrieves a readable output for each field / page
 parser_error_t parser_getItem(parser_context_t *ctx,

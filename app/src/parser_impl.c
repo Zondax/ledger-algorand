@@ -16,6 +16,7 @@
 
 #include "common/parser.h"
 #include "parser_impl.h"
+#include "parser_json.h"
 #include "msgpack.h"
 #include "app_mode.h"
 #include "coin.h"
@@ -68,9 +69,10 @@ static parser_error_t _readRequestId(parser_context_t *c);
         DISPLAY_ITEM(appIdx, len, counter)                                          \
     }
 
-parser_error_t parser_init_context(parser_context_t *ctx,
+static parser_error_t parser_init_context(parser_context_t *ctx,
                                    const uint8_t *buffer,
-                                   uint16_t bufferSize) {
+                                   uint16_t bufferSize,
+                                   txn_content_e content) {
     if (ctx == NULL || bufferSize == 0 || buffer == NULL) {
          return parser_init_context_empty;
     }
@@ -84,11 +86,12 @@ parser_error_t parser_init_context(parser_context_t *ctx,
 
     ctx->buffer = buffer;
     ctx->bufferLen = bufferSize;
+    ctx->content = content;
     return parser_ok;
 }
 
-parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize) {
-    CHECK_ERROR(parser_init_context(ctx, buffer, bufferSize))
+parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize, txn_content_e content) {
+    CHECK_ERROR(parser_init_context(ctx, buffer, bufferSize, content))
     return parser_ok;
 }
 
@@ -1209,7 +1212,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-parser_error_t _read_arbitrary(parser_context_t *c, parser_arbitrary_data_t *v)
+parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
     CHECK_ERROR(_readData(c, v))
     CHECK_ERROR(_readSigner(c, v))
@@ -1225,15 +1228,7 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
     CHECK_ERROR(_readUInt32(c, &dataLen))
     v->dataLen = dataLen;
 
-    jsmn_init(&p);
-    const char *json = (const char *) (c->buffer + c->offset);
-    int err = jsmn_parse(&p, json, dataLen, t, MAX_NUMBER_OF_JSMN_TOKENS);
-
-    if (err < 0) {
-        return parser_bad_json;
-    }
-
-    CTX_CHECK_AND_ADVANCE(c, dataLen)
+    CHECK_ERROR(parser_json_parse(c->buffer + c->offset, dataLen, c))
 
     return parser_ok;
 }
@@ -1306,6 +1301,11 @@ uint8_t _getCommonNumItems()
 uint8_t _getTxNumItems()
 {
     return tx_num_items;
+}
+
+uint8_t _getNumItemsArbitrary()
+{
+    return num_items;
 }
 
 const char *parser_getErrorDescription(parser_error_t err) {

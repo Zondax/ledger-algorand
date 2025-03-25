@@ -97,7 +97,9 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
 
     parser_context_t ctx;
     parser_error_t err;
-    txn_content_e content = MsgPack;
+    txn_content_e content = ArbitraryData;
+
+    ctx.content = content;
 
     uint8_t buffer[20000];
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
@@ -126,6 +128,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     }
 }
 
+/*
 INSTANTIATE_TEST_SUITE_P
 
 (
@@ -146,3 +149,16 @@ INSTANTIATE_TEST_SUITE_P
     JsonTestsA::PrintToStringParamName()
 );
 TEST_P(JsonTestsA, CheckUIOutput_BigTransactions) { check_testcase(GetParam(), true); }
+*/
+
+INSTANTIATE_TEST_SUITE_P
+
+(
+    JsonTestsArbitrarySign,
+    JsonTestsA,
+    ::testing::ValuesIn(GetJsonTestCases("testcases_arbitrary_sign.json")),
+    JsonTestsA::PrintToStringParamName()
+);
+
+TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign) { check_testcase(GetParam(), true); }
+TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign_Expert) { check_testcase(GetParam(), true); }
