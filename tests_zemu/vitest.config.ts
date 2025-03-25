@@ -11,9 +11,6 @@ export default defineConfig({
       threads: {
         singleThread: false,
       },
-      forks: {
-        maxForks: 2, // Equivalent to Jest's maxConcurrency: 2
-      },
     },
   },
 })
