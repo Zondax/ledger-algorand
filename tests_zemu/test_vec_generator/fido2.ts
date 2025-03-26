@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { appendFieldToBlob, Encoding, Scope } from './common';
+import { appendFieldToBlob, Encoding, hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123, Scope } from './common';
 import * as base32 from 'hi-base32';
 import { serializePath } from './bip32';
 import { BIP32Path } from './bip32';
@@ -9,7 +9,9 @@ interface Field {
   value: string;
 }
 
-export function createFido2RequestBlob(fields: Field[], pubkey: string): string {
+let chosenPubkeys: string[] = [];
+
+export function createFido2RequestBlob(fields: Field[], vectorIdx: number): string {
   // Extract FIDO2 fields
   const fido2Data: Record<string, any> = {};
   
@@ -46,14 +48,14 @@ export function createFido2RequestBlob(fields: Field[], pubkey: string): string 
   const dataBytes = Buffer.from(canonicalJson, 'utf-8');
   
   // Extract non-FIDO2 fields needed for the blob
-  const signer = pubkey;
+  const signer = chosenPubkeys[vectorIdx];
   const authData = fields.find(f => f.name === "Auth Data")?.value || "";
   const requestId = fields.find(f => f.name === "Request ID")?.value || "";
   const domain = fields.find(f => f.name === "Domain")?.value || "";
   const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
 
   // Convert to bytes
-  const signerBytes = Buffer.from(pubkey, 'hex');
+  const signerBytes = Buffer.from(signer, 'hex');
   const authDataBytes = Buffer.from(authData, 'hex');
   const requestIdBytes = Buffer.from(requestId, 'utf-8');
   const domainBytes = Buffer.from(domain, 'utf-8');
@@ -83,7 +85,7 @@ export function createFido2RequestBlob(fields: Field[], pubkey: string): string 
   return hexBlob;
 }
 
-export function generateRandomFido2Configs(count: number = 1, pubkey: string): Array<Record<string, any>> {
+export function generateRandomFido2Configs(count: number = 1): Array<Record<string, any>> {
   const configs: Array<Record<string, any>> = [];
   
   // Common domains relevant to Algorand ecosystem
@@ -106,6 +108,8 @@ export function generateRandomFido2Configs(count: number = 1, pubkey: string): A
     };
     
     // Convert to Algorand address format
+    const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
+    chosenPubkeys.push(pubkey);
     const pubkeyBytes = Buffer.from(pubkey, 'hex');
     const checksum = sha512_256(pubkeyBytes).slice(0, 4);
     const addrBytes = Buffer.concat([Buffer.from([1]), pubkeyBytes, checksum]);
@@ -161,15 +165,28 @@ export function generateRandomFido2Configs(count: number = 1, pubkey: string): A
     }
 
     const includeHdPathInBlob = Math.random() < 0.5;
+    let hdPath = "";
     if (includeHdPathInBlob) {
-      fields.push({ name: "hdPath", value: "m/44'/283'/0'/0/0" });
+      hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
+      fields.push({ name: "hdPath", value: hdPath });
     }
+
+    console.log(hdPath, pubkey, includeHdPathInBlob);
+
+    const isValid = (
+      (includeHdPathInBlob && hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
+      (includeHdPathInBlob && hdPath === hdPathAcc123 && pubkey === pubkeyAcc123) ||
+      (!includeHdPathInBlob && pubkey === pubkeyAcc0)
+    );
+
+    console.log("isValid :", isValid);
     
     // Create configuration
     const config = {
       index: i,
       name: `Algorand_FIDO2_${i}`,
-      fields: fields
+      fields: fields,
+      valid: isValid
     };
     
     configs.push(config);

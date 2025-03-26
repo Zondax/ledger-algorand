@@ -20,14 +20,18 @@ export enum Encoding {
   BASE64 = 0x01,
 }
 
+export const pubkeyAcc0 = "1eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8";
+export const pubkeyAcc123 = "0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377";
+export const hdPathAcc0 = "m/44'/283'/0'/0/0";
+export const hdPathAcc123 = "m/44'/283'/123'/0/0";
 
 export function generateTestVector(
   index: number,
   name: string,
   blob: string,
   fields: Field[],
-  expertMode: boolean = false,
-  valid: boolean = true
+  valid: boolean,
+  expertMode: boolean = false
 ): TestVector {
   const output: string[] = [];
   const MAX_CHARS_PER_LINE = 38;

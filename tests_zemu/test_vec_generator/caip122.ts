@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { appendFieldToBlob, Encoding, Scope } from './common';
+import { appendFieldToBlob, Encoding, hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123, Scope } from './common';
 import * as base32 from 'hi-base32';
 import { serializePath, BIP32Path } from './bip32';
 
@@ -8,7 +8,9 @@ interface Field {
   value: string | string[];
 }
 
-export function createCaip122RequestBlob(fields: Field[], pubkey: string): string {
+let chosenPubkeys: string[] = [];
+
+export function createCaip122RequestBlob(fields: Field[], vectorIdx: number): string {
   // Extract fields for the CAIP-122 request data
   const caip122Data: Record<string, any> = {};
   
@@ -46,7 +48,7 @@ export function createCaip122RequestBlob(fields: Field[], pubkey: string): strin
   const dataBytes = Buffer.from(canonicalJson, 'utf-8');
   
   // Extract non-CAIP-122 fields needed for the blob
-  const signer = pubkey;
+  const signer = chosenPubkeys[vectorIdx];
   
   // For domain: if there's a domain after the cutoff, use it; otherwise use ""
   const domain = fields.slice(externalStartIdx).find(f => f.name === "Domain")?.value || "";
@@ -54,10 +56,9 @@ export function createCaip122RequestBlob(fields: Field[], pubkey: string): strin
   const authData = fields.find(f => f.name === "Auth Data")?.value || "";
   const requestId = fields.find(f => f.name === "Request ID")?.value || "";
   const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
-  const isHdPathPresent = hdPath !== "";
 
   // Convert to bytes
-  const signerBytes = Buffer.from(pubkey, 'hex');
+  const signerBytes = Buffer.from(signer, 'hex');
   const domainBytes = Buffer.from(domain as string, 'utf-8');
   const authDataBytes = Buffer.from(authData as string, 'utf-8');
   const requestIdBytes = Buffer.from(requestId as string, 'utf-8');
@@ -86,7 +87,7 @@ export function createCaip122RequestBlob(fields: Field[], pubkey: string): strin
   return hexBlob;
 }
 
-export function generateRandomCaip122Configs(count: number = 1, pubkey: string): Array<Record<string, any>> {
+export function generateRandomCaip122Configs(count: number = 1): Array<Record<string, any>> {
   const configs: Array<Record<string, any>> = [];
   
   // Algorand-specific chain ID
@@ -105,6 +106,8 @@ export function generateRandomCaip122Configs(count: number = 1, pubkey: string):
     ["https://example.com/algorand-claim.json"],
     ["ipfs://QmXZVnfgbEZqQppBYSQBZknjx5PuLwn36aUMRNTNTWwnaT"]
   ];
+
+  chosenPubkeys = [];
   
   for (let i = 0; i < count; i++) {
     // Generate random dates - issued now, expiry in future, not-before in past
@@ -139,6 +142,8 @@ export function generateRandomCaip122Configs(count: number = 1, pubkey: string):
     };
     
     // Convert to Algorand address format
+    const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
+    chosenPubkeys.push(pubkey);
     const pubkeyBytes = Buffer.from(pubkey, 'hex');
     const checksum = sha512_256(pubkeyBytes).slice(0, 4);
     const addrBytes = Buffer.concat([Buffer.from([1]), pubkeyBytes, checksum]);
@@ -197,18 +202,27 @@ export function generateRandomCaip122Configs(count: number = 1, pubkey: string):
     }
 
     const includeHdPathInBlob = Math.random() < 0.5;
+    let hdPath = "";
     if (includeHdPathInBlob) {
-      additionalFields.push({ name: "hdPath", value: "m/44'/283'/0'/0/0" });
+      hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
+      additionalFields.push({ name: "hdPath", value: hdPath });
     }
     
     // Combine fields in the correct order: all CAIP-122 fields first, then additional fields
     const fields = [...caip122Fields, ...additionalFields];
+
+    const isValid = (
+      (includeHdPathInBlob && hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
+      (includeHdPathInBlob && hdPath === hdPathAcc123 && pubkey === pubkeyAcc123) ||
+      (!includeHdPathInBlob && pubkey === pubkeyAcc0)
+    );
     
     // Create configuration
     const config = {
       index: i,
       name: `Algorand_CAIP122_${i}`,
-      fields: fields
+      fields: fields,
+      valid: isValid
     };
     
     configs.push(config);
