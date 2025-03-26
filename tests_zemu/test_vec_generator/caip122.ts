@@ -54,15 +54,14 @@ class Caip122Generator implements ProtocolGenerator {
       const accountAddress = Array(58).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
       
       // Generate random domain and URI
-      const domainCaip122 = domains[Math.floor(Math.random() * domains.length)];
-      const domainExternal = domains[Math.floor(Math.random() * domains.length)];  // Can be the same or different
-      const uri = `https://${domainCaip122}`;
+      const domain = domains[Math.floor(Math.random() * domains.length)];
+      const uri = `https://${domain}`;
       
       // Generate random nonce (base64 encoded 32 bytes)
       const nonce = crypto.randomBytes(32).toString('base64');
       
       // Generate random request IDs (base64 encoded 32 bytes)
-      const requestIdCaip122 = crypto.randomBytes(32).toString('base64');
+      const requestId = crypto.randomBytes(32).toString('base64');
       
       // Choose pubkey for this test vector
       const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
@@ -72,7 +71,7 @@ class Caip122Generator implements ProtocolGenerator {
       const resources = JSON.stringify(resourceOptions[Math.floor(Math.random() * resourceOptions.length)]);
       
       // Create human-readable statement
-      const statement = `We are requesting you to sign this message to authenticate to ${domainCaip122}`;
+      const statement = `We are requesting you to sign this message to authenticate to ${domain}`;
       // Build the fields list - first all CAIP-122 fields, then additional fields
       const caip122Fields: Field[] = [
         // Basic mandatory fields for CAIP-122
@@ -96,17 +95,18 @@ class Caip122Generator implements ProtocolGenerator {
       
       // Add domain and request-id to CAIP-122 fields if chosen
       if (includeDomainInCaip122) {
-        caip122Fields.push({ name: "domain", value: domainCaip122 });
+        caip122Fields.push({ name: "domain", value: domain });
       }
       
       if (includeRequestIdInCaip122) {
-        caip122Fields.push({ name: "request-id", value: requestIdCaip122 });
+        caip122Fields.push({ name: "request-id", value: requestId });
       }
       
       // Generate common additional fields
       const { fields: additionalFields, isValid } = generateCommonAdditionalFields(
-        domainExternal,
-        pubkey
+        domain,
+        pubkey,
+        requestId
       );
       
       // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields

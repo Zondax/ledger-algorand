@@ -46,14 +46,44 @@ export function generateAlgorandAddress(pubkey: string): string {
 
 export function determineVectorValidity(
   includeHdPathInBlob: boolean,
+  domain: string,
+  requestId: string,
   hdPath: string,
   pubkey: string
 ): boolean {
-  return (
-    (includeHdPathInBlob && hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
-    (includeHdPathInBlob && hdPath === hdPathAcc123 && pubkey === pubkeyAcc123) ||
-    (!includeHdPathInBlob && pubkey === pubkeyAcc0)
-  );
+
+  // Check domain is Printable ASCII
+  if (!isDomainValid(domain)) {
+    return false;
+  }
+
+  // Check requestId is UpperCase Hex
+  if (!isRequestIdValid(requestId)) {
+    return false;
+  }
+
+  if (!doHdPathAndPubkeyMatch(includeHdPathInBlob, hdPath, pubkey)) {
+    return false;
+  }
+
+  return true;
+}
+
+function isDomainValid(domain: string): boolean {
+  // Check if domain contains only printable ASCII characters (charCodes 32..127)
+  return /^[\x20-\x7E]+$/.test(domain);
+}
+
+function isRequestIdValid(requestId: string): boolean {
+  return /^[0-9A-F]+$/.test(requestId);
+}
+
+function doHdPathAndPubkeyMatch(includeHdPathInBlob: boolean, hdPath: string, pubkey: string): boolean {
+  if (includeHdPathInBlob) {
+    return (hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
+      (hdPath === hdPathAcc123 && pubkey === pubkeyAcc123);
+  }
+  return pubkey === pubkeyAcc0;
 }
 
 export function generateTestVector(
@@ -118,23 +148,38 @@ export const FIELD_NAMES = {
 export function generateCommonAdditionalFields(
   domain: string,
   pubkey: string,
+  requestId?: string,
 ): { fields: Field[], hdPath: string, isValid: boolean } {
   // Generate auth data as sha256 hash of the domain
   const crypto = require('crypto');
   const authData = crypto.createHash('sha256').update(domain).digest('hex');
   const signer = generateAlgorandAddress(pubkey);
-  
+
+  // Create an invalid domain by prepending non-printable ASCII characters
+  const invalidDomain = String.fromCharCode(0x07) + domain;
+
+  // 1 of every 10 tests vectors will have an invalid domain
+  domain = Math.random() < 0.1 ? invalidDomain : domain;
+
   const additionalFields: Field[] = [
     { name: FIELD_NAMES.SIGNER, value: signer },
-    { name: FIELD_NAMES.AUTH_DATA, value: authData },
     { name: FIELD_NAMES.DOMAIN, value: domain },
+    // AuthData pushed later to keep the order defined in the spec
   ];
+
+  if (!requestId) {
+    requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
+  }
+  const invalidRequestId = requestId + 'a';
+  requestId = Math.random() < 0.1 ? invalidRequestId : requestId;
+  const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
 
   const includeRequestId = Math.random() < 0.5;
   if (includeRequestId) {
-    const requestId = crypto.randomBytes(32).toString('base64');
-    additionalFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestId });
+    additionalFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
   }
+
+  additionalFields.push({ name: FIELD_NAMES.AUTH_DATA, value: authData });
 
   const includeHdPath = Math.random() < 0.5;
   let hdPath = "";
@@ -144,7 +189,7 @@ export function generateCommonAdditionalFields(
   }
 
   // Determine validity
-  const isValid = determineVectorValidity(includeHdPath, hdPath, pubkey);
+  const isValid = determineVectorValidity(includeHdPath, domain, requestId as string, hdPath, pubkey);
 
   return { fields: additionalFields, hdPath, isValid };
 }
