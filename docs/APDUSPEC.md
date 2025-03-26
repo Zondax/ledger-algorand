@@ -219,6 +219,8 @@ Last APDU message
 
 ### Checks performed by the wallet
 
+- Signer is a raw Public Key (Hex String)
+    - Algorand Address not allowed
 - Authenticated Data's first 32 bytes must be equal to sha256(Domain)
 - Domain is representable ASCII (Values in range 32..127)
 - Request ID is representable Hex String (0-9, A-F)
