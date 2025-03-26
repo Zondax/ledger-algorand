@@ -1,18 +1,19 @@
 import * as crypto from 'crypto';
 import { appendFieldToBlob, Encoding, Scope } from './common';
 import * as base32 from 'hi-base32';
+import { serializePath, BIP32Path } from './bip32';
 
 interface Field {
   name: string;
   value: string | string[];
 }
 
-export function createCaip122RequestBlob(fields: Field[]): string {
+export function createCaip122RequestBlob(fields: Field[], pubkey: string): string {
   // Extract fields for the CAIP-122 request data
   const caip122Data: Record<string, any> = {};
   
   // Define external field names (these are never part of CAIP-122 data)
-  const externalFieldNames = ["Signer", "Domain", "Request Id", "Auth Data"];
+  const externalFieldNames = ["Signer", "Domain", "Request Id", "Auth Data", "hdPath"];
   
   // Find the index of the first external field
   let externalStartIdx = fields.length;
@@ -45,19 +46,22 @@ export function createCaip122RequestBlob(fields: Field[]): string {
   const dataBytes = Buffer.from(canonicalJson, 'utf-8');
   
   // Extract non-CAIP-122 fields needed for the blob
-  const signer = fields.find(f => f.name === "Signer")?.value || "";
+  const signer = pubkey;
   
   // For domain: if there's a domain after the cutoff, use it; otherwise use ""
   const domain = fields.slice(externalStartIdx).find(f => f.name === "Domain")?.value || "";
   
   const authData = fields.find(f => f.name === "Auth Data")?.value || "";
   const requestId = fields.find(f => f.name === "Request ID")?.value || "";
+  const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
+  const isHdPathPresent = hdPath !== "";
 
   // Convert to bytes
-  const signerBytes = Buffer.from(signer as string, 'utf-8');
+  const signerBytes = Buffer.from(pubkey, 'hex');
   const domainBytes = Buffer.from(domain as string, 'utf-8');
   const authDataBytes = Buffer.from(authData as string, 'utf-8');
   const requestIdBytes = Buffer.from(requestId as string, 'utf-8');
+  const hdPathBytes = serializePath(hdPath as BIP32Path);
 
   // Create buffer for the blob
   const blob = Buffer.alloc(0);
@@ -67,6 +71,7 @@ export function createCaip122RequestBlob(fields: Field[]): string {
   const encoding = Encoding.BASE64;
   
   // Append each field in the required order
+  appendFieldToBlob(blobArray, Array.from(hdPathBytes));
   appendFieldToBlob(blobArray, Array.from(signerBytes));
   blobArray.push(scope);
   blobArray.push(encoding);
@@ -74,14 +79,14 @@ export function createCaip122RequestBlob(fields: Field[]): string {
   appendFieldToBlob(blobArray, Array.from(domainBytes));
   appendFieldToBlob(blobArray, Array.from(requestIdBytes));
   appendFieldToBlob(blobArray, Array.from(authDataBytes));
-  
+
   // Convert blob to hex string
   const hexBlob = Buffer.from(blobArray).toString('hex');
   
   return hexBlob;
 }
 
-export function generateRandomCaip122Configs(count: number = 1): Array<Record<string, any>> {
+export function generateRandomCaip122Configs(count: number = 1, pubkey: string): Array<Record<string, any>> {
   const configs: Array<Record<string, any>> = [];
   
   // Algorand-specific chain ID
@@ -128,17 +133,15 @@ export function generateRandomCaip122Configs(count: number = 1): Array<Record<st
     const requestIdCaip122 = crypto.randomBytes(32).toString('base64');
     const requestIdExternal = crypto.randomBytes(32).toString('base64');
     
-    // Generate random signer as an Algorand address
-    const pubkey = crypto.randomBytes(32);
-    
     // SHA512-256 function
     const sha512_256 = (data: Buffer): Buffer => {
       return crypto.createHash('sha512').update(data).digest().slice(0, 32);
     };
     
     // Convert to Algorand address format
-    const checksum = sha512_256(pubkey).slice(0, 4);
-    const addrBytes = Buffer.concat([Buffer.from([1]), pubkey, checksum]);
+    const pubkeyBytes = Buffer.from(pubkey, 'hex');
+    const checksum = sha512_256(pubkeyBytes).slice(0, 4);
+    const addrBytes = Buffer.concat([Buffer.from([1]), pubkeyBytes, checksum]);
     let signer = base32.encode(addrBytes).replace(/=+$/, '');
     
     // Generate auth data as sha256 hash of the domain
@@ -186,8 +189,17 @@ export function generateRandomCaip122Configs(count: number = 1): Array<Record<st
       { name: "Signer", value: signer },
       { name: "Auth Data", value: authData },
       { name: "Domain", value: domainExternal },
-      { name: "Request ID", value: requestIdExternal }
     ];
+
+    const includeRequestIdInBlob = Math.random() < 0.5;
+    if (includeRequestIdInBlob) {
+      additionalFields.push({ name: "Request ID", value: requestIdExternal });
+    }
+
+    const includeHdPathInBlob = Math.random() < 0.5;
+    if (includeHdPathInBlob) {
+      additionalFields.push({ name: "hdPath", value: "m/44'/283'/0'/0/0" });
+    }
     
     // Combine fields in the correct order: all CAIP-122 fields first, then additional fields
     const fields = [...caip122Fields, ...additionalFields];

@@ -1,18 +1,20 @@
 import * as crypto from 'crypto';
 import { appendFieldToBlob, Encoding, Scope } from './common';
 import * as base32 from 'hi-base32';
+import { serializePath } from './bip32';
+import { BIP32Path } from './bip32';
 
 interface Field {
   name: string;
   value: string;
 }
 
-export function createFido2RequestBlob(fields: Field[]): string {
+export function createFido2RequestBlob(fields: Field[], pubkey: string): string {
   // Extract FIDO2 fields
   const fido2Data: Record<string, any> = {};
   
   // Define external field names (these are never part of FIDO2 data)
-  const externalFieldNames = ["Signer", "Domain", "Request ID", "Auth Data"];
+  const externalFieldNames = ["Signer", "Domain", "Request ID", "Auth Data", "hdPath"];
   
   // Find the index of the first external field
   let externalStartIdx = fields.length;
@@ -44,16 +46,18 @@ export function createFido2RequestBlob(fields: Field[]): string {
   const dataBytes = Buffer.from(canonicalJson, 'utf-8');
   
   // Extract non-FIDO2 fields needed for the blob
-  const signer = fields.find(f => f.name === "Signer")?.value || "";
+  const signer = pubkey;
   const authData = fields.find(f => f.name === "Auth Data")?.value || "";
   const requestId = fields.find(f => f.name === "Request ID")?.value || "";
   const domain = fields.find(f => f.name === "Domain")?.value || "";
+  const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
 
   // Convert to bytes
-  const signerBytes = Buffer.from(signer, 'utf-8');
+  const signerBytes = Buffer.from(pubkey, 'hex');
   const authDataBytes = Buffer.from(authData, 'hex');
   const requestIdBytes = Buffer.from(requestId, 'utf-8');
   const domainBytes = Buffer.from(domain, 'utf-8');
+  const hdPathBytes = serializePath(hdPath as BIP32Path);
 
   // Create buffer for the blob
   const blob = Buffer.alloc(0);
@@ -63,6 +67,7 @@ export function createFido2RequestBlob(fields: Field[]): string {
   const encoding = Encoding.BASE64;
   
   // Append each field in the required order
+  appendFieldToBlob(blobArray, Array.from(hdPathBytes));
   appendFieldToBlob(blobArray, Array.from(signerBytes));
   blobArray.push(scope);
   blobArray.push(encoding);
@@ -78,7 +83,7 @@ export function createFido2RequestBlob(fields: Field[]): string {
   return hexBlob;
 }
 
-export function generateRandomFido2Configs(count: number = 1): Array<Record<string, any>> {
+export function generateRandomFido2Configs(count: number = 1, pubkey: string): Array<Record<string, any>> {
   const configs: Array<Record<string, any>> = [];
   
   // Common domains relevant to Algorand ecosystem
@@ -95,17 +100,15 @@ export function generateRandomFido2Configs(count: number = 1): Array<Record<stri
     // Generate random challenge (base64 encoded 32 bytes)
     const challenge = crypto.randomBytes(32).toString('base64');
     
-    // Generate random signer as an Algorand address
-    const pubkey = crypto.randomBytes(32);
-    
     // SHA512-256 function
     const sha512_256 = (data: Buffer): Buffer => {
       return crypto.createHash('sha512').update(data).digest().slice(0, 32);
     };
     
     // Convert to Algorand address format
-    const checksum = sha512_256(pubkey).slice(0, 4);
-    const addrBytes = Buffer.concat([Buffer.from([1]), pubkey, checksum]);
+    const pubkeyBytes = Buffer.from(pubkey, 'hex');
+    const checksum = sha512_256(pubkeyBytes).slice(0, 4);
+    const addrBytes = Buffer.concat([Buffer.from([1]), pubkeyBytes, checksum]);
     let signer = base32.encode(addrBytes).replace(/=+$/, '');
 
     // Generate random request ID (base64 encoded 32 bytes)
@@ -151,7 +154,16 @@ export function generateRandomFido2Configs(count: number = 1): Array<Record<stri
     fields.push({ name: "Signer", value: signer });
     fields.push({ name: "Auth Data", value: authData });
     fields.push({ name: "Domain", value: domain });
-    fields.push({ name: "Request ID", value: requestId });
+    
+    const includeRequestIdInBlob = Math.random() < 0.5;
+    if (includeRequestIdInBlob) {
+      fields.push({ name: "Request ID", value: requestId });
+    }
+
+    const includeHdPathInBlob = Math.random() < 0.5;
+    if (includeHdPathInBlob) {
+      fields.push({ name: "hdPath", value: "m/44'/283'/0'/0/0" });
+    }
     
     // Create configuration
     const config = {

@@ -14,6 +14,9 @@ import {
   generateRandomFido2Configs 
 } from './fido2';
 
+// TODO: Add pubkey from zemu. Take into account hdPath if present
+const pubkey = "0202020202020202020202020202020202020202020202020202020202020202";
+
 async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option('output', {
@@ -37,11 +40,11 @@ async function main() {
   const testVectors: any[] = [];
   
   // Generate CAIP-122 test vectors
-  const caip122Config = generateRandomCaip122Configs(argv.count);
+  const caip122Config = generateRandomCaip122Configs(argv.count, pubkey);
   for (const vectorConfig of caip122Config) {
     // Generate the blob if it doesn't exist
     if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createCaip122RequestBlob(vectorConfig.fields);
+      vectorConfig.blob = createCaip122RequestBlob(vectorConfig.fields, pubkey);
     }
     
     const testVector = generateTestVector(
@@ -55,14 +58,14 @@ async function main() {
   }
   
   // Generate FIDO2 test vectors
-  const fido2Config = generateRandomFido2Configs(argv.count);
+  const fido2Config = generateRandomFido2Configs(argv.count, pubkey);
   // Adjust indices to continue from CAIP-122 vectors
   const offset = testVectors.length;
   
   fido2Config.forEach((vectorConfig, i) => {
     // Generate the blob if it doesn't exist
     if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createFido2RequestBlob(vectorConfig.fields);
+      vectorConfig.blob = createFido2RequestBlob(vectorConfig.fields, pubkey);
     }
     
     const testVector = generateTestVector(
