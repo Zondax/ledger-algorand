@@ -4,7 +4,7 @@ import * as path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { generateTestVector } from './common';
+import { generateTestVector, ProtocolGenerator } from './common';
 import { caip122Generator } from './caip122';
 import { fido2Generator } from './fido2';
 
@@ -28,24 +28,27 @@ async function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   
-  const testVectors: any[] = [];
-  
   // Define all protocol generators
-  const protocolGenerators = [
+  const protocolGenerators: ProtocolGenerator[] = [
     caip122Generator,
     fido2Generator
   ];
   
-  // Process each generator to create test vectors
+  // Generate test vectors from all generators
+  const testVectors = generateVectorsFromGenerators(protocolGenerators, argv.count);
+  
+  fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
+}
+
+function generateVectorsFromGenerators(generators: ProtocolGenerator[], count: number): any[] {
+  const testVectors: any[] = [];
   let currentIndex = 0;
-  for (const generator of protocolGenerators) {
-    const configs = generator.generateConfigs(argv.count);
+  
+  for (const generator of generators) {
+    const configs = generator.generateConfigs(count);
     
     for (const config of configs) {
-      // Generate the blob if it doesn't exist
-      if (!config.blob || config.blob === "") {
-        config.blob = generator.createBlob(config.fields, config.index);
-      }
+      config.blob = generator.createBlob(config.fields, config.index);
 
       const testVector = generateTestVector(
         currentIndex++,
@@ -58,7 +61,7 @@ async function main() {
     }
   }
   
-  fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
+  return testVectors;
 }
 
 if (require.main === module) {

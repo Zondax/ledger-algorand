@@ -1,24 +1,19 @@
 import * as crypto from 'crypto';
 import { 
-  determineVectorValidity, 
   Field, 
-  generateAlgorandAddress, 
-  hdPathAcc0, 
-  hdPathAcc123, 
+  generateCommonAdditionalFields,
   ProtocolGenerator, 
-  ProtocolType, 
   pubkeyAcc0, 
   pubkeyAcc123 
 } from './common';
-import { BaseRequestBlobCreator } from './requestBlob';
+import { BaseBlobCreator } from './blobCreator';
 
 class Caip122Generator implements ProtocolGenerator {
-  protocolType = ProtocolType.CAIP122;
   private chosenPubkeys: string[] = [];
 
   createBlob(fields: Field[], vectorIdx: number): string {
-    const creator = new BaseRequestBlobCreator(this.chosenPubkeys);
-    return creator.createRequestBlob(fields, vectorIdx);
+    const creator = new BaseBlobCreator(this.chosenPubkeys);
+    return creator.createBlob(fields, vectorIdx);
   }
 
   generateConfigs(count: number = 1): Array<Record<string, any>> {
@@ -68,26 +63,16 @@ class Caip122Generator implements ProtocolGenerator {
       
       // Generate random request IDs (base64 encoded 32 bytes)
       const requestIdCaip122 = crypto.randomBytes(32).toString('base64');
-      const requestIdExternal = crypto.randomBytes(32).toString('base64');
       
-      // Choose pubkey and generate address
+      // Choose pubkey for this test vector
       const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
       this.chosenPubkeys.push(pubkey);
-      const signer = generateAlgorandAddress(pubkey);
-      
-      // Generate auth data as sha256 hash of the domain
-      const authData = crypto.createHash('sha256').update(domainExternal).digest('hex');
       
       // Select random resources
       const resources = JSON.stringify(resourceOptions[Math.floor(Math.random() * resourceOptions.length)]);
       
       // Create human-readable statement
       const statement = `We are requesting you to sign this message to authenticate to ${domainCaip122}`;
-      
-      // Randomly decide whether to include domain and request-id in CAIP-122 data
-      const includeDomainInCaip122 = Math.random() < 0.5;
-      const includeRequestIdInCaip122 = Math.random() < 0.5;
-      
       // Build the fields list - first all CAIP-122 fields, then additional fields
       const caip122Fields: Field[] = [
         // Basic mandatory fields for CAIP-122
@@ -105,6 +90,9 @@ class Caip122Generator implements ProtocolGenerator {
         { name: "not-before", value: notBeforeTime },
         { name: "resources", value: resources },
       ];
+
+      const includeDomainInCaip122 = Math.random() < 0.5;
+      const includeRequestIdInCaip122 = Math.random() < 0.5;
       
       // Add domain and request-id to CAIP-122 fields if chosen
       if (includeDomainInCaip122) {
@@ -115,29 +103,14 @@ class Caip122Generator implements ProtocolGenerator {
         caip122Fields.push({ name: "request-id", value: requestIdCaip122 });
       }
       
-      // Additional fields for blob generation (not part of CAIP-122 data)
-      const additionalFields: Field[] = [
-        { name: "Signer", value: signer },
-        { name: "Auth Data", value: authData },
-        { name: "Domain", value: domainExternal },
-      ];
-
-      const includeRequestIdInBlob = Math.random() < 0.5;
-      if (includeRequestIdInBlob) {
-        additionalFields.push({ name: "Request ID", value: requestIdExternal });
-      }
-
-      const includeHdPathInBlob = Math.random() < 0.5;
-      let hdPath = "";
-      if (includeHdPathInBlob) {
-        hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
-        additionalFields.push({ name: "hdPath", value: hdPath });
-      }
+      // Generate common additional fields
+      const { fields: additionalFields, isValid } = generateCommonAdditionalFields(
+        domainExternal,
+        pubkey
+      );
       
-      // Combine fields in the correct order: all CAIP-122 fields first, then additional fields
+      // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields
       const fields = [...caip122Fields, ...additionalFields];
-
-      const isValid = determineVectorValidity(includeHdPathInBlob, hdPath, pubkey);
       
       // Create configuration
       const config = {

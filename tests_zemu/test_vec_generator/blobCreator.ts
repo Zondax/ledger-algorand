@@ -1,15 +1,15 @@
 import * as crypto from 'crypto';
-import { Encoding, Field, Scope } from './common';
+import { Encoding, Field, Scope, FIELD_NAMES } from './common';
 import { serializePath, BIP32Path } from './bip32';
 
-// Base interface for request blob generation
-export interface RequestBlobCreator {
-  createRequestBlob(fields: Field[], vectorIdx: number): string;
+// Base interface for blob generation
+export interface BlobCreator {
+  createBlob(fields: Field[], vectorIdx: number): string;
   parseDataFields(fields: Field[], externalStartIdx: number): Record<string, any>;
 }
 
 // Helper function to find where external fields start
-export function findExternalFieldsStartIndex(fields: Field[], externalFieldNames: string[]): number {
+function findExternalFieldsStartIndex(fields: Field[], externalFieldNames: string[]): number {
   for (let i = 0; i < fields.length; i++) {
     if (externalFieldNames.includes(fields[i].name)) {
       return i;
@@ -18,10 +18,9 @@ export function findExternalFieldsStartIndex(fields: Field[], externalFieldNames
   return fields.length;
 }
 
-// Base class for request blob creation
+// Base class for blob creation
 // NOTE: Made it a class so that it can be extended by configuration generators in order to overwrite parseDataFields
-export class BaseRequestBlobCreator implements RequestBlobCreator {
-  protected externalFieldNames = ["Signer", "Domain", "Request ID", "Auth Data", "hdPath"];
+export class BaseBlobCreator implements BlobCreator {
   protected pubkeys: string[] = [];
   
   constructor(pubkeys: string[]) {
@@ -42,9 +41,10 @@ export class BaseRequestBlobCreator implements RequestBlobCreator {
     return data;
   }
   
-  createRequestBlob(fields: Field[], vectorIdx: number): string {
+  createBlob(fields: Field[], vectorIdx: number): string {
     // Find where external fields start
-    const externalStartIdx = findExternalFieldsStartIndex(fields, this.externalFieldNames);
+    const externalFieldNames = Object.values(FIELD_NAMES);
+    const externalStartIdx = findExternalFieldsStartIndex(fields, externalFieldNames);
     
     // Parse protocol-specific data fields
     const data = this.parseDataFields(fields, externalStartIdx);
@@ -55,10 +55,10 @@ export class BaseRequestBlobCreator implements RequestBlobCreator {
     
     // Extract common fields needed for the blob
     const signer = this.pubkeys[vectorIdx];
-    const domain = fields.find(f => f.name === "Domain")?.value || "";
-    const authData = fields.find(f => f.name === "Auth Data")?.value || "";
-    const requestId = fields.find(f => f.name === "Request ID")?.value || "";
-    const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
+    const domain = fields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value || "";
+    const authData = fields.find(f => f.name === FIELD_NAMES.AUTH_DATA)?.value || "";
+    const requestId = fields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
+    const hdPath = fields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value || "m/44'/283'/0'/0/0";
     
     // Convert to bytes
     const signerBytes = Buffer.from(signer, 'hex');

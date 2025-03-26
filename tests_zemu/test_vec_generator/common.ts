@@ -12,11 +12,6 @@ interface TestVector {
   output_expert: string[];
 }
 
-export enum ProtocolType {
-  CAIP122 = 'CAIP122',
-  FIDO2 = 'FIDO2'
-}
-
 export enum Scope {
   AUTH = 0x01,
 }
@@ -31,7 +26,6 @@ export const hdPathAcc0 = "m/44'/283'/0'/0/0";
 export const hdPathAcc123 = "m/44'/283'/123'/0/0";
 
 export interface ProtocolGenerator {
-  protocolType: ProtocolType;
   generateConfigs: (count: number) => Array<Record<string, any>>;
   createBlob: (fields: Field[], vectorIdx: number) => string;
 }
@@ -68,7 +62,6 @@ export function generateTestVector(
   blob: string,
   fields: Field[],
   valid: boolean,
-  expertMode: boolean = false
 ): TestVector {
   const output: string[] = [];
   const MAX_CHARS_PER_LINE = 38;
@@ -110,6 +103,50 @@ export function generateTestVector(
     output,
     output_expert: outputExpert
   };
+}
+
+// Constants for field names
+export const FIELD_NAMES = {
+  SIGNER: "Signer",
+  DOMAIN: "Domain",
+  REQUEST_ID: "Request ID",
+  AUTH_DATA: "Auth Data",
+  HD_PATH: "hdPath"
+};
+
+// Function to generate common additional fields
+export function generateCommonAdditionalFields(
+  domain: string,
+  pubkey: string,
+): { fields: Field[], hdPath: string, isValid: boolean } {
+  // Generate auth data as sha256 hash of the domain
+  const crypto = require('crypto');
+  const authData = crypto.createHash('sha256').update(domain).digest('hex');
+  const signer = generateAlgorandAddress(pubkey);
+  
+  const additionalFields: Field[] = [
+    { name: FIELD_NAMES.SIGNER, value: signer },
+    { name: FIELD_NAMES.AUTH_DATA, value: authData },
+    { name: FIELD_NAMES.DOMAIN, value: domain },
+  ];
+
+  const includeRequestId = Math.random() < 0.5;
+  if (includeRequestId) {
+    const requestId = crypto.randomBytes(32).toString('base64');
+    additionalFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestId });
+  }
+
+  const includeHdPath = Math.random() < 0.5;
+  let hdPath = "";
+  if (includeHdPath) {
+    hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
+    additionalFields.push({ name: FIELD_NAMES.HD_PATH, value: hdPath });
+  }
+
+  // Determine validity
+  const isValid = determineVectorValidity(includeHdPath, hdPath, pubkey);
+
+  return { fields: additionalFields, hdPath, isValid };
 }
 
 export { Field };

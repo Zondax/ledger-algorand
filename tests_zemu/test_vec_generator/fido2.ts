@@ -2,23 +2,20 @@ import * as crypto from 'crypto';
 import { 
   determineVectorValidity,
   Field, 
-  generateAlgorandAddress, 
-  hdPathAcc0, 
-  hdPathAcc123, 
+  FIELD_NAMES,
+  generateCommonAdditionalFields,
   ProtocolGenerator, 
-  ProtocolType, 
   pubkeyAcc0, 
   pubkeyAcc123 
 } from './common';
-import { BaseRequestBlobCreator } from './requestBlob';
+import { BaseBlobCreator } from './blobCreator';
 
 class Fido2Generator implements ProtocolGenerator {
-  protocolType = ProtocolType.FIDO2;
   private chosenPubkeys: string[] = [];
 
   createBlob(fields: Field[], vectorIdx: number): string {
-    const creator = new BaseRequestBlobCreator(this.chosenPubkeys);
-    return creator.createRequestBlob(fields, vectorIdx);
+    const creator = new BaseBlobCreator(this.chosenPubkeys);
+    return creator.createBlob(fields, vectorIdx);
   }
 
   generateConfigs(count: number = 1): Array<Record<string, any>> {
@@ -40,16 +37,9 @@ class Fido2Generator implements ProtocolGenerator {
       // Generate random challenge (base64 encoded 32 bytes)
       const challenge = crypto.randomBytes(32).toString('base64');
       
-      // Choose pubkey and generate Algorand address
+      // Choose pubkey for this test vector
       const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
       this.chosenPubkeys.push(pubkey);
-      const signer = generateAlgorandAddress(pubkey);
-
-      // Generate random request ID (base64 encoded 32 bytes)
-      const requestId = crypto.randomBytes(32).toString('base64');
-      
-      // Generate auth data as sha256 hash of the domain
-      const authData = crypto.createHash('sha256').update(domain).digest('hex');
       
       // Create base fields for FIDO2 request (required fields)
       const fido2Data: Record<string, any> = {
@@ -84,24 +74,14 @@ class Fido2Generator implements ProtocolGenerator {
         fields.push({ name: key, value: String(value) });
       }
       
-      // Additional fields for blob generation
-      fields.push({ name: "Signer", value: signer });
-      fields.push({ name: "Auth Data", value: authData });
-      fields.push({ name: "Domain", value: domain });
+      // Generate common additional fields
+      const { fields: additionalFields, isValid } = generateCommonAdditionalFields(
+        domain,
+        pubkey
+      );
       
-      const includeRequestIdInBlob = Math.random() < 0.5;
-      if (includeRequestIdInBlob) {
-        fields.push({ name: "Request ID", value: requestId });
-      }
-
-      const includeHdPathInBlob = Math.random() < 0.5;
-      let hdPath = "";
-      if (includeHdPathInBlob) {
-        hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
-        fields.push({ name: "hdPath", value: hdPath });
-      }
-
-      const isValid = determineVectorValidity(includeHdPathInBlob, hdPath, pubkey);
+      // Combine all fields
+      fields.push(...additionalFields);
 
       // Create configuration
       const config = {
