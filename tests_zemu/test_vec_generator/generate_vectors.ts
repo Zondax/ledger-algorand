@@ -5,14 +5,8 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 import { generateTestVector } from './common';
-import { 
-  createCaip122RequestBlob, 
-  generateRandomCaip122Configs 
-} from './caip122';
-import { 
-  createFido2RequestBlob, 
-  generateRandomFido2Configs 
-} from './fido2';
+import { caip122Generator } from './caip122';
+import { fido2Generator } from './fido2';
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))
@@ -36,44 +30,33 @@ async function main() {
   
   const testVectors: any[] = [];
   
-  // Generate CAIP-122 test vectors
-  const caip122Config = generateRandomCaip122Configs(argv.count);
-  for (const vectorConfig of caip122Config) {
-    // Generate the blob if it doesn't exist
-    if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createCaip122RequestBlob(vectorConfig.fields, vectorConfig.index);
-    }
-
-    const testVector = generateTestVector(
-      vectorConfig.index,
-      vectorConfig.name,
-      vectorConfig.blob,
-      vectorConfig.fields,
-      vectorConfig.valid
-    );
-    testVectors.push(testVector);
-  }
+  // Define all protocol generators
+  const protocolGenerators = [
+    caip122Generator,
+    fido2Generator
+  ];
   
-  // Generate FIDO2 test vectors
-  const fido2Config = generateRandomFido2Configs(argv.count);
-  // Adjust indices to continue from CAIP-122 vectors
-  const offset = testVectors.length;
-  
-  fido2Config.forEach((vectorConfig, i) => {
-    // Generate the blob if it doesn't exist
-    if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createFido2RequestBlob(vectorConfig.fields, vectorConfig.index);
-    }
+  // Process each generator to create test vectors
+  let currentIndex = 0;
+  for (const generator of protocolGenerators) {
+    const configs = generator.generateConfigs(argv.count);
     
-    const testVector = generateTestVector(
-      offset + i,
-      vectorConfig.name,
-      vectorConfig.blob,
-      vectorConfig.fields,
-      vectorConfig.valid
-    );
-    testVectors.push(testVector);
-  });
+    for (const config of configs) {
+      // Generate the blob if it doesn't exist
+      if (!config.blob || config.blob === "") {
+        config.blob = generator.createBlob(config.fields, config.index);
+      }
+
+      const testVector = generateTestVector(
+        currentIndex++,
+        config.name,
+        config.blob,
+        config.fields,
+        config.valid
+      );
+      testVectors.push(testVector);
+    }
+  }
   
   fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
 }

@@ -1,11 +1,6 @@
 import * as crypto from 'crypto';
-import { Encoding, Scope } from './common';
+import { Encoding, Field, Scope } from './common';
 import { serializePath, BIP32Path } from './bip32';
-
-export interface Field {
-  name: string;
-  value: string | string[];
-}
 
 // Base interface for request blob generation
 export interface RequestBlobCreator {
@@ -34,17 +29,17 @@ export class BaseRequestBlobCreator implements RequestBlobCreator {
   }
 
   parseDataFields(fields: Field[], externalStartIdx: number): Record<string, any> {
-    const fido2Data: Record<string, any> = {};
+    const data: Record<string, any> = {};
     
     for (let i = 0; i < externalStartIdx; i++) {
       const field = fields[i];
       const fieldName = field.name;
       const fieldValue = field.value;
       
-      fido2Data[fieldName] = fieldValue;
+      data[fieldName] = fieldValue;
     }
     
-    return fido2Data;
+    return data;
   }
   
   createRequestBlob(fields: Field[], vectorIdx: number): string {
