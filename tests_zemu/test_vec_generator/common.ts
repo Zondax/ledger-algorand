@@ -45,12 +45,17 @@ export function generateAlgorandAddress(pubkey: string): string {
 }
 
 export function determineVectorValidity(
+  data: string,
   includeHdPathInBlob: boolean,
   domain: string,
   requestId: string,
   hdPath: string,
   pubkey: string
 ): boolean {
+
+  if (!isDataValid(data)) {
+    return false;
+  }
 
   // Check domain is Printable ASCII
   if (!isDomainValid(domain)) {
@@ -67,6 +72,22 @@ export function determineVectorValidity(
   }
 
   return true;
+}
+
+function isDataValid(data: string): boolean {
+  // Check if data is a valid JSON object and ensure it's canonical
+  try {
+    const parsed = JSON.parse(data);
+    const reStringified = JSON.stringify(parsed);
+    
+    if (data !== reStringified) {
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function isDomainValid(domain: string): boolean {
@@ -149,7 +170,7 @@ export function generateCommonAdditionalFields(
   domain: string,
   pubkey: string,
   requestId?: string,
-): { fields: Field[], hdPath: string, isValid: boolean } {
+): { fields: Field[], hdPath: string } {
   // Generate auth data as sha256 hash of the domain
   const crypto = require('crypto');
   const authData = crypto.createHash('sha256').update(domain).digest('hex');
@@ -189,9 +210,8 @@ export function generateCommonAdditionalFields(
   }
 
   // Determine validity
-  const isValid = determineVectorValidity(includeHdPath, domain, requestId as string, hdPath, pubkey);
 
-  return { fields: additionalFields, hdPath, isValid };
+  return { fields: additionalFields, hdPath };
 }
 
 export { Field };

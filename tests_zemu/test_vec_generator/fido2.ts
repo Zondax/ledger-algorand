@@ -75,11 +75,22 @@ class Fido2Generator implements ProtocolGenerator {
       }
       
       // Generate common additional fields
-      const { fields: additionalFields, isValid } = generateCommonAdditionalFields(
+      const { fields: additionalFields } = generateCommonAdditionalFields(
         domain,
         pubkey
       );
-      
+
+      const includeHdPath = additionalFields.find(f => f.name === "hdPath") !== undefined;
+      const hdPath = additionalFields.find(f => f.name === "hdPath")?.value;
+      const canonicalJson = JSON.stringify(fido2Data, Object.keys(fido2Data).sort(), 0);
+
+      const isValid = determineVectorValidity(
+        canonicalJson,
+        includeHdPath,
+        domain,
+        challenge,
+        hdPath as string,
+        pubkey);
       // Combine all fields
       fields.push(...additionalFields);
 

@@ -4,7 +4,8 @@ import {
   generateCommonAdditionalFields,
   ProtocolGenerator, 
   pubkeyAcc0, 
-  pubkeyAcc123 
+  pubkeyAcc123,
+  determineVectorValidity
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
@@ -61,7 +62,7 @@ class Caip122Generator implements ProtocolGenerator {
       const nonce = crypto.randomBytes(32).toString('base64');
       
       // Generate random request IDs (base64 encoded 32 bytes)
-      const requestId = crypto.randomBytes(32).toString('base64');
+      let requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
       
       // Choose pubkey for this test vector
       const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
@@ -103,10 +104,23 @@ class Caip122Generator implements ProtocolGenerator {
       }
       
       // Generate common additional fields
-      const { fields: additionalFields, isValid } = generateCommonAdditionalFields(
+      const { fields: additionalFields } = generateCommonAdditionalFields(
         domain,
         pubkey,
         requestId
+      );
+
+      const includeHdPath = additionalFields.find(f => f.name === "hdPath") !== undefined;
+      const hdPath = additionalFields.find(f => f.name === "hdPath")?.value;
+      const canonicalJson = JSON.stringify(caip122Fields, Object.keys(caip122Fields).sort(), 0);
+
+      const isValid = determineVectorValidity(
+        canonicalJson,
+        includeHdPath,
+        domain,
+        requestId as string,
+        hdPath as string,
+        pubkey
       );
       
       // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields
