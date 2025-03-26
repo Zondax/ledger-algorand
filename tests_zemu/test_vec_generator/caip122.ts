@@ -1,90 +1,13 @@
 import * as crypto from 'crypto';
-import { appendFieldToBlob, Encoding, hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123, Scope } from './common';
+import { hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123 } from './common';
 import * as base32 from 'hi-base32';
-import { serializePath, BIP32Path } from './bip32';
-
-interface Field {
-  name: string;
-  value: string | string[];
-}
+import { BaseRequestBlobCreator, Field } from './requestBlob';
 
 let chosenPubkeys: string[] = [];
 
 export function createCaip122RequestBlob(fields: Field[], vectorIdx: number): string {
-  // Extract fields for the CAIP-122 request data
-  const caip122Data: Record<string, any> = {};
-  
-  // Define external field names (these are never part of CAIP-122 data)
-  const externalFieldNames = ["Signer", "Domain", "Request Id", "Auth Data", "hdPath"];
-  
-  // Find the index of the first external field
-  let externalStartIdx = fields.length;
-  for (let i = 0; i < fields.length; i++) {
-    if (externalFieldNames.includes(fields[i].name)) {
-      externalStartIdx = i;
-      break;
-    }
-  }
-  
-  // Now collect all CAIP-122 fields (anything before the first external field)
-  for (let i = 0; i < externalStartIdx; i++) {
-    const field = fields[i];
-    const fieldName = field.name;
-    const fieldValue = field.value;
-    
-    // Special handling for resources array
-    if (fieldName === "resources" && Array.isArray(fieldValue)) {
-      caip122Data[fieldName] = fieldValue;
-    }
-    // Handle regular fields
-    else if (fieldValue !== null && fieldValue !== "") {
-      caip122Data[fieldName] = fieldValue;
-    }
-  }
-  
-  // Convert CAIP-122 data to canonical JSON representation
-  const canonicalJson = JSON.stringify(caip122Data, Object.keys(caip122Data).sort(), 0);
-
-  const dataBytes = Buffer.from(canonicalJson, 'utf-8');
-  
-  // Extract non-CAIP-122 fields needed for the blob
-  const signer = chosenPubkeys[vectorIdx];
-  
-  // For domain: if there's a domain after the cutoff, use it; otherwise use ""
-  const domain = fields.slice(externalStartIdx).find(f => f.name === "Domain")?.value || "";
-  
-  const authData = fields.find(f => f.name === "Auth Data")?.value || "";
-  const requestId = fields.find(f => f.name === "Request ID")?.value || "";
-  const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
-
-  // Convert to bytes
-  const signerBytes = Buffer.from(signer, 'hex');
-  const domainBytes = Buffer.from(domain as string, 'utf-8');
-  const authDataBytes = Buffer.from(authData as string, 'utf-8');
-  const requestIdBytes = Buffer.from(requestId as string, 'utf-8');
-  const hdPathBytes = serializePath(hdPath as BIP32Path);
-
-  // Create buffer for the blob
-  const blob = Buffer.alloc(0);
-  const blobArray = Array.from(blob);
-
-  const scope = Scope.AUTH;
-  const encoding = Encoding.BASE64;
-  
-  // Append each field in the required order
-  appendFieldToBlob(blobArray, Array.from(hdPathBytes));
-  appendFieldToBlob(blobArray, Array.from(signerBytes));
-  blobArray.push(scope);
-  blobArray.push(encoding);
-  appendFieldToBlob(blobArray, Array.from(dataBytes));
-  appendFieldToBlob(blobArray, Array.from(domainBytes));
-  appendFieldToBlob(blobArray, Array.from(requestIdBytes));
-  appendFieldToBlob(blobArray, Array.from(authDataBytes));
-
-  // Convert blob to hex string
-  const hexBlob = Buffer.from(blobArray).toString('hex');
-  
-  return hexBlob;
+  const creator = new BaseRequestBlobCreator(chosenPubkeys);
+  return creator.createRequestBlob(fields, vectorIdx);
 }
 
 export function generateRandomCaip122Configs(count: number = 1): Array<Record<string, any>> {
@@ -153,7 +76,7 @@ export function generateRandomCaip122Configs(count: number = 1): Array<Record<st
     const authData = crypto.createHash('sha256').update(domainExternal).digest('hex');
     
     // Select random resources
-    const resources = resourceOptions[Math.floor(Math.random() * resourceOptions.length)];
+    const resources = JSON.stringify(resourceOptions[Math.floor(Math.random() * resourceOptions.length)]);
     
     // Create human-readable statement
     const statement = `We are requesting you to sign this message to authenticate to ${domainCaip122}`;

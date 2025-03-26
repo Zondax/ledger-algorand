@@ -74,14 +74,3 @@ export function generateTestVector(
     output_expert: outputExpert
   };
 }
-
-// Updated function to correctly handle the buffer as an array
-export function appendFieldToBlob(blob: number[], fieldBytes: number[]): void {
-  // Create a buffer for length (UInt32BE)
-  const lengthBuffer = Buffer.alloc(4);
-  lengthBuffer.writeUInt32BE(fieldBytes.length);
-  
-  // Append length and field bytes to the blob
-  blob.push(...Array.from(lengthBuffer));
-  blob.push(...fieldBytes);
-}

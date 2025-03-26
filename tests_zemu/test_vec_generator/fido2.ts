@@ -1,88 +1,13 @@
 import * as crypto from 'crypto';
-import { appendFieldToBlob, Encoding, hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123, Scope } from './common';
+import { Encoding, hdPathAcc0, hdPathAcc123, pubkeyAcc0, pubkeyAcc123, Scope } from './common';
 import * as base32 from 'hi-base32';
-import { serializePath } from './bip32';
-import { BIP32Path } from './bip32';
-
-interface Field {
-  name: string;
-  value: string;
-}
+import { BaseRequestBlobCreator, Field } from './requestBlob';
 
 let chosenPubkeys: string[] = [];
 
 export function createFido2RequestBlob(fields: Field[], vectorIdx: number): string {
-  // Extract FIDO2 fields
-  const fido2Data: Record<string, any> = {};
-  
-  // Define external field names (these are never part of FIDO2 data)
-  const externalFieldNames = ["Signer", "Domain", "Request ID", "Auth Data", "hdPath"];
-  
-  // Find the index of the first external field
-  let externalStartIdx = fields.length;
-  for (let i = 0; i < fields.length; i++) {
-    if (externalFieldNames.includes(fields[i].name)) {
-      externalStartIdx = i;
-      break;
-    }
-  }
-  
-  // Now collect all FIDO2 fields (anything before the first external field)
-  for (let i = 0; i < externalStartIdx; i++) {
-    const field = fields[i];
-    const fieldName = field.name;
-    const fieldValue = field.value;
-    
-    // Handle field values based on their types
-    if (/^\d+$/.test(fieldValue)) {
-      fido2Data[fieldName] = parseInt(fieldValue, 10);
-    } else if (/^(true|false)$/i.test(fieldValue)) {
-      fido2Data[fieldName] = fieldValue.toLowerCase() === 'true';
-    } else {
-      fido2Data[fieldName] = fieldValue;
-    }
-  }
-  
-  // Convert FIDO2 data to canonical JSON representation
-  const canonicalJson = JSON.stringify(fido2Data, Object.keys(fido2Data).sort(), 0);
-  const dataBytes = Buffer.from(canonicalJson, 'utf-8');
-  
-  // Extract non-FIDO2 fields needed for the blob
-  const signer = chosenPubkeys[vectorIdx];
-  const authData = fields.find(f => f.name === "Auth Data")?.value || "";
-  const requestId = fields.find(f => f.name === "Request ID")?.value || "";
-  const domain = fields.find(f => f.name === "Domain")?.value || "";
-  const hdPath = fields.find(f => f.name === "hdPath")?.value || "m/44'/283'/0'/0/0";
-
-  // Convert to bytes
-  const signerBytes = Buffer.from(signer, 'hex');
-  const authDataBytes = Buffer.from(authData, 'hex');
-  const requestIdBytes = Buffer.from(requestId, 'utf-8');
-  const domainBytes = Buffer.from(domain, 'utf-8');
-  const hdPathBytes = serializePath(hdPath as BIP32Path);
-
-  // Create buffer for the blob
-  const blob = Buffer.alloc(0);
-  const blobArray = Array.from(blob);
-
-  const scope = Scope.AUTH;
-  const encoding = Encoding.BASE64;
-  
-  // Append each field in the required order
-  appendFieldToBlob(blobArray, Array.from(hdPathBytes));
-  appendFieldToBlob(blobArray, Array.from(signerBytes));
-  blobArray.push(scope);
-  blobArray.push(encoding);
-  appendFieldToBlob(blobArray, Array.from(dataBytes));
-  appendFieldToBlob(blobArray, Array.from(domainBytes));
-  appendFieldToBlob(blobArray, Array.from(requestIdBytes));
-  appendFieldToBlob(blobArray, Array.from(authDataBytes));
-  
-
-  // Convert blob to hex string
-  const hexBlob = Buffer.from(blobArray).toString('hex');
-  
-  return hexBlob;
+  const creator = new BaseRequestBlobCreator(chosenPubkeys);
+  return creator.createRequestBlob(fields, vectorIdx);
 }
 
 export function generateRandomFido2Configs(count: number = 1): Array<Record<string, any>> {
