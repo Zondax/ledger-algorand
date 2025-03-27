@@ -180,53 +180,69 @@ export const FIELD_NAMES = {
   HD_PATH: "hdPath"
 };
 
-// Function to generate common additional fields
+// Function to generate all possible combinations of common additional fields
 export function generateCommonAdditionalFields(
   domain: string,
   pubkey: string,
   requestId?: string,
-): { fields: Field[], hdPath: string } {
-  // Generate auth data as sha256 hash of the domain
+): { fieldCombinations: { fields: Field[]}[] } {
   const crypto = require('crypto');
   const authData = crypto.createHash('sha256').update(domain).digest('hex');
   const signer = generateAlgorandAddress(pubkey);
 
-  // Create an invalid domain by prepending non-printable ASCII characters
-  const invalidDomain = String.fromCharCode(0x07) + domain;
-
-  // 1 of every 10 tests vectors will have an invalid domain
-  domain = Math.random() < 0.1 ? invalidDomain : domain;
-
-  const additionalFields: Field[] = [
-    { name: FIELD_NAMES.SIGNER, value: signer },
-    { name: FIELD_NAMES.DOMAIN, value: domain },
-    // AuthData pushed later to keep the order defined in the spec
+  // Create deterministic domain variations
+  const domains = [
+    domain,
+    // Invalid domain with non-printable character
+    String.fromCharCode(0x07) + domain
   ];
 
+  // Create deterministic request ID if not provided
   if (!requestId) {
     requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
   }
-  const invalidRequestId = requestId + 'a';
-  requestId = Math.random() < 0.1 ? invalidRequestId : requestId;
-  const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
+  
+  // Create request ID variations
+  const requestIds = [
+    requestId,
+    // Invalid request ID
+    requestId + 'a'
+  ];
 
-  const includeRequestId = Math.random() < 0.5;
-  if (includeRequestId) {
-    additionalFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
+  // HD path options
+  const hdPaths = [
+    hdPathAcc0,
+    hdPathAcc123,
+  ];
+
+  // Generate all possible combinations
+  const fieldCombinations: { fields: Field[]}[] = [];
+
+  for (const currentDomain of domains) {
+    for (const currentRequestId of requestIds) {
+      // Option to include or exclude request ID
+      for (const includeRequestId of [true, false]) {
+        for (const hdPath of hdPaths) {
+          const currentFields: Field[] = [
+            { name: FIELD_NAMES.SIGNER, value: signer },
+            { name: FIELD_NAMES.DOMAIN, value: currentDomain },
+            { name: FIELD_NAMES.AUTH_DATA, value: authData }
+          ];
+
+          if (includeRequestId) {
+            const requestIdBase64 = Buffer.from(currentRequestId as string, 'utf8').toString('base64');
+            currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
+          }
+
+          fieldCombinations.push({
+            fields: currentFields,
+          });
+        }
+      }
+    }
   }
 
-  additionalFields.push({ name: FIELD_NAMES.AUTH_DATA, value: authData });
-
-  const includeHdPath = Math.random() < 0.5;
-  let hdPath = "";
-  if (includeHdPath) {
-    hdPath = Math.random() < 0.5 ? hdPathAcc0 : hdPathAcc123;
-    additionalFields.push({ name: FIELD_NAMES.HD_PATH, value: hdPath });
-  }
-
-  // Determine validity
-
-  return { fields: additionalFields, hdPath };
+  return { fieldCombinations };
 }
 
 export { Field };

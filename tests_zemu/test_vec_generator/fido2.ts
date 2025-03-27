@@ -39,6 +39,9 @@ class Fido2Generator implements ProtocolGenerator {
       const origin = `https://${domain}`;
       
       for (const pubkey of pubkeyOptions) {
+        // Get all possible additional field combinations
+        const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey);
+        
         // Request type options
         for (const includeType of [true, false]) {
           for (const requestType of includeType ? requestTypes : [null]) {
@@ -48,71 +51,68 @@ class Fido2Generator implements ProtocolGenerator {
               for (const includeUserId of [true, false]) {
                 // Extensions options
                 for (const includeExtensions of [true, false]) {
-                  this.chosenPubkeys.push(pubkey);
+                  // Iterate through all additional field combinations
+                  for (const { fields: additionalFields } of fieldCombinations) {
+                    this.chosenPubkeys.push(pubkey);
 
-                  const challenge = crypto.randomBytes(32).toString('base64');
-                  
-                  const userId = crypto.randomBytes(16).toString('base64');
-                  
-                  // Create base fields for FIDO2 request (required fields)
-                  const fido2Data: Record<string, any> = {
-                    origin: origin,
-                    challenge: challenge,
-                  };
-                  
-                  // Add optional fields based on the combination
-                  if (includeType && requestType) {
-                    fido2Data.type = requestType;
-                  }
-                  
-                  if (includeRpId) {
-                    fido2Data.rpId = domain;
-                  }
-                  
-                  if (includeUserId) {
-                    fido2Data.userId = userId;
-                  }
-
-                  if (includeExtensions) {
-                    const extensions = {
-                      credProps: true,
-                      exampleExt: "test-value"
+                    const challenge = crypto.randomBytes(32).toString('base64');
+                    
+                    const userId = crypto.randomBytes(16).toString('base64');
+                    
+                    // Create base fields for FIDO2 request (required fields)
+                    const fido2Data: Record<string, any> = {
+                      origin: origin,
+                      challenge: challenge,
                     };
-                    fido2Data.extensions = JSON.stringify(extensions);
+                    
+                    // Add optional fields based on the combination
+                    if (includeType && requestType) {
+                      fido2Data.type = requestType;
+                    }
+                    
+                    if (includeRpId) {
+                      fido2Data.rpId = domain;
+                    }
+                    
+                    if (includeUserId) {
+                      fido2Data.userId = userId;
+                    }
+
+                    if (includeExtensions) {
+                      const extensions = {
+                        credProps: true,
+                        exampleExt: "test-value"
+                      };
+                      fido2Data.extensions = JSON.stringify(extensions);
+                    }
+                    
+                    // Build fields list
+                    const fields: Field[] = [];
+                    
+                    // Add each field from the JSON object individually
+                    for (const [key, value] of Object.entries(fido2Data)) {
+                      fields.push({ name: key, value: String(value) });
+                    }
+                    
+
+                    const isValid = determineVectorValidity(
+                      fields,
+                      additionalFields,
+                      pubkey);
+
+                    fields.push(...additionalFields);
+
+                    // Create configuration
+                    const config = {
+                      index: index,
+                      name: `Algorand_FIDO2_${index}`,
+                      fields: fields,
+                      valid: isValid
+                    };
+                    
+                    configs.push(config);
+                    index++;
                   }
-                  
-                  // Build fields list
-                  const fields: Field[] = [];
-                  
-                  // Add each field from the JSON object individually
-                  for (const [key, value] of Object.entries(fido2Data)) {
-                    fields.push({ name: key, value: String(value) });
-                  }
-                  
-                  // Generate common additional fields
-                  const { fields: additionalFields } = generateCommonAdditionalFields(
-                    domain,
-                    pubkey
-                  );
-
-                  const isValid = determineVectorValidity(
-                    fields,
-                    additionalFields,
-                    pubkey);
-
-                  // Combine all fields
-                  fields.push(...additionalFields);
-
-                  // Create configuration
-                  const config = {
-                    index: index,
-                    name: `Algorand_FIDO2_${index}`,
-                    fields: fields,
-                    valid: isValid
-                  };
-                  
-                  configs.push(config);
-                  index++;
                 }
               }
             }

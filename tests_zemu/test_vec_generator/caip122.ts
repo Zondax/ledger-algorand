@@ -5,7 +5,8 @@ import {
   ProtocolGenerator, 
   pubkeyAcc0, 
   pubkeyAcc123,
-  determineVectorValidity
+  determineVectorValidity,
+  FIELD_NAMES
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
@@ -59,73 +60,71 @@ class Caip122Generator implements ProtocolGenerator {
         const resources = JSON.stringify(resourceOption);
         
         for (const pubkey of pubkeyOptions) {
+          // Get all possible additional field combinations
+          const requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
+          const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, requestId);
+          
           // Domain in CAIP-122 options
           for (const includeDomainInCaip122 of [true, false]) {
             // Request ID in CAIP-122 options
             for (const includeRequestIdInCaip122 of [true, false]) {
-              this.chosenPubkeys.push(pubkey);
+              // Iterate through all additional field combinations
+              for (const { fields: additionalFields } of fieldCombinations) {
+                this.chosenPubkeys.push(pubkey);
 
-              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-              const accountAddress = Array(58).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                const accountAddress = Array(58).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
 
-              const nonce = crypto.randomBytes(32).toString('base64');
-              
-              const requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
-              
-              // Build the fields list - first all CAIP-122 fields
-              const caip122Fields: Field[] = [
-                // Basic mandatory fields for CAIP-122
-                { name: "account_address", value: accountAddress },
-                { name: "chain_id", value: chainId },
-                { name: "uri", value: uri },
-                { name: "version", value: "1" },
-                { name: "type", value: sigType },
+                const nonce = crypto.randomBytes(32).toString('base64');
                 
-                // Optional CAIP-122 fields
-                { name: "statement", value: statement },
-                { name: "nonce", value: nonce },
-                { name: "issued-at", value: issuedAt },
-                { name: "expiration-time", value: expiryTime },
-                { name: "not-before", value: notBeforeTime },
-                { name: "resources", value: resources },
-              ];
-              
-              // Add domain and request-id to CAIP-122 fields if chosen
-              if (includeDomainInCaip122) {
-                caip122Fields.push({ name: "domain", value: domain });
-              }
-              
-              if (includeRequestIdInCaip122) {
-                const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
-                caip122Fields.push({ name: "request-id", value: requestIdBase64 });
-              }
-              
-              // Generate common additional fields
-              const { fields: additionalFields } = generateCommonAdditionalFields(
-                domain,
-                pubkey,
-                requestId
-              );
+                // Build the fields list - first all CAIP-122 fields
+                const caip122Fields: Field[] = [
+                  // Basic mandatory fields for CAIP-122
+                  { name: "account_address", value: accountAddress },
+                  { name: "chain_id", value: chainId },
+                  { name: "uri", value: uri },
+                  { name: "version", value: "1" },
+                  { name: "type", value: sigType },
+                  
+                  // Optional CAIP-122 fields
+                  { name: "statement", value: statement },
+                  { name: "nonce", value: nonce },
+                  { name: "issued-at", value: issuedAt },
+                  { name: "expiration-time", value: expiryTime },
+                  { name: "not-before", value: notBeforeTime },
+                  { name: "resources", value: resources },
+                ];
+                
+                // Add domain and request-id to CAIP-122 fields if chosen
+                if (includeDomainInCaip122) {
+                  caip122Fields.push({ name: "domain", value: domain });
+                }
+                
+                if (includeRequestIdInCaip122) {
+                  const reqId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
+                  caip122Fields.push({ name: "request-id", value: reqId });
+                }
+                
+                const isValid = determineVectorValidity(
+                  caip122Fields,
+                  additionalFields,
+                  pubkey
+                );
 
-              const isValid = determineVectorValidity(
-                caip122Fields,
-                additionalFields,
-                pubkey
-              );
-
-              // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields
-              const fields = [...caip122Fields, ...additionalFields];
-              
-              // Create configuration
-              const config = {
-                index: index,
-                name: `Algorand_CAIP122_${index}`,
-                fields: fields,
-                valid: isValid
-              };
-              
-              configs.push(config);
-              index++;
+                // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields
+                const fields = [...caip122Fields, ...additionalFields];
+                
+                // Create configuration
+                const config = {
+                  index: index,
+                  name: `Algorand_CAIP122_${index}`,
+                  fields: fields,
+                  valid: isValid
+                };
+                
+                configs.push(config);
+                index++;
+              }
             }
           }
         }
