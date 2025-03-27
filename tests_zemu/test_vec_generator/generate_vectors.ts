@@ -15,11 +15,6 @@ async function main() {
       default: '../tests/testcases_arbitrary_sign.json',
       description: 'Output JSON file'
     })
-    .option('count', {
-      type: 'number',
-      default: 1,
-      description: 'Number of random test vectors to generate per type (CAIP-122 and FIDO2)'
-    })
     .parse();
 
   // Ensure output directory exists
@@ -35,17 +30,18 @@ async function main() {
   ];
   
   // Generate test vectors from all generators
-  const testVectors = generateVectorsFromGenerators(protocolGenerators, argv.count);
+  const testVectors = generateVectorsFromGenerators(protocolGenerators);
   
   fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
 }
 
-function generateVectorsFromGenerators(generators: ProtocolGenerator[], count: number): any[] {
-  const testVectors: any[] = [];
+function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
+  const validTestVectors = new Set<any>();
+  const invalidTestVectors = new Set<any>();
   let currentIndex = 0;
   
   for (const generator of generators) {
-    const configs = generator.generateConfigs(count);
+    const configs = generator.generateConfigs();
     
     for (const config of configs) {
       config.blob = generator.createBlob(config.fields, config.index);
@@ -57,11 +53,16 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[], count: n
         config.fields,
         config.valid
       );
-      testVectors.push(testVector);
+      
+      if (config.valid) {
+        validTestVectors.add(testVector);
+      } else {
+        invalidTestVectors.add(testVector);
+      }
     }
   }
   
-  return testVectors;
+  return [...Array.from(validTestVectors), ...Array.from(invalidTestVectors)];
 }
 
 if (require.main === module) {

@@ -1,3 +1,5 @@
+import { serializePath } from "./bip32";
+
 interface Field {
   name: string;
   value: string;
@@ -26,7 +28,7 @@ export const hdPathAcc0 = "m/44'/283'/0'/0/0";
 export const hdPathAcc123 = "m/44'/283'/123'/0/0";
 
 export interface ProtocolGenerator {
-  generateConfigs: (count: number) => Array<Record<string, any>>;
+  generateConfigs: () => Array<Record<string, any>>;
   createBlob: (fields: Field[], vectorIdx: number) => string;
 }
 
@@ -45,45 +47,50 @@ export function generateAlgorandAddress(pubkey: string): string {
 }
 
 export function determineVectorValidity(
-  data: string,
-  includeHdPathInBlob: boolean,
-  domain: string,
-  requestId: string,
-  hdPath: string,
+  dataFields: Field[],
+  additionalFields: Field[],
   pubkey: string
 ): boolean {
 
-  if (!isDataValid(data)) {
+  if (!isDataValid(dataFields)) {
     return false;
   }
 
-  // Check domain is Printable ASCII
+  const domain = additionalFields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value;
+  if (!domain) {
+    // Domain is required
+    return false;
+  }
   if (!isDomainValid(domain)) {
     return false;
   }
 
-  // Check requestId is UpperCase Hex
-  if (!isRequestIdValid(requestId)) {
-    return false;
+  let requestId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value;
+  if (requestId) {
+    let decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex');
+    if (!isRequestIdValid(decodedRequestId)) {
+      return false;
+    }
   }
 
-  if (!doHdPathAndPubkeyMatch(includeHdPathInBlob, hdPath, pubkey)) {
+  let hdPath = additionalFields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value;
+  if (!hdPath) {
+    hdPath = hdPathAcc0;
+  } 
+  if (!isHdPathValid(hdPath)) {
+    return false;
+  }
+  if (!doHdPathAndPubkeyMatch(hdPath, pubkey)) {
     return false;
   }
 
   return true;
 }
 
-function isDataValid(data: string): boolean {
-  // Check if data is a valid JSON object and ensure it's canonical
+function isDataValid(dataFields: Field[]): boolean {
+  // Check if data can be parsed as JSON
   try {
-    const parsed = JSON.parse(data);
-    const reStringified = JSON.stringify(parsed);
-    
-    if (data !== reStringified) {
-      return false;
-    }
-    
+    const parsed = JSON.parse(JSON.stringify(dataFields));
     return true;
   } catch (e) {
     return false;
@@ -96,15 +103,23 @@ function isDomainValid(domain: string): boolean {
 }
 
 function isRequestIdValid(requestId: string): boolean {
+  // Check if requestId is a valid uppercase hex string
   return /^[0-9A-F]+$/.test(requestId);
 }
 
-function doHdPathAndPubkeyMatch(includeHdPathInBlob: boolean, hdPath: string, pubkey: string): boolean {
-  if (includeHdPathInBlob) {
-    return (hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
-      (hdPath === hdPathAcc123 && pubkey === pubkeyAcc123);
+function isHdPathValid(hdPath: string): boolean {
+  // Check if hdPath is a valid BIP32 path
+  try {
+    serializePath(hdPath);
+    return true;
+  } catch (e) {
+    return false;
   }
-  return pubkey === pubkeyAcc0;
+}
+
+function doHdPathAndPubkeyMatch(hdPath: string, pubkey: string): boolean {
+  return (hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
+    (hdPath === hdPathAcc123 && pubkey === pubkeyAcc123);
 }
 
 export function generateTestVector(

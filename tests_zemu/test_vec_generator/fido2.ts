@@ -18,91 +18,107 @@ class Fido2Generator implements ProtocolGenerator {
     return creator.createBlob(fields, vectorIdx);
   }
 
-  generateConfigs(count: number = 1): Array<Record<string, any>> {
+  generateConfigs(): Array<Record<string, any>> {
     const configs: Array<Record<string, any>> = [];
     
-    // Common domains relevant to Algorand ecosystem
+    // Common domains relevant to FIDO2 ecosystem
     const domains = ["webauthn.io"];
     
     // Possible request types
     const requestTypes = ["webauthn.create", "webauthn.get"];
+    
+    // Pubkey options
+    const pubkeyOptions = [pubkeyAcc0, pubkeyAcc123];
 
     this.chosenPubkeys = [];
     
-    for (let i = 0; i < count; i++) {
-      // Generate random domain for origin
-      const domain = domains[Math.floor(Math.random() * domains.length)];
+    let index = 0;
+    
+    // Create all possible combinations
+    for (const domain of domains) {
       const origin = `https://${domain}`;
       
-      // Generate random challenge (base64 encoded 32 bytes)
-      const challenge = crypto.randomBytes(32).toString('base64');
-      
-      // Choose pubkey for this test vector
-      const pubkey = Math.random() < 0.5 ? pubkeyAcc0 : pubkeyAcc123;
-      this.chosenPubkeys.push(pubkey);
-      
-      // Create base fields for FIDO2 request (required fields)
-      const fido2Data: Record<string, any> = {
-        origin: origin,
-        challenge: challenge,
-      };
-      
-      // Add optional fields with probability
-      if (Math.random() < 0.5) {
-        fido2Data.type = requestTypes[Math.floor(Math.random() * requestTypes.length)];
-      }
-      
-      if (Math.random() < 0.5) {
-        fido2Data.rpId = domain;
-      }
-      
-      if (Math.random() < 0.5) {
-        // Generate random userId (base64 encoded 16 bytes)
-        fido2Data.userId = crypto.randomBytes(16).toString('base64');
-      }
+      for (const pubkey of pubkeyOptions) {
+        // Request type options
+        for (const includeType of [true, false]) {
+          for (const requestType of includeType ? requestTypes : [null]) {
+            // RpId options
+            for (const includeRpId of [true, false]) {
+              // UserId options
+              for (const includeUserId of [true, false]) {
+                // Extensions options
+                for (const includeExtensions of [true, false]) {
+                  this.chosenPubkeys.push(pubkey);
 
-      if (Math.random() < 0.5) {
-        // Simple extension example
-        fido2Data.extensions = { appid: `https://${domain}/app` };
+                  const challenge = crypto.randomBytes(32).toString('base64');
+                  
+                  const userId = crypto.randomBytes(16).toString('base64');
+                  
+                  // Create base fields for FIDO2 request (required fields)
+                  const fido2Data: Record<string, any> = {
+                    origin: origin,
+                    challenge: challenge,
+                  };
+                  
+                  // Add optional fields based on the combination
+                  if (includeType && requestType) {
+                    fido2Data.type = requestType;
+                  }
+                  
+                  if (includeRpId) {
+                    fido2Data.rpId = domain;
+                  }
+                  
+                  if (includeUserId) {
+                    fido2Data.userId = userId;
+                  }
+
+                  if (includeExtensions) {
+                    const extensions = {
+                      credProps: true,
+                      exampleExt: "test-value"
+                    };
+                    fido2Data.extensions = JSON.stringify(extensions);
+                  }
+                  
+                  // Build fields list
+                  const fields: Field[] = [];
+                  
+                  // Add each field from the JSON object individually
+                  for (const [key, value] of Object.entries(fido2Data)) {
+                    fields.push({ name: key, value: String(value) });
+                  }
+                  
+                  // Generate common additional fields
+                  const { fields: additionalFields } = generateCommonAdditionalFields(
+                    domain,
+                    pubkey
+                  );
+
+                  const isValid = determineVectorValidity(
+                    fields,
+                    additionalFields,
+                    pubkey);
+
+                  // Combine all fields
+                  fields.push(...additionalFields);
+
+                  // Create configuration
+                  const config = {
+                    index: index,
+                    name: `Algorand_FIDO2_${index}`,
+                    fields: fields,
+                    valid: isValid
+                  };
+                  
+                  configs.push(config);
+                  index++;
+                }
+              }
+            }
+          }
+        }
       }
-      
-      // Build fields list
-      const fields: Field[] = [];
-      
-      // Add each field from the JSON object individually
-      for (const [key, value] of Object.entries(fido2Data)) {
-        fields.push({ name: key, value: String(value) });
-      }
-      
-      // Generate common additional fields
-      const { fields: additionalFields } = generateCommonAdditionalFields(
-        domain,
-        pubkey
-      );
-
-      const includeHdPath = additionalFields.find(f => f.name === "hdPath") !== undefined;
-      const hdPath = additionalFields.find(f => f.name === "hdPath")?.value;
-      const canonicalJson = JSON.stringify(fido2Data, Object.keys(fido2Data).sort(), 0);
-
-      const isValid = determineVectorValidity(
-        canonicalJson,
-        includeHdPath,
-        domain,
-        challenge,
-        hdPath as string,
-        pubkey);
-      // Combine all fields
-      fields.push(...additionalFields);
-
-      // Create configuration
-      const config = {
-        index: i,
-        name: `Algorand_FIDO2_${i}`,
-        fields: fields,
-        valid: isValid
-      };
-      
-      configs.push(config);
     }
     
     return configs;
