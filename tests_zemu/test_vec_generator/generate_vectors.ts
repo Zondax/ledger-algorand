@@ -36,9 +36,8 @@ async function main() {
 }
 
 function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
-  const validTestVectors = new Set<any>();
-  const invalidTestVectors = new Set<any>();
-  let currentIndex = 0;
+  const validTestVectors: any[] = [];
+  const invalidTestVectors: any[] = [];
   
   for (const generator of generators) {
     const configs = generator.generateConfigs();
@@ -47,7 +46,7 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
       config.blob = generator.createBlob(config.fields, config.index);
 
       const testVector = generateTestVector(
-        currentIndex++,
+        0, // Temporary index, will update later
         config.name,
         config.blob,
         config.fields,
@@ -55,14 +54,19 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
       );
       
       if (config.valid) {
-        validTestVectors.add(testVector);
+        validTestVectors.push(testVector);
       } else {
-        invalidTestVectors.add(testVector);
+        invalidTestVectors.push(testVector);
       }
     }
   }
   
-  return [...Array.from(validTestVectors), ...Array.from(invalidTestVectors)];
+  // Combine arrays and fix indexes
+  const allVectors = [...validTestVectors, ...invalidTestVectors];
+  return allVectors.map((vector, index) => ({
+    ...vector,
+    index
+  }));
 }
 
 if (require.main === module) {
