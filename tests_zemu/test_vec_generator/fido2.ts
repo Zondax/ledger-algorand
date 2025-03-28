@@ -4,13 +4,15 @@ import {
   Field, 
   FIELD_NAMES,
   generateCommonAdditionalFields,
+  hdPathAcc0,
+  hdPathAcc123,
   ProtocolGenerator, 
   pubkeyAcc0, 
   pubkeyAcc123 
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
-class Fido2Generator implements ProtocolGenerator {
+class Fido2Generator extends ProtocolGenerator {
   private chosenPubkeys: string[] = [];
 
   createBlob(fields: Field[], vectorIdx: number): string {
@@ -18,7 +20,7 @@ class Fido2Generator implements ProtocolGenerator {
     return creator.createBlob(fields, vectorIdx);
   }
 
-  generateConfigs(): Array<Record<string, any>> {
+  generateValidConfigs(): Array<Record<string, any>> {
     const configs: Array<Record<string, any>> = [];
     
     // Common domains relevant to FIDO2 ecosystem
@@ -28,7 +30,10 @@ class Fido2Generator implements ProtocolGenerator {
     const requestTypes = ["webauthn.create", "webauthn.get"];
     
     // Pubkey options
-    const pubkeyOptions = [pubkeyAcc0, pubkeyAcc123];
+    const pubkeyHdPathPairs = [
+      { pubkey: pubkeyAcc0, hdPath: hdPathAcc0 },
+      { pubkey: pubkeyAcc123, hdPath: hdPathAcc123 }
+    ];
 
     this.chosenPubkeys = [];
     
@@ -38,9 +43,11 @@ class Fido2Generator implements ProtocolGenerator {
     for (const domain of domains) {
       const origin = `https://${domain}`;
       
-      for (const pubkey of pubkeyOptions) {
+      for (const pubkeyHdPathPair of pubkeyHdPathPairs) {
+        const pubkey = pubkeyHdPathPair.pubkey;
+        const hdPath = pubkeyHdPathPair.hdPath;
         // Get all possible additional field combinations
-        const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey);
+        const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, hdPath);
         
         // Request type options
         for (const includeType of [true, false]) {
@@ -95,10 +102,9 @@ class Fido2Generator implements ProtocolGenerator {
                     }
                     
 
-                    const isValid = determineVectorValidity(
-                      fields,
-                      additionalFields,
-                      pubkey);
+                    if (determineVectorValidity(fields, additionalFields) == false) {
+                      throw new Error("Invalid config generated");
+                    }
 
                     fields.push(...additionalFields);
 
@@ -107,7 +113,7 @@ class Fido2Generator implements ProtocolGenerator {
                       index: index,
                       name: `Algorand_FIDO2_${index}`,
                       fields: fields,
-                      valid: isValid
+                      valid: true
                     };
                     
                     configs.push(config);

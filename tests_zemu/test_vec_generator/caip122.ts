@@ -6,11 +6,14 @@ import {
   pubkeyAcc0, 
   pubkeyAcc123,
   determineVectorValidity,
-  FIELD_NAMES
+  FIELD_NAMES,
+  hdPathAcc123,
+  hdPathAcc0,
+  signerAcc0
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
-class Caip122Generator implements ProtocolGenerator {
+class Caip122Generator extends ProtocolGenerator {
   private chosenPubkeys: string[] = [];
 
   createBlob(fields: Field[], vectorIdx: number): string {
@@ -18,7 +21,7 @@ class Caip122Generator implements ProtocolGenerator {
     return creator.createBlob(fields, vectorIdx);
   }
 
-  generateConfigs(): Array<Record<string, any>> {
+  generateValidConfigs(): Array<Record<string, any>> {
     const configs: Array<Record<string, any>> = [];
     
     // Algorand-specific chain ID
@@ -38,8 +41,10 @@ class Caip122Generator implements ProtocolGenerator {
       ["ipfs://QmXZVnfgbEZqQppBYSQBZknjx5PuLwn36aUMRNTNTWwnaT"]
     ];
 
-    // Pubkey options
-    const pubkeyOptions = [pubkeyAcc0, pubkeyAcc123];
+    const pubKeyHdPathPairs = [
+      { pubkey: pubkeyAcc0, hdPath: hdPathAcc0 },
+      { pubkey: pubkeyAcc123, hdPath: hdPathAcc123 }
+    ];
     
     // Generate a fixed set of dates
     const now = new Date();
@@ -59,10 +64,13 @@ class Caip122Generator implements ProtocolGenerator {
       for (const resourceOption of resourceOptions) {
         const resources = JSON.stringify(resourceOption);
         
-        for (const pubkey of pubkeyOptions) {
+        for (const pubkeyHdPathPair of pubKeyHdPathPairs) {
+          const pubkey = pubkeyHdPathPair.pubkey;
+          const hdPath = pubkeyHdPathPair.hdPath;
+
           // Get all possible additional field combinations
           const requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
-          const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, requestId);
+          const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, hdPath, requestId);
           
           // Domain in CAIP-122 options
           for (const includeDomainInCaip122 of [true, false]) {
@@ -105,11 +113,9 @@ class Caip122Generator implements ProtocolGenerator {
                   caip122Fields.push({ name: "request-id", value: reqId });
                 }
                 
-                const isValid = determineVectorValidity(
-                  caip122Fields,
-                  additionalFields,
-                  pubkey
-                );
+                if (determineVectorValidity(caip122Fields, additionalFields) == false) {
+                  throw new Error("Invalid config generated");
+                }
 
                 // Combine all fields in the correct order: all CAIP-122 fields first, then additional fields
                 const fields = [...caip122Fields, ...additionalFields];
@@ -119,7 +125,7 @@ class Caip122Generator implements ProtocolGenerator {
                   index: index,
                   name: `Algorand_CAIP122_${index}`,
                   fields: fields,
-                  valid: isValid
+                  valid: true
                 };
                 
                 configs.push(config);

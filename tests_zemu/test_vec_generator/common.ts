@@ -26,10 +26,117 @@ export const pubkeyAcc0 = "1eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79c
 export const pubkeyAcc123 = "0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377";
 export const hdPathAcc0 = "m/44'/283'/0'/0/0";
 export const hdPathAcc123 = "m/44'/283'/123'/0/0";
+export const signerAcc0 = "AEPMZ7I6YBPECJP242IM5QVHPA42TI3CGXOW4LVPXJ44UJOA3JQPQAWBVCKA";
+export const signerAcc123 = "AEG73PG3R3V62YUM7NHPOAQHXBX5BXW5ZJ4OSDUMLHLPIQPDQOZXOQSPD5CQ";
 
-export interface ProtocolGenerator {
-  generateConfigs: () => Array<Record<string, any>>;
-  createBlob: (fields: Field[], vectorIdx: number) => string;
+export abstract class ProtocolGenerator {
+  abstract generateValidConfigs(): Array<Record<string, any>>;
+  abstract createBlob(fields: Field[], vectorIdx: number): string;
+
+  generateInvalidConfigs(validConfig: Record<string, any>): Array<Record<string, any>> {
+    const invalidConfigs: Array<Record<string, any>> = [];
+    
+    // Create separate clones for each invalid config
+    const invalidDomainConfig = createInvalidDomainConfig({...validConfig});
+    const invalidRequestIdConfig = createInvalidRequestIdConfig({...validConfig});
+    const invalidHdPathConfig = createInvalidHdPathConfig({...validConfig});
+    const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig({...validConfig});
+
+    invalidConfigs.push(invalidDomainConfig);
+    invalidConfigs.push(invalidRequestIdConfig);
+    invalidConfigs.push(invalidHdPathConfig);
+    invalidConfigs.push(invalidSignerHdPathConfig);
+
+    return invalidConfigs;
+  }
+
+}
+
+function changeConfigName(config: Record<string, any>, new_name: string): Record<string, any> {
+  // Get the base name without the index (format: `Algorand_<Protocol>_${index}`)
+  const oldName = config.name;
+  const baseName = oldName.substring(0, oldName.lastIndexOf('_'));
+  const newName = `${baseName}_${new_name}`;
+  config.name = newName;
+  return config;
+}
+
+function createInvalidDomainConfig(validConfig: Record<string, any>): Record<string, any> {
+  const invalidConfig = { ...validConfig };
+  const domain = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.DOMAIN)?.value;
+
+  if (domain) {
+    const invalidDomain = domain + String.fromCharCode(0x07);
+    const domainFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.DOMAIN);
+
+    if (domainFieldIndex !== -1) {
+      invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
+      invalidConfig.fields[domainFieldIndex] = { name: FIELD_NAMES.DOMAIN, value: invalidDomain };
+      invalidConfig.valid = false;
+      return changeConfigName(invalidConfig, "Invalid_Domain");
+    } 
+  }
+
+  throw new Error("Domain field not found in valid config");
+}
+
+function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<string, any> {
+  const invalidConfig = { ...validConfig };
+  const requestId = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.REQUEST_ID)?.value;
+
+  if (requestId) {
+    const invalidRequestId = 'a' + requestId + 'b';
+    const requestIdFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.REQUEST_ID);
+
+    if (requestIdFieldIndex !== -1) {
+      invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
+      invalidConfig.fields[requestIdFieldIndex] = { name: FIELD_NAMES.REQUEST_ID, value: invalidRequestId };
+      invalidConfig.valid = false;
+      return changeConfigName(invalidConfig, "Invalid_Request_ID");
+    } 
+  }
+
+  throw new Error("Request ID field not found in valid config");
+}
+
+function createInvalidSignerHdPathConfig(validConfig: Record<string, any>): Record<string, any> {
+  const invalidConfig = { ...validConfig };
+  const hasSigner = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.SIGNER);
+  const hasHdPath = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.HD_PATH);
+
+  if (hasSigner && hasHdPath) {
+    const signerFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.SIGNER);
+    const hdPathFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.HD_PATH);
+
+    if (signerFieldIndex !== -1 && hdPathFieldIndex !== -1) {
+      invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
+      invalidConfig.fields[signerFieldIndex] = { name: FIELD_NAMES.SIGNER, value: signerAcc0 };
+      invalidConfig.fields[hdPathFieldIndex] = { name: FIELD_NAMES.HD_PATH, value: hdPathAcc123 };
+      invalidConfig.valid = false;
+      return changeConfigName(invalidConfig, "Invalid_Signer_for_HdPath");
+    }
+  }
+
+  throw new Error("Signer or HD Path field not found in valid config");
+}
+
+function createInvalidHdPathConfig(validConfig: Record<string, any>): Record<string, any> {
+  const invalidConfig = { ...validConfig };
+  const hasHdPath = invalidConfig.fields.find((f: Field) => f.name === FIELD_NAMES.HD_PATH);
+
+  if (hasHdPath) {
+    const hdPathFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.HD_PATH);
+
+    if (hdPathFieldIndex !== -1) {
+      // Ethereum hdPath
+      invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
+      invalidConfig.fields[hdPathFieldIndex] = { name: FIELD_NAMES.HD_PATH, value: "m/44'/66'/0'/0/0" };
+      invalidConfig.valid = false;
+      return changeConfigName(invalidConfig, "Invalid_HdPath");
+    }
+  }
+
+  throw new Error("HD Path field not found in valid config");
 }
 
 export function generateAlgorandAddress(pubkey: string): string {
@@ -49,7 +156,6 @@ export function generateAlgorandAddress(pubkey: string): string {
 export function determineVectorValidity(
   dataFields: Field[],
   additionalFields: Field[],
-  pubkey: string
 ): boolean {
 
   if (!isDataValid(dataFields)) {
@@ -80,7 +186,13 @@ export function determineVectorValidity(
   if (!isHdPathValid(hdPath)) {
     return false;
   }
-  if (!doHdPathAndPubkeyMatch(hdPath, pubkey)) {
+
+  const signer = additionalFields.find(f => f.name === FIELD_NAMES.SIGNER)?.value;
+  if (!signer) {
+    // Signer is required
+    return false;
+  }
+  if (!doHdPathAndSignerMatch(hdPath, signer)) {
     return false;
   }
 
@@ -117,9 +229,9 @@ function isHdPathValid(hdPath: string): boolean {
   }
 }
 
-function doHdPathAndPubkeyMatch(hdPath: string, pubkey: string): boolean {
-  return (hdPath === hdPathAcc0 && pubkey === pubkeyAcc0) ||
-    (hdPath === hdPathAcc123 && pubkey === pubkeyAcc123);
+function doHdPathAndSignerMatch(hdPath: string, signer: string): boolean {
+  return (hdPath === hdPathAcc0 && signer === signerAcc0) ||
+    (hdPath === hdPathAcc123 && signer === signerAcc123);
 }
 
 export function generateTestVector(
@@ -184,61 +296,48 @@ export const FIELD_NAMES = {
 export function generateCommonAdditionalFields(
   domain: string,
   pubkey: string,
-  requestId?: string,
+  hdPath: string,
+  requestId?: string
 ): { fieldCombinations: { fields: Field[]}[] } {
   const crypto = require('crypto');
   const authData = crypto.createHash('sha256').update(domain).digest('hex');
   const signer = generateAlgorandAddress(pubkey);
 
-  // Create deterministic domain variations
-  const domains = [
-    domain,
-    // Invalid domain with non-printable character
-    String.fromCharCode(0x07) + domain
-  ];
-
   // Create deterministic request ID if not provided
   if (!requestId) {
     requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
   }
-  
-  // Create request ID variations
-  const requestIds = [
-    requestId,
-    // Invalid request ID
-    requestId + 'a'
-  ];
-
-  // HD path options
-  const hdPaths = [
-    hdPathAcc0,
-    hdPathAcc123,
-  ];
 
   // Generate all possible combinations
   const fieldCombinations: { fields: Field[]}[] = [];
 
-  for (const currentDomain of domains) {
-    for (const currentRequestId of requestIds) {
-      // Option to include or exclude request ID
-      for (const includeRequestId of [true, false]) {
-        for (const hdPath of hdPaths) {
-          const currentFields: Field[] = [
-            { name: FIELD_NAMES.SIGNER, value: signer },
-            { name: FIELD_NAMES.DOMAIN, value: currentDomain },
-            { name: FIELD_NAMES.AUTH_DATA, value: authData }
-          ];
+  // Base fields that are always included
+  const baseFields: Field[] = [
+    { name: FIELD_NAMES.SIGNER, value: signer },
+    { name: FIELD_NAMES.DOMAIN, value: domain },
+    { name: FIELD_NAMES.AUTH_DATA, value: authData }
+  ];
 
-          if (includeRequestId) {
-            const requestIdBase64 = Buffer.from(currentRequestId as string, 'utf8').toString('base64');
-            currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
-          }
-
-          fieldCombinations.push({
-            fields: currentFields,
-          });
-        }
+  for (const includeRequestId of [true, false]) {
+    for (const includeHdPath of [true, false]) {
+      const currentFields = [...baseFields];
+      
+      if (includeRequestId) {
+        const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
+        currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
       }
+      if (includeHdPath) {
+        currentFields.push({ name: FIELD_NAMES.HD_PATH, value: hdPath });
+      }
+
+      if (!includeHdPath && signer === signerAcc123) {
+        // This case can't be pushed, since the signer does not match the hdPath
+        continue;
+      }
+
+      fieldCombinations.push({
+        fields: currentFields,
+      });
     }
   }
 
