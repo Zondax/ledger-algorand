@@ -12,7 +12,7 @@ async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option('output', {
       type: 'string',
-      default: '../tests/testcases_arbitrary_sign.json',
+      default: '../tests/testcases/testcases_arbitrary_sign.json',
       description: 'Output JSON file'
     })
     .parse();
