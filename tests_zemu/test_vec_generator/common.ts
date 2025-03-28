@@ -1,4 +1,5 @@
 import { serializePath } from "./bip32";
+import * as crypto from 'crypto';
 
 interface Field {
   name: string;
@@ -28,6 +29,8 @@ export const hdPathAcc0 = "m/44'/283'/0'/0/0";
 export const hdPathAcc123 = "m/44'/283'/123'/0/0";
 export const signerAcc0 = "AEPMZ7I6YBPECJP242IM5QVHPA42TI3CGXOW4LVPXJ44UJOA3JQPQAWBVCKA";
 export const signerAcc123 = "AEG73PG3R3V62YUM7NHPOAQHXBX5BXW5ZJ4OSDUMLHLPIQPDQOZXOQSPD5CQ";
+
+export const COMMON_RANDOMNESS_SEED = 'common-fixed-seed'
 
 export abstract class ProtocolGenerator {
   abstract generateValidConfigs(): Array<Record<string, any>>;
@@ -305,7 +308,10 @@ export function generateCommonAdditionalFields(
 
   // Create deterministic request ID if not provided
   if (!requestId) {
-    requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
+    // Replace random generation with deterministic seeded generation
+    const input = `${COMMON_RANDOMNESS_SEED}-${domain}-${pubkey}`;
+    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    requestId = hash.substring(0, 32).toUpperCase();
   }
 
   // Generate all possible combinations
@@ -342,6 +348,48 @@ export function generateCommonAdditionalFields(
   }
 
   return { fieldCombinations };
+}
+
+export class RandomGenerator {
+  private counter = 0;
+  
+  constructor(private seed: string = COMMON_RANDOMNESS_SEED) {}
+  
+  getSeededRandom(purpose: string): number {
+    const input = `${this.seed}-${purpose}-${this.counter++}`;
+    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    return parseInt(hash.substring(0, 8), 16) / 0xffffffff;
+  }
+  
+  generateRandomBytes(count: number, purposePrefix: string): Buffer {
+    let bytes = [];
+    for (let i = 0; i < count; i++) {
+      bytes.push(Math.floor(this.getSeededRandom(`${purposePrefix}-${i}`) * 256));
+    }
+    return Buffer.from(bytes);
+  }
+  
+  generateBase64Bytes(count: number, purposePrefix: string): string {
+    return this.generateRandomBytes(count, purposePrefix).toString('base64');
+  }
+  
+  generateHexString(length: number, purposePrefix: string, uppercase: boolean = true): string {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      const randomValue = Math.floor(this.getSeededRandom(`${purposePrefix}-${i}`) * 16);
+      result += randomValue.toString(16);
+    }
+    return uppercase ? result.toUpperCase() : result;
+  }
+  
+  generateStringFromCharset(length: number, charset: string, purposePrefix: string): string {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(this.getSeededRandom(`${purposePrefix}-${i}`) * charset.length);
+      result += charset.charAt(randomIndex);
+    }
+    return result;
+  }
 }
 
 export { Field };

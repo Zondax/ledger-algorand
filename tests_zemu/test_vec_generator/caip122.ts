@@ -9,24 +9,65 @@ import {
   FIELD_NAMES,
   hdPathAcc123,
   hdPathAcc0,
-  signerAcc0
+  signerAcc0,
+  COMMON_RANDOMNESS_SEED,
+  RandomGenerator
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
 class Caip122Generator extends ProtocolGenerator {
   private chosenPubkeys: string[] = [];
-
+  private randomGenerator = new RandomGenerator();
+  
   createBlob(fields: Field[], vectorIdx: number): string {
     const creator = new BaseBlobCreator(this.chosenPubkeys);
     return creator.createBlob(fields, vectorIdx);
   }
+  
+  private generateRequestId(): string {
+    return this.randomGenerator.generateHexString(32, 'requestId');
+  }
+  
+  private generateAccountAddress(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    return this.randomGenerator.generateStringFromCharset(58, chars, 'accountAddress');
+  }
+  
+  private generateNonce(): string {
+    return this.randomGenerator.generateBase64Bytes(32, 'nonce');
+  }
+  
+  private createCaip122Fields(domain: string, resources: string, accountAddress: string, nonce: string): Field[] {
+    const uri = `https://${domain}`;
+    const statement = `We are requesting you to sign this message to authenticate to ${domain}`;
+    const chainId = "283";  // Algorand Mainnet
+    const sigType = "ed25519";  // Algorand uses ed25519 signatures
+    const issuedAt = "2023-07-15T10:00:00Z";
+    const expiryTime = "2023-08-15T10:00:00Z";
+    const notBeforeTime = "2023-07-10T10:00:00Z";
+    
+    return [
+      // Basic mandatory fields for CAIP-122
+      { name: "account_address", value: accountAddress },
+      { name: "chain_id", value: chainId },
+      { name: "uri", value: uri },
+      { name: "version", value: "1" },
+      { name: "type", value: sigType },
+      
+      // Optional CAIP-122 fields
+      { name: "statement", value: statement },
+      { name: "nonce", value: nonce },
+      { name: "issued-at", value: issuedAt },
+      { name: "expiration-time", value: expiryTime },
+      { name: "not-before", value: notBeforeTime },
+      { name: "resources", value: resources },
+    ];
+  }
 
   generateValidConfigs(): Array<Record<string, any>> {
     const configs: Array<Record<string, any>> = [];
-    
-    // Algorand-specific chain ID
-    const chainId = "283";  // Algorand Mainnet
-    const sigType = "ed25519";  // Algorand uses ed25519 signatures
+    this.chosenPubkeys = [];
+    let index = 0;
     
     // Domains relevant to Algorand ecosystem
     const domains = ["arc60.io"];
@@ -46,21 +87,8 @@ class Caip122Generator extends ProtocolGenerator {
       { pubkey: pubkeyAcc123, hdPath: hdPathAcc123 }
     ];
     
-    // Generate a fixed set of dates
-    const now = new Date();
-    const issuedAt = now.toISOString().replace(/\.\d+Z$/, 'Z');
-    const expiryTime = new Date(now.getTime() + (24 * 60 * 60 * 1000 * 30)).toISOString().replace(/\.\d+Z$/, 'Z');
-    const notBeforeTime = new Date(now.getTime() - (24 * 60 * 60 * 1000 * 5)).toISOString().replace(/\.\d+Z$/, 'Z');
-    
-    this.chosenPubkeys = [];
-    
-    let index = 0;
-    
     // Create all possible combinations
     for (const domain of domains) {
-      const uri = `https://${domain}`;
-      const statement = `We are requesting you to sign this message to authenticate to ${domain}`;
-      
       for (const resourceOption of resourceOptions) {
         const resources = JSON.stringify(resourceOption);
         
@@ -69,7 +97,7 @@ class Caip122Generator extends ProtocolGenerator {
           const hdPath = pubkeyHdPathPair.hdPath;
 
           // Get all possible additional field combinations
-          const requestId = crypto.randomBytes(16).toString('hex').toUpperCase();
+          const requestId = this.generateRequestId();
           const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, hdPath, requestId);
           
           // Domain in CAIP-122 options
@@ -80,28 +108,11 @@ class Caip122Generator extends ProtocolGenerator {
               for (const { fields: additionalFields } of fieldCombinations) {
                 this.chosenPubkeys.push(pubkey);
 
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-                const accountAddress = Array(58).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-
-                const nonce = crypto.randomBytes(32).toString('base64');
+                const accountAddress = this.generateAccountAddress();
+                const nonce = this.generateNonce();
                 
                 // Build the fields list - first all CAIP-122 fields
-                const caip122Fields: Field[] = [
-                  // Basic mandatory fields for CAIP-122
-                  { name: "account_address", value: accountAddress },
-                  { name: "chain_id", value: chainId },
-                  { name: "uri", value: uri },
-                  { name: "version", value: "1" },
-                  { name: "type", value: sigType },
-                  
-                  // Optional CAIP-122 fields
-                  { name: "statement", value: statement },
-                  { name: "nonce", value: nonce },
-                  { name: "issued-at", value: issuedAt },
-                  { name: "expiration-time", value: expiryTime },
-                  { name: "not-before", value: notBeforeTime },
-                  { name: "resources", value: resources },
-                ];
+                const caip122Fields = this.createCaip122Fields(domain, resources, accountAddress, nonce);
                 
                 // Add domain and request-id to CAIP-122 fields if chosen
                 if (includeDomainInCaip122) {
@@ -109,7 +120,12 @@ class Caip122Generator extends ProtocolGenerator {
                 }
                 
                 if (includeRequestIdInCaip122) {
-                  const reqId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
+                  let reqId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value;
+                  if (!reqId) {
+                    reqId = this.generateRequestId();
+                    const requestIdBase64 = Buffer.from(reqId as string, 'utf8').toString('base64');
+                    reqId = requestIdBase64;
+                  }
                   caip122Fields.push({ name: "request-id", value: reqId });
                 }
                 
