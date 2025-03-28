@@ -68,14 +68,14 @@ The general structure of commands and responses is as follows:
 
 #### Command
 
-| Field   | Type     | Content                   | Expected   |
-| ------- | -------- | ------------------------- | ---------- |
-| CLA     | byte (1) | Application Identifier    | 0x80       |
-| INS     | byte (1) | Instruction ID            | 0x03       |
-| P1      | byte (1) | Request User confirmation | No = 0     |
-| P2      | byte (1) | Parameter 2               | ignored    |
-| LC      | byte (1) | Bytes in payload          | (depends)  |
-| Payload | byte (4) | Account ID                | (depends)  |
+| Field   | Type     | Content                   | Expected  |
+| ------- | -------- | ------------------------- | --------- |
+| CLA     | byte (1) | Application Identifier    | 0x80      |
+| INS     | byte (1) | Instruction ID            | 0x03      |
+| P1      | byte (1) | Request User confirmation | No = 0    |
+| P2      | byte (1) | Parameter 2               | ignored   |
+| LC      | byte (1) | Bytes in payload          | (depends) |
+| Payload | byte (4) | Account ID                | (depends) |
 
 The account number is used to derive keys from BIP32 path `44'/283'/<account>'/0/0`
 (note that the account number is hardened as shown by the `'` sign). Account number defaults
@@ -83,25 +83,26 @@ to `0x0` in the case of APDU with empty payload.
 
 #### Response
 
-| Field          | Type      | Content              | Note                     |
-| -------------- | --------- | -------------------- | ------------------------ |
-| PublicKey      | byte (65) | Public Key           |                          |
-| Address        | byte (58) | Address              |                          |
-| SW1-SW2        | byte (2)  | Return code          | see list of return codes |
+| Field     | Type      | Content     | Note                     |
+| --------- | --------- | ----------- | ------------------------ |
+| PublicKey | byte (65) | Public Key  |                          |
+| Address   | byte (58) | Address     |                          |
+| SW1-SW2   | byte (2)  | Return code | see list of return codes |
 
 ---
+
 ### INS_SIGN_MSGPACK
 
 #### Command
 
-| Field   | Type        | Content                   | Expected   |
-| ------- | --------    | ------------------------- | ---------- |
-| CLA     | byte (1)    | Application Identifier    | 0x80       |
-| INS     | byte (1)    | Instruction ID            | 0x08       |
-| P1      | byte (1)    | Request User confirmation | (depends)  |
-| P2      | byte (1)    | Parameter 2               | (depends)  |
-| LC      | byte (1)    | Bytes in payload          | (depends)  |
-| Payload | byte (var)  | AccID + MsgPack Chunks    | (depends)  |
+| Field   | Type       | Content                   | Expected  |
+| ------- | ---------- | ------------------------- | --------- |
+| CLA     | byte (1)   | Application Identifier    | 0x80      |
+| INS     | byte (1)   | Instruction ID            | 0x08      |
+| P1      | byte (1)   | Request User confirmation | (depends) |
+| P2      | byte (1)   | Parameter 2               | (depends) |
+| LC      | byte (1)   | Bytes in payload          | (depends) |
+| Payload | byte (var) | AccID + MsgPack Chunks    | (depends) |
 
 If one single APDU may contain a whole transaction, `P1` and `P2` are both `0x00`.
 
@@ -116,111 +117,107 @@ The resulting sequence of chunks is as follows:
 
 First APDU message
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x08       | 0x01                 | 0x80 | N1   | account + MsgPack chunk #1   |
+| CLA  | INS  | P1   | P2   | LC  | Payload                    |
+| ---- | ---- | ---- | ---- | --- | -------------------------- |
+| 0x80 | 0x08 | 0x01 | 0x80 | N1  | account + MsgPack chunk #1 |
 
 ...
 
 APDU message i
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x08       | 0x80                 | 0x80 | Ni   | MsgPack chunk #i   |
+| CLA  | INS  | P1   | P2   | LC  | Payload          |
+| ---- | ---- | ---- | ---- | --- | ---------------- |
+| 0x80 | 0x08 | 0x80 | 0x80 | Ni  | MsgPack chunk #i |
 
 ...
 
 Last APDU message
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x08       | 0x80                 | 0x00 | NI   | MsgPack chunk #I   |
+| CLA  | INS  | P1   | P2   | LC  | Payload          |
+| ---- | ---- | ---- | ---- | --- | ---------------- |
+| 0x80 | 0x08 | 0x80 | 0x00 | NI  | MsgPack chunk #I |
 
 #### Response
 
-| Field          | Type      | Content              | Note                     |
-| -------------- | --------- | -------------------- | ------------------------ |
-| Signature      | byte (64)| Signed message       |                          |
-| SW1-SW2        | byte (2)  | Return code          | see list of return codes |
-
-
+| Field     | Type      | Content        | Note                     |
+| --------- | --------- | -------------- | ------------------------ |
+| Signature | byte (64) | Signed message |                          |
+| SW1-SW2   | byte (2)  | Return code    | see list of return codes |
 
 If one signle APDU is needed for the whole transaction along with the account number,
 `P1` and `P2` are `0x01` and `0x00` respectively.
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x08       | 0x01                 | 0x00 | N1   | account + MsgPack txn   |
+| CLA  | INS  | P1   | P2   | LC  | Payload               |
+| ---- | ---- | ---- | ---- | --- | --------------------- |
+| 0x80 | 0x08 | 0x01 | 0x00 | N1  | account + MsgPack txn |
 
 If the account number is not inserted within the message, the former message format is used
 (`P1` in the first chunk is `0x00`) and the account number defaults to `0x00` for the transaction
 signature.
 
-
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x08       | 0x00                 | 0x00 | N1   | MsgPack txn   |
-
+| CLA  | INS  | P1   | P2   | LC  | Payload     |
+| ---- | ---- | ---- | ---- | --- | ----------- |
+| 0x80 | 0x08 | 0x00 | 0x00 | N1  | MsgPack txn |
 
 ### INS_SIGN_ARBITRARY_DATA
 
 #### Command
 
-| Field   | Type        | Content                   | Expected   |
-| ------- | --------    | ------------------------- | ---------- |
-| CLA     | byte (1)    | Application Identifier    | 0x80       |
-| INS     | byte (1)    | Instruction ID            | 0x10       |
-| P1      | byte (1)    | First/More/Last           | (depends)  |
-| P2      | byte (1)    | N/A                       | 0x00       |
-| LC      | byte (1)    | Bytes in payload          | (depends)  |
-| Payload | byte (var)  | hdPath + Arbitrary data   | (depends)  |
+| Field   | Type       | Content                 | Expected  |
+| ------- | ---------- | ----------------------- | --------- |
+| CLA     | byte (1)   | Application Identifier  | 0x80      |
+| INS     | byte (1)   | Instruction ID          | 0x10      |
+| P1      | byte (1)   | First/More/Last         | (depends) |
+| P2      | byte (1)   | N/A                     | 0x00      |
+| LC      | byte (1)   | Bytes in payload        | (depends) |
+| Payload | byte (var) | hdPath + Arbitrary data | (depends) |
 
 First APDU message (only contains hdPath)
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x10       | 0x00                 | 0x00 | N1   | hdPath    |
-
+| CLA  | INS  | P1   | P2   | LC  | Payload |
+| ---- | ---- | ---- | ---- | --- | ------- |
+| 0x80 | 0x10 | 0x00 | 0x00 | N1  | hdPath  |
 
 APDU message `i`
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x10       | 0x01                 | 0x00 | Ni   | Arb. data chunk `i`   |
-
+| CLA  | INS  | P1   | P2   | LC  | Payload             |
+| ---- | ---- | ---- | ---- | --- | ------------------- |
+| 0x80 | 0x10 | 0x01 | 0x00 | Ni  | Arb. data chunk `i` |
 
 Last APDU message
 
-| CLA   | INS        | P1                   | P2   | LC   | Payload   |
-|-------|------------|----------------------|------|------|-----------|
-| 0x80  | 0x10       | 0x02                 | 0x00 | NI   | Arb. data last chunk |
+| CLA  | INS  | P1   | P2   | LC  | Payload              |
+| ---- | ---- | ---- | ---- | --- | -------------------- |
+| 0x80 | 0x10 | 0x02 | 0x00 | NI  | Arb. data last chunk |
 
 ##### Arbitrary Data Chunks
 
-| Range     | Field                  | Restrictions             | Max Size  |
-|-----------|----------------------- |--------------------------| --------- |
-| 0..31     | Signer                 | -                        | 32 bytes  |
-| 32        | Scope                  | see Supported Scopes     | 1 byte    |
-| 33        | Encoding               | see Supported Encodings  | 1 byte    |
-| 34        | Data Len               |                          | TBD       |
-|           | Data                   | Canonical JSON           | 512 bytes |
-|           | Domain Len             |                          | TBD       |
-|           | Domain                 | Representable ASCII      | 256 bytes |
-|           | Request ID  Len        |                          | TBD       |
-|           | Request ID             | Representable Hex String | 256 bytes |
-|           | Authenticated Data Len |                          | TBD       |
-|           | Authenticated Data     | Encoding format TBD      | 256 bytes |
+| Range | Field                  | Restrictions             | Max Size (bytes) |
+| ----- | ---------------------- | ------------------------ | ---------------- |
+| 0..31 | Signer                 | -                        | 32               |
+| 32    | Scope                  | see Supported Scopes     | 1                |
+| 33    | Encoding               | see Supported Encodings  | 1                |
+| 34    | Data Len               |                          | 2 (TBD)          |
+|       | Data                   | Canonical JSON           | 511              |
+|       | Domain Len             |                          | 1 (TBD)          |
+|       | Domain                 | Representable ASCII      | 255              |
+|       | Request ID Len         |                          | 1 (TBD)          |
+|       | Request ID             | Representable Hex String | 255              |
+|       | Authenticated Data Len |                          | 1 (TBD)          |
+|       | Authenticated Data     | Encoding format TBD      | 256              |
 
 ##### Supported Scopes
+
 - AUTH : 1
 
 ##### Supported Encodings
+
 - Base64 : 1
 
 ### Checks performed by the wallet
 
 - Signer is a raw Public Key (Hex String)
-    - Algorand Address not allowed
+  - Algorand Address not allowed
 - Authenticated Data's first 32 bytes must be equal to sha256(Domain)
 - Domain is representable ASCII (Values in range 32..127)
 - Request ID is representable Hex String (0-9, A-F)
@@ -232,16 +229,16 @@ Last APDU message
 
 ##### OK
 
-| Field          | Type      | Content                                                 |
-| -------------- | --------- | ------------------------------------------------------- |
-| Signature      | byte (64) | Signed [sha256(data) + sha256(Authenticated Data)]      |
-| SW1-SW2        | byte (2)  | 0x9000                                                  |
+| Field     | Type      | Content                                            |
+| --------- | --------- | -------------------------------------------------- |
+| Signature | byte (64) | Signed [sha256(data) + sha256(Authenticated Data)] |
+| SW1-SW2   | byte (2)  | 0x9000                                             |
 
 ##### Error
-| Field          | Type      | Content           | Note                     |
-| -------------- | --------- | ----------------- | ------------------------ |
-| SW1-SW2        | byte (2)  | Return code       | see Arbitrary Sign Return Codes |
 
+| Field   | Type     | Content     | Note                            |
+| ------- | -------- | ----------- | ------------------------------- |
+| SW1-SW2 | byte (2) | Return code | see Arbitrary Sign Return Codes |
 
 ### Arbitrary Sign Return codes
 
