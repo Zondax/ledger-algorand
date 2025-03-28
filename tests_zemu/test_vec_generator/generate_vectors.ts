@@ -36,49 +36,18 @@ async function main() {
 }
 
 function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
-  const validTestVectors: any[] = [];
-  const invalidTestVectors: any[] = [];
+  let index = 0;
   const allTestVectors: any[] = [];
 
-  let index = 0;
-  
   for (const generator of generators) {
-    const configs = generator.generateValidConfigs();
+    const validConfigs = generator.generateValidConfigs();
+    const validTestVectors = processConfigs(validConfigs, generator, index, true);
+    index += validConfigs.length;
     
-    for (const config of configs) {
-      if (!config.valid) {
-        throw new Error("Invalid config found");
-      }
-
-      config.blob = generator.createBlob(config.fields, config.index);
-
-      const testVector = generateTestVector(
-        index++,
-        config.name,
-        config.blob,
-        config.fields,
-        config.valid
-      );
-
-      validTestVectors.push(testVector);
-    }
-
-    const validConfig = findCompleteValidConfig(configs);
-    
-    const invalidConfigs = generator.generateInvalidConfigs(validConfig);
-    for (const config of invalidConfigs) {
-      if (config.valid) {
-        throw new Error("Valid config found");
-      }
-      const testVector = generateTestVector(
-        index++,
-        config.name,
-        config.blob,
-        config.fields,
-        config.valid
-      );
-      invalidTestVectors.push(testVector);
-    }
+    const completeValidConfig = findCompleteValidConfig(validConfigs);
+    const invalidConfigs = generator.generateInvalidConfigs(completeValidConfig);
+    const invalidTestVectors = processConfigs(invalidConfigs, generator, index, false);
+    index += invalidConfigs.length;
 
     allTestVectors.push(...validTestVectors, ...invalidTestVectors);
   }
@@ -86,14 +55,51 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
   return allTestVectors;
 }
 
-/*
-  Finds the first valid config that contains all additional fields
-  - Signer
-  - Domain
-  - Request ID
-  - Auth Data
-  - hdPath
-*/
+/**
+ * Process a set of configurations and create test vectors
+ * @param configs The configurations to process
+ * @param generator The protocol generator to use
+ * @param startIndex Starting index for test vector numbering
+ * @param expectValid Whether these configs should be valid
+ * @returns Array of test vectors
+ */
+function processConfigs(
+  configs: Record<string, any>[], 
+  generator: ProtocolGenerator, 
+  startIndex: number,
+  expectValid: boolean
+): any[] {
+  const testVectors: any[] = [];
+  let index = startIndex;
+  
+  for (const config of configs) {
+    if (config.valid !== expectValid) {
+      throw new Error(`Config validity (${config.valid}) doesn't match expected (${expectValid})`);
+    }
+
+    if (!config.blob) {
+      config.blob = generator.createBlob(config.fields, config.index);
+    }
+
+    const testVector = generateTestVector(
+      index++,
+      config.name,
+      config.blob,
+      config.fields,
+      config.valid
+    );
+
+    testVectors.push(testVector);
+  }
+  
+  return testVectors;
+}
+
+/**
+ * Finds the first valid config that contains all required fields
+ * @param configs Array of configurations to search through
+ * @returns The first complete valid configuration
+ */
 function findCompleteValidConfig(configs: Record<string, any>[]): Record<string, any> {
   return configs.find(config => {
     const fieldNames = Object.values(FIELD_NAMES);
