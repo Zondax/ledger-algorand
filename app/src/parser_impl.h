@@ -59,7 +59,6 @@ parser_error_t parser_init(parser_context_t *ctx,
 uint8_t _getNumItems();
 uint8_t _getCommonNumItems();
 uint8_t _getTxNumItems();
-uint8_t _getNumItemsArbitrary();
 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v);
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v);

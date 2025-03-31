@@ -1248,6 +1248,8 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
 
     CTX_CHECK_AND_ADVANCE(c, PK_LEN_25519)
 
+    num_items++;
+
     return parser_ok;
 }
 
@@ -1281,7 +1283,9 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
     CHECK_ERROR(_readUInt32(c, &dataLen))
     v->dataLen = dataLen;
 
-    CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c))
+    uint8_t items_in_json = 0;
+    CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &items_in_json))
+    num_items += items_in_json;
 
     return parser_ok;
 }
@@ -1294,6 +1298,9 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
     v->domainBuffer = c->buffer + c->offset;
 
     CTX_CHECK_AND_ADVANCE(c, domainLen)
+
+    num_items++;
+
     return parser_ok;
 }
 
@@ -1308,6 +1315,7 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
     if (requestIdLen != 0) {
         v->requestIdBuffer = c->buffer + c->offset;
         CTX_CHECK_AND_ADVANCE(c, requestIdLen)
+        num_items++;
     }
 
     return parser_ok;
@@ -1332,6 +1340,9 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     if (memcmp(domainHash, v->authDataBuffer, PICOHASH_SHA256_DIGEST_LENGTH) != 0) {
         return parser_failed_domain_auth;
     }
+
+    num_items++;
+
     return parser_ok;
 }
 
@@ -1348,11 +1359,6 @@ uint8_t _getCommonNumItems()
 uint8_t _getTxNumItems()
 {
     return tx_num_items;
-}
-
-uint8_t _getNumItemsArbitrary()
-{
-    return num_items;
 }
 
 const char *parser_getErrorDescription(parser_error_t err) {

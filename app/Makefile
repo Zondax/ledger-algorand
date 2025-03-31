@@ -81,6 +81,7 @@ LDFLAGS  += -z muldefs
 APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
 APP_SOURCE_PATH += $(MY_DIR)/../deps/picohash
 APP_SOURCE_PATH += $(MY_DIR)/../app/src/json
+APP_SOURCE_PATH += $(MY_DIR)/../app/src/json/jsmn
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 

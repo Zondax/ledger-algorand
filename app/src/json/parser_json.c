@@ -22,7 +22,7 @@
 #include <stdbool.h>
 #include "zxmacros_ledger.h"
 
-parsed_json_t parsed_json;
+static parsed_json_t parsed_json;
 static jsmn_parser p;
 static jsmntok_t t[MAX_NUMBER_OF_JSMN_TOKENS];
 
@@ -30,7 +30,7 @@ parsed_json_t parser_json_get_parsed_json() {
     return parsed_json;
 }
 
-parser_error_t parser_json_parse(const char *json, size_t json_len, parser_context_t *ctx) {
+parser_error_t parser_json_parse(const char *json, size_t json_len, parser_context_t *ctx, uint8_t *items_in_json) {
     MEMZERO(&parsed_json, sizeof(parsed_json));
     jsmn_init(&p);
     int num_tokens = jsmn_parse(&p, json, json_len, t, MAX_NUMBER_OF_JSMN_TOKENS);
@@ -43,6 +43,10 @@ parser_error_t parser_json_parse(const char *json, size_t json_len, parser_conte
     parsed_json.numberOfTokens = num_tokens;
 
     CTX_CHECK_AND_ADVANCE(ctx, json_len);
+
+    uint16_t elements_in_json_object = 0;
+    parser_json_object_get_element_count(&parsed_json, 0, &elements_in_json_object);
+    *items_in_json = elements_in_json_object;
 
     return parser_ok;
 }

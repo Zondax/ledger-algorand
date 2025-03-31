@@ -30,7 +30,7 @@ typedef struct {
 
 parsed_json_t parser_json_get_parsed_json();
 
-parser_error_t parser_json_parse(const char *json, size_t json_len, parser_context_t *ctx);
+parser_error_t parser_json_parse(const char *json, size_t json_len, parser_context_t *ctx, uint8_t *num_items);
 
 parser_error_t parser_json_object_get_element_count(const parsed_json_t *json, uint16_t object_token_index, uint16_t *element_count);
 

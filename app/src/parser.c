@@ -53,7 +53,7 @@ parser_error_t parser_parse(parser_context_t *ctx,
 parser_error_t parser_validate(parser_context_t *ctx) {
     // Iterate through all items to check that all can be shown and are valid
     uint8_t numItems = 0;
-    CHECK_ERROR(parser_getNumItems(&numItems, ctx->content))
+    CHECK_ERROR(parser_getNumItems(&numItems))
 
     char tmpKey[40];
     char tmpVal[40];
@@ -65,12 +65,9 @@ parser_error_t parser_validate(parser_context_t *ctx) {
     return parser_ok;
 }
 
-parser_error_t parser_getNumItems(uint8_t *num_items, txn_content_e content) {
-    if (content == MsgPack) {
-        *num_items = _getNumItems();
-    } else if (content == ArbitraryData) {
-        *num_items = _getNumItemsArbitrary();
-    }
+parser_error_t parser_getNumItems(uint8_t *num_items) {
+    *num_items = _getNumItems();
+
     if(*num_items == 0) {
         return parser_unexpected_number_items;
     }
@@ -702,7 +699,7 @@ static parser_error_t parser_getItemMsgPack(parser_context_t *ctx,
     *pageCount = 0;
 
     uint8_t numItems = 0;
-    CHECK_ERROR(parser_getNumItems(&numItems, ctx->content))
+    CHECK_ERROR(parser_getNumItems(&numItems))
     CHECK_APP_CANARY()
 
     uint8_t commonItems = 0;
