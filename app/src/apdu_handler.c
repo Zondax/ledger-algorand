@@ -29,12 +29,42 @@
 #include "addr.h"
 #include "crypto.h"
 #include "coin.h"
+#include "common/parser.h"
 #include "zxmacros.h"
+
+// Arbitrary Sign
+// TODO: Find the right place for these, can't be included in zxlib
+#define APDU_CODE_INVALID_SCOPE 0x6988
+#define APDU_CODE_FAILED_DECODING 0x6989
+#define APDU_CODE_INVALID_SIGNER 0x698A
+#define APDU_CODE_MISSING_DOMAIN 0x698B
+#define APDU_CODE_MISSING_AUTHENTICATED_DATA 0x698C
+#define APDU_CODE_BAD_JSON 0x698D
+#define APDU_CODE_FAILED_DOMAIN_AUTH 0x698E
+#define APDU_CODE_FAILED_HD_PATH 0x698F
+
+#define SERIALIZED_HDPATH_LENGTH (sizeof(uint32_t) * HDPATH_LEN_DEFAULT)
 
 static bool tx_initialized = false;
 static const unsigned char tmpBuff[] = {'T', 'X'};
 
-__Z_INLINE void extractHDPath() {
+void extractHDPath(uint32_t rx, uint32_t offset) {
+    tx_initialized = false;
+
+    if ((rx - offset) < SERIALIZED_HDPATH_LENGTH) {
+        THROW(APDU_CODE_WRONG_LENGTH);
+    }
+
+    memcpy(hdPath, G_io_apdu_buffer + offset, SERIALIZED_HDPATH_LENGTH);
+
+    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+
+    if (!mainnet) {
+        THROW(APDU_CODE_DATA_INVALID);
+    }
+}
+
+__Z_INLINE void extract_accountId_into_HDpath() {
     hdPath[0] = HDPATH_0_DEFAULT;
     hdPath[1] = HDPATH_1_DEFAULT;
     hdPath[3] = HDPATH_3_DEFAULT;
@@ -49,13 +79,13 @@ __Z_INLINE void extractHDPath() {
 
 __Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
 {
-    if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
+    if (p1 <= P1_FIRST_HDPATH && p2 == P2_MORE) {
         return P1_INIT;
     } else if (p1 == P1_MORE && p2 == P2_MORE) {
         return P1_ADD;
     } else if (p1 == P1_MORE && p2 == P2_LAST) {
         return P1_LAST;
-    } else if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_LAST) {
+    } else if (p1 <= P1_FIRST_HDPATH && p2 == P2_LAST) {
         // Transaction fits in one chunk
         return P1_SINGLE_CHUNK;
     }
@@ -74,24 +104,28 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
 
     uint32_t added;
     uint8_t accountIdSize = 0;
+    uint8_t hdPathSize = 0;
 
     switch (payloadType) {
         case P1_INIT:
             tx_initialize();
             tx_reset();
-            tx_initialized = true;
             if (P1 == P1_FIRST_ACCOUNT_ID) {
-                extractHDPath();
+                extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
+            } else if (P1 == P1_FIRST_HDPATH) {
+                extractHDPath(rx, OFFSET_DATA);
+                hdPathSize = SERIALIZED_HDPATH_LENGTH;
             }
+            tx_initialized = true;
             tx_append((unsigned char*)tmpBuff, 2);
 
-            if (rx < (OFFSET_DATA + accountIdSize)) {
+            if (rx < (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 THROW(APDU_CODE_WRONG_LENGTH);
             }
 
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - (OFFSET_DATA + accountIdSize));
-            if (added != rx - (OFFSET_DATA + accountIdSize)) {
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]), rx - (OFFSET_DATA + accountIdSize + hdPathSize));
+            if (added != rx - (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
@@ -123,13 +157,16 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
             tx_initialize();
             tx_reset();
             if (P1 == P1_FIRST_ACCOUNT_ID) {
-                extractHDPath();
+                extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
+            } else if (P1 == P1_FIRST_HDPATH) {
+                extractHDPath(rx, OFFSET_DATA);
+                hdPathSize = SERIALIZED_HDPATH_LENGTH;
             }
             tx_append((unsigned char*)tmpBuff, 2);
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize]), rx - (OFFSET_DATA + accountIdSize));
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]), rx - (OFFSET_DATA + accountIdSize + hdPathSize));
             tx_initialized = false;
-            if (added != rx - (OFFSET_DATA + accountIdSize)) {
+            if (added != rx - (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             return true;
@@ -138,22 +175,27 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
-__Z_INLINE void handle_sign_msgpack(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx)
+__Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
 {
     if (!process_chunk(tx, rx)) {
         THROW(APDU_CODE_OK);
     }
 
-    const char *error_msg = tx_parse();
+    const char *error_msg = tx_parse(content);
     CHECK_APP_CANARY()
 
     if (error_msg != NULL) {
         int error_msg_length = strlen(error_msg);
         memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
         *tx += (error_msg_length);
+        if (strcmp(error_msg, parser_getErrorDescription(parser_blindsign_mode_required)) == 0) {
+            *flags |= IO_ASYNCH_REPLY;
+            view_blindsign_error_show();
+        }
         THROW(APDU_CODE_DATA_INVALID);
     }
 
+    // TODO: app_sign will need to consider the content type
     view_review_init(tx_getItem, tx_getNumItems, app_sign);
     view_review_show(REVIEW_TXN);
 
@@ -164,7 +206,7 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
 {
     const uint8_t requireConfirmation = G_io_apdu_buffer[OFFSET_P1];
     const bool u2f_compatibility = G_io_apdu_buffer[OFFSET_INS] == INS_GET_PUBLIC_KEY;
-    extractHDPath();
+    extract_accountId_into_HDpath();
 
     zxerr_t err = app_fill_address();
     if (err != zxerr_ok) {
@@ -232,10 +274,18 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
             const uint8_t ins = G_io_apdu_buffer[OFFSET_INS];
             switch (ins) {
-                case INS_SIGN_MSGPACK:
+                case INS_SIGN_MSGPACK: {
                     CHECK_PIN_VALIDATED()
-                    handle_sign_msgpack(flags, tx, rx);
+                    handle_sign(flags, tx, rx, MsgPack);
                     break;
+                }
+
+                case INS_SIGN_DATA: {
+                    CHECK_PIN_VALIDATED()
+                    handle_sign(flags, tx, rx, ArbitraryData);
+                    break;
+                }
+
 
                 case INS_GET_ADDRESS:
                 case INS_GET_PUBLIC_KEY: {

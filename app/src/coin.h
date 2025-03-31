@@ -64,6 +64,7 @@ extern "C" {
 
 #define P1_FIRST 0x00
 #define P1_FIRST_ACCOUNT_ID 0x01
+#define P1_FIRST_HDPATH 0x02
 #define P1_MORE  0x80
 #define P1_WITH_REQUEST_USER_APPROVAL  0x80
 
@@ -74,6 +75,7 @@ extern "C" {
 #define INS_GET_PUBLIC_KEY  0x03
 #define INS_GET_ADDRESS     0x04
 #define INS_SIGN_MSGPACK    0x08
+#define INS_SIGN_DATA       0x10
 
 #ifdef __cplusplus
 }

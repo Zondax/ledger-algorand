@@ -53,14 +53,16 @@ parser_error_t _readBytes(parser_context_t *c, uint8_t *buff, uint16_t bufLen);
 
 parser_error_t parser_init(parser_context_t *ctx,
                            const uint8_t *buffer,
-                           uint16_t bufferSize);
+                           uint16_t bufferSize,
+                           txn_content_e content);
 
 uint8_t _getNumItems();
 uint8_t _getCommonNumItems();
 uint8_t _getTxNumItems();
+uint8_t _getNumItemsArbitrary();
 
 parser_error_t _read(parser_context_t *c, parser_tx_t *v);
-
+parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v);
 parser_error_t _readMapSize(parser_context_t *c, uint16_t *mapItems);
 parser_error_t _readArraySize(parser_context_t *c, uint8_t *mapItems);
 parser_error_t _readString(parser_context_t *c, uint8_t *buff, uint16_t buffLen);

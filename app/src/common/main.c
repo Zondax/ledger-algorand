@@ -24,8 +24,13 @@ main(void) {
     // exit critical section
     __asm volatile("cpsie i");
 
+
     view_init();
     os_boot();
+
+#if (defined(TARGET_STAX) || defined(TARGET_FLEX)) && defined(APP_BLINDSIGN_MODE_ENABLED)
+    view_set_switch_subtext(BLINDSIGN_MODE, "Enable to skip fields when signing Application Call transactions");
+#endif
 
     BEGIN_TRY
     {
