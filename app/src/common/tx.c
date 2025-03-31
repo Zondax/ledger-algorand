@@ -79,6 +79,7 @@ uint8_t *tx_get_buffer()
 const char *tx_parse(txn_content_e content)
 {
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));
+    MEMZERO(&parser_arbitrary_data_obj, sizeof(parser_arbitrary_data_obj));
 
     uint8_t err = parser_unexpected_error;
     void *parser_obj = NULL;
