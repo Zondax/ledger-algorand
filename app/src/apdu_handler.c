@@ -68,20 +68,62 @@ __Z_INLINE void extract_accountId_into_HDpath() {
 
 __Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
 {
-    if (p1 <= P1_FIRST_HDPATH && p2 == P2_MORE) {
+    if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
         return P1_INIT;
     } else if (p1 == P1_MORE && p2 == P2_MORE) {
         return P1_ADD;
     } else if (p1 == P1_MORE && p2 == P2_LAST) {
         return P1_LAST;
-    } else if (p1 <= P1_FIRST_HDPATH && p2 == P2_LAST) {
+    } else if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_LAST) {
         // Transaction fits in one chunk
         return P1_SINGLE_CHUNK;
     }
     return 0xFF;
 }
 
-__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
+__Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
+    const uint8_t p1 = G_io_apdu_buffer[OFFSET_P1];
+
+    if (rx < OFFSET_DATA) {
+        THROW(APDU_CODE_WRONG_LENGTH);
+    }
+
+    uint32_t added;
+    switch (p1) {
+        case P1_INIT:
+            tx_initialize();
+            tx_reset();
+            extractHDPath(rx, OFFSET_DATA);
+            tx_initialized = true;
+            return false;
+        case P1_ADD:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            if (added != rx - OFFSET_DATA) {
+                tx_initialized = false;
+                THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
+            }
+            return false;
+        case P1_LAST:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            tx_initialized = false;
+            if (added != rx - OFFSET_DATA) {
+                tx_initialized = false;
+                THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
+            }
+            tx_initialized = false;
+            return true;
+    }
+
+    THROW(APDU_CODE_INVALIDP1P2);
+}
+
+__Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
 {
     const uint8_t P1 = G_io_apdu_buffer[OFFSET_P1];
     const uint8_t P2 = G_io_apdu_buffer[OFFSET_P2];
@@ -102,10 +144,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
             if (P1 == P1_FIRST_ACCOUNT_ID) {
                 extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
-            } else if (P1 == P1_FIRST_HDPATH) {
-                extractHDPath(rx, OFFSET_DATA);
-                hdPathSize = SERIALIZED_HDPATH_LENGTH;
-            }
+            } 
             tx_initialized = true;
             tx_append((unsigned char*)tmpBuff, 2);
 
@@ -148,9 +187,6 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
             if (P1 == P1_FIRST_ACCOUNT_ID) {
                 extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
-            } else if (P1 == P1_FIRST_HDPATH) {
-                extractHDPath(rx, OFFSET_DATA);
-                hdPathSize = SERIALIZED_HDPATH_LENGTH;
             }
             tx_append((unsigned char*)tmpBuff, 2);
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]), rx - (OFFSET_DATA + accountIdSize + hdPathSize));
@@ -166,9 +202,16 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
 
 __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
 {
-    if (!process_chunk(tx, rx)) {
-        THROW(APDU_CODE_OK);
+    if (content == MsgPack) {
+        if (!process_chunk_legacy(tx, rx)) {
+            THROW(APDU_CODE_OK);
+        }
+    } else {
+        if (!process_chunk(tx, rx)) {
+            THROW(APDU_CODE_OK);
+        }
     }
+
 
     parser_error_t error = tx_parse(content);
     const char *error_msg = parser_getErrorDescription(error);

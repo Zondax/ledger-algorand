@@ -64,7 +64,6 @@ extern "C" {
 
 #define P1_FIRST 0x00
 #define P1_FIRST_ACCOUNT_ID 0x01
-#define P1_FIRST_HDPATH 0x02
 #define P1_MORE  0x80
 #define P1_WITH_REQUEST_USER_APPROVAL  0x80
 
