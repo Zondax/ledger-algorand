@@ -62,7 +62,7 @@ export class BaseBlobCreator implements BlobCreator {
     // Convert to bytes
     const signerBytes = Buffer.from(signer, 'hex');
     const domainBytes = Buffer.from(domain as string, 'utf-8');
-    const authDataBytes = Buffer.from(authData as string, 'utf-8');
+    const authDataBytes = Buffer.from(authData, 'hex');
     const requestIdBytes = Buffer.from(requestId as string, 'utf-8');
     
     // Create buffer for the blob
