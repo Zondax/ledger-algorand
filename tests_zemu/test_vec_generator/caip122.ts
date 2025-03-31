@@ -141,7 +141,7 @@ class Caip122Generator extends ProtocolGenerator {
                   index: index,
                   name: `Algorand_CAIP122_${index}`,
                   fields: fields,
-                  valid: true
+                  error: "parser_ok"
                 };
                 
                 configs.push(config);

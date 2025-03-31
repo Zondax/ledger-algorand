@@ -60,21 +60,27 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
  * @param configs The configurations to process
  * @param generator The protocol generator to use
  * @param startIndex Starting index for test vector numbering
- * @param expectValid Whether these configs should be valid
+ * @param expectNoError The error string that is expected for these configs
  * @returns Array of test vectors
  */
 function processConfigs(
   configs: Record<string, any>[], 
   generator: ProtocolGenerator, 
   startIndex: number,
-  expectValid: boolean
+  isValid: boolean
 ): any[] {
   const testVectors: any[] = [];
   let index = startIndex;
   
   for (const config of configs) {
-    if (config.valid !== expectValid) {
-      throw new Error(`Config validity (${config.valid}) doesn't match expected (${expectValid})`);
+    if (isValid) {
+      if (config.error !== "parser_ok") {
+        throw new Error(`Config error (${config.error}) should be "parser_ok"`);
+      }
+    } else {
+      if (config.error === "parser_ok") {
+        throw new Error(`Config error (${config.error}) shouldn't be "parser_ok"`);
+      }
     }
 
     if (!config.blob) {
@@ -86,7 +92,7 @@ function processConfigs(
       config.name,
       config.blob,
       config.fields,
-      config.valid
+      config.error
     );
 
     testVectors.push(testVector);

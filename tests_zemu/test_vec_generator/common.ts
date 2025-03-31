@@ -10,7 +10,7 @@ interface TestVector {
   index: number;
   name: string;
   blob: string;
-  valid: boolean;
+  error: string;
   output: string[];
   output_expert: string[];
 }
@@ -75,7 +75,7 @@ function createInvalidDomainConfig(validConfig: Record<string, any>): Record<str
     if (domainFieldIndex !== -1) {
       invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
       invalidConfig.fields[domainFieldIndex] = { name: FIELD_NAMES.DOMAIN, value: invalidDomain };
-      invalidConfig.valid = false;
+      invalidConfig.error = "parser_invalid_domain";
       return changeConfigName(invalidConfig, "Invalid_Domain");
     } 
   }
@@ -94,7 +94,7 @@ function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<
     if (requestIdFieldIndex !== -1) {
       invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
       invalidConfig.fields[requestIdFieldIndex] = { name: FIELD_NAMES.REQUEST_ID, value: invalidRequestId };
-      invalidConfig.valid = false;
+      invalidConfig.error = "parser_invalid_request_id";
       return changeConfigName(invalidConfig, "Invalid_Request_ID");
     } 
   }
@@ -115,7 +115,7 @@ function createInvalidSignerHdPathConfig(validConfig: Record<string, any>): Reco
       invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
       invalidConfig.fields[signerFieldIndex] = { name: FIELD_NAMES.SIGNER, value: signerAcc0 };
       invalidConfig.fields[hdPathFieldIndex] = { name: FIELD_NAMES.HD_PATH, value: hdPathAcc123 };
-      invalidConfig.valid = false;
+      invalidConfig.error = "parser_invalid_signer_for_hdpath";
       return changeConfigName(invalidConfig, "Invalid_Signer_for_HdPath");
     }
   }
@@ -134,7 +134,7 @@ function createInvalidHdPathConfig(validConfig: Record<string, any>): Record<str
       // Ethereum hdPath
       invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
       invalidConfig.fields[hdPathFieldIndex] = { name: FIELD_NAMES.HD_PATH, value: "m/44'/66'/0'/0/0" };
-      invalidConfig.valid = false;
+      invalidConfig.error = "parser_invalid_hdpath";
       return changeConfigName(invalidConfig, "Invalid_HdPath");
     }
   }
@@ -242,7 +242,7 @@ export function generateTestVector(
   name: string,
   blob: string,
   fields: Field[],
-  valid: boolean,
+  error: string,
 ): TestVector {
   const output: string[] = [];
   const MAX_CHARS_PER_LINE = 38;
@@ -280,7 +280,7 @@ export function generateTestVector(
     index,
     name,
     blob,
-    valid,
+    error,
     output,
     output_expert: outputExpert
   };

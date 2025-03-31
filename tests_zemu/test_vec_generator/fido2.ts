@@ -122,7 +122,7 @@ class Fido2Generator extends ProtocolGenerator {
                       index: index,
                       name: `Algorand_FIDO2_${index}`,
                       fields: fields,
-                      valid: true
+                      error: "parser_ok"
                     };
                     
                     configs.push(config);
