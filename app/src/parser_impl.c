@@ -1236,6 +1236,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_read_arbitrary_data\n");
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readScope(c))
     CHECK_ERROR(_readEncoding(c))
@@ -1248,23 +1249,20 @@ parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t
 
 static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_readSigner\n");
     v->signerBuffer = c->buffer + c->offset;
 
-    uint8_t raw_pubkey[PK_LEN_25519];
     
     #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+    uint8_t raw_pubkey[PK_LEN_25519];
     zxerr_t err = crypto_extractPublicKey(raw_pubkey, PK_LEN_25519);
-    #else
-    zxerr_t err = zxerr_ok;
-    #endif
-
     if (err != zxerr_ok) {
         return parser_invalid_signer;
     }
-
     if (memcmp(raw_pubkey, v->signerBuffer, PK_LEN_25519) != 0) {
         return parser_invalid_signer;
     }
+    #endif
 
     CTX_CHECK_AND_ADVANCE(c, PK_LEN_25519)
 
@@ -1275,6 +1273,7 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
 
 static parser_error_t _readScope(parser_context_t *c)
 {
+    printf("_readScope\n");
     uint8_t scope = 0;
     CHECK_ERROR(_readUInt8(c, &scope))
     
@@ -1287,6 +1286,7 @@ static parser_error_t _readScope(parser_context_t *c)
 
 static parser_error_t _readEncoding(parser_context_t *c)
 {
+    printf("_readEncoding\n");
     uint8_t encoding = 0;
     CHECK_ERROR(_readUInt8(c, &encoding))
     
@@ -1299,6 +1299,7 @@ static parser_error_t _readEncoding(parser_context_t *c)
 
 static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_readData\n");
     uint32_t dataLen = 0;
     CHECK_ERROR(_readUInt32(c, &dataLen))
     v->dataLen = dataLen;
@@ -1312,6 +1313,7 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 
 static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_readDomain\n");
     uint32_t domainLen = 0;
     CHECK_ERROR(_readUInt32(c, &domainLen))
     v->domainLen = domainLen;
@@ -1326,6 +1328,7 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
 
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_readRequestId\n");
     uint32_t requestIdLen = 0;
     CHECK_ERROR(_readUInt32(c, &requestIdLen))
 
@@ -1343,6 +1346,7 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
 
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    printf("_readAuthData\n");
     uint32_t authDataLen = 0;
     CHECK_ERROR(_readUInt32(c, &authDataLen))
     v->authDataLen = authDataLen;
