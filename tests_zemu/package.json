@@ -18,17 +18,21 @@
     "test": "bun run clean && bun run vitest",
     "try": "bun run try.mjs",
     "try_arbitrary": "bun run try_arbitrary.mjs",
-    "try_group": "bun run try_group_tx.mjs"
+    "try_group": "bun run try_group_tx.mjs",
+    "generate_vectors": "ts-node test_vec_generator/generate_vectors.ts"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.1",
     "@zondax/ledger-algorand": "1.1.0",
     "@zondax/zemu": "^0.55.3",
-    "algosdk": "^3.2.0"
+    "algosdk": "^3.2.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@ledgerhq/hw-transport-node-hid": "^6.29.5",
     "@types/ledgerhq__hw-transport": "^6.0.0",
+    "@types/node": "^20.11.0",
+    "@types/yargs": "^17.0.32",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "@vitest/ui": "^3.0.9",

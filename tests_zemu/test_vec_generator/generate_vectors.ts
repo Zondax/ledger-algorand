@@ -1,30 +1,19 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
-import yargs from 'yargs';
+import yargs, { config } from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { generateTestVector } from './common';
-import { 
-  createCaip122RequestBlob, 
-  generateRandomCaip122Configs 
-} from './caip122';
-import { 
-  createFido2RequestBlob, 
-  generateRandomFido2Configs 
-} from './fido2';
+import { Field, FIELD_NAMES, generateTestVector, ProtocolGenerator } from './common';
+import { caip122Generator } from './caip122';
+import { fido2Generator } from './fido2';
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option('output', {
       type: 'string',
-      default: '../tests/testcases_arbitrary_sign.json',
+      default: '../tests/testcases/testcases_arbitrary_sign.json',
       description: 'Output JSON file'
-    })
-    .option('count', {
-      type: 'number',
-      default: 1,
-      description: 'Number of random test vectors to generate per type (CAIP-122 and FIDO2)'
     })
     .parse();
 
@@ -34,48 +23,96 @@ async function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   
-  const testVectors: any[] = [];
+  // Define all protocol generators
+  const protocolGenerators: ProtocolGenerator[] = [
+    caip122Generator,
+    fido2Generator
+  ];
   
-  // Generate CAIP-122 test vectors
-  const caip122Config = generateRandomCaip122Configs(argv.count);
-  for (const vectorConfig of caip122Config) {
-    // Generate the blob if it doesn't exist
-    if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createCaip122RequestBlob(vectorConfig.fields);
-    }
+  // Generate test vectors from all generators
+  const testVectors = generateVectorsFromGenerators(protocolGenerators);
+  
+  fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
+}
+
+function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
+  let index = 0;
+  const allTestVectors: any[] = [];
+
+  for (const generator of generators) {
+    const validConfigs = generator.generateValidConfigs();
+    const validTestVectors = processConfigs(validConfigs, generator, index, true);
+    index += validConfigs.length;
     
+    const completeValidConfig = findCompleteValidConfig(validConfigs);
+    const invalidConfigs = generator.generateInvalidConfigs(completeValidConfig);
+    const invalidTestVectors = processConfigs(invalidConfigs, generator, index, false);
+    index += invalidConfigs.length;
+
+    allTestVectors.push(...validTestVectors, ...invalidTestVectors);
+  }
+
+  return allTestVectors;
+}
+
+/**
+ * Process a set of configurations and create test vectors
+ * @param configs The configurations to process
+ * @param generator The protocol generator to use
+ * @param startIndex Starting index for test vector numbering
+ * @param expectNoError The error string that is expected for these configs
+ * @returns Array of test vectors
+ */
+function processConfigs(
+  configs: Record<string, any>[], 
+  generator: ProtocolGenerator, 
+  startIndex: number,
+  isValid: boolean
+): any[] {
+  const testVectors: any[] = [];
+  let index = startIndex;
+  
+  for (const config of configs) {
+    if (isValid) {
+      if (config.error !== "parser_ok") {
+        throw new Error(`Config error (${config.error}) should be "parser_ok"`);
+      }
+    } else {
+      if (config.error === "parser_ok") {
+        throw new Error(`Config error (${config.error}) shouldn't be "parser_ok"`);
+      }
+    }
+
+    if (!config.blob) {
+      config.blob = generator.createBlob(config.fields, config.index);
+    }
+
     const testVector = generateTestVector(
-      vectorConfig.index,
-      vectorConfig.name,
-      vectorConfig.blob,
-      vectorConfig.fields,
-      true
+      index++,
+      config.name,
+      config.blob,
+      config.fields,
+      config.error
     );
+
     testVectors.push(testVector);
   }
   
-  // Generate FIDO2 test vectors
-  const fido2Config = generateRandomFido2Configs(argv.count);
-  // Adjust indices to continue from CAIP-122 vectors
-  const offset = testVectors.length;
-  
-  fido2Config.forEach((vectorConfig, i) => {
-    // Generate the blob if it doesn't exist
-    if (!vectorConfig.blob || vectorConfig.blob === "") {
-      vectorConfig.blob = createFido2RequestBlob(vectorConfig.fields);
-    }
-    
-    const testVector = generateTestVector(
-      offset + i,
-      vectorConfig.name,
-      vectorConfig.blob,
-      vectorConfig.fields,
-      true
+  return testVectors;
+}
+
+/**
+ * Finds the first valid config that contains all required fields
+ * @param configs Array of configurations to search through
+ * @returns The first complete valid configuration
+ */
+function findCompleteValidConfig(configs: Record<string, any>[]): Record<string, any> {
+  return configs.find(config => {
+    const fieldNames = Object.values(FIELD_NAMES);
+    return fieldNames.every(fieldName => 
+      config.fields.some((field: Field) => field.name === fieldName)
     );
-    testVectors.push(testVector);
-  });
-  
-  fs.writeFileSync(argv.output, JSON.stringify(testVectors, null, 2));
+  }) as Record<string, any>;
 }
 
 if (require.main === module) {
