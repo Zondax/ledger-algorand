@@ -58,14 +58,12 @@ export class BaseBlobCreator implements BlobCreator {
     const domain = fields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value || "";
     const authData = fields.find(f => f.name === FIELD_NAMES.AUTH_DATA)?.value || "";
     const requestId = fields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
-    const hdPath = fields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value || "m/44'/283'/0'/0/0";
     
     // Convert to bytes
     const signerBytes = Buffer.from(signer, 'hex');
     const domainBytes = Buffer.from(domain as string, 'utf-8');
     const authDataBytes = Buffer.from(authData as string, 'utf-8');
     const requestIdBytes = Buffer.from(requestId as string, 'utf-8');
-    const hdPathBytes = serializePath(hdPath as BIP32Path);
     
     // Create buffer for the blob
     const blob = Buffer.alloc(0);
@@ -75,8 +73,7 @@ export class BaseBlobCreator implements BlobCreator {
     const encoding = Encoding.BASE64;
     
     // Append each field in the required order
-    this.appendFieldToBlob(blobArray, Array.from(hdPathBytes));
-    this.appendFieldToBlob(blobArray, Array.from(signerBytes));
+    blobArray.push(...Array.from(signerBytes));
     blobArray.push(scope);
     blobArray.push(encoding);
     this.appendFieldToBlob(blobArray, Array.from(dataBytes));
