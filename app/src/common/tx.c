@@ -76,7 +76,7 @@ uint8_t *tx_get_buffer()
     return buffering_get_buffer()->data;
 }
 
-const char *tx_parse(txn_content_e content)
+parser_error_t tx_parse(txn_content_e content)
 {
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));
     MEMZERO(&parser_arbitrary_data_obj, sizeof(parser_arbitrary_data_obj));
@@ -91,7 +91,7 @@ const char *tx_parse(txn_content_e content)
     } else if (content == ArbitraryData) {
         parser_obj = (void *) &parser_arbitrary_data_obj;
     } else {
-        return parser_getErrorDescription(parser_unexpected_error);
+        return parser_unexpected_error;
     }
 
     err = parser_parse(&ctx_parsed_tx,
@@ -103,7 +103,7 @@ const char *tx_parse(txn_content_e content)
 
     if (err != parser_ok)
     {
-        return parser_getErrorDescription(err);
+        return err;
     }
 
     err = parser_validate(&ctx_parsed_tx);
@@ -111,10 +111,10 @@ const char *tx_parse(txn_content_e content)
 
     if (err != parser_ok)
     {
-        return parser_getErrorDescription(err);
+        return err;
     }
 
-    return NULL;
+    return parser_ok;
 }
 
 void tx_parse_reset()

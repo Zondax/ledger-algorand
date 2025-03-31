@@ -32,17 +32,6 @@
 #include "common/parser.h"
 #include "zxmacros.h"
 
-// Arbitrary Sign
-// TODO: Find the right place for these, can't be included in zxlib
-#define APDU_CODE_INVALID_SCOPE 0x6988
-#define APDU_CODE_FAILED_DECODING 0x6989
-#define APDU_CODE_INVALID_SIGNER 0x698A
-#define APDU_CODE_MISSING_DOMAIN 0x698B
-#define APDU_CODE_MISSING_AUTHENTICATED_DATA 0x698C
-#define APDU_CODE_BAD_JSON 0x698D
-#define APDU_CODE_FAILED_DOMAIN_AUTH 0x698E
-#define APDU_CODE_FAILED_HD_PATH 0x698F
-
 #define SERIALIZED_HDPATH_LENGTH (sizeof(uint32_t) * HDPATH_LEN_DEFAULT)
 
 static bool tx_initialized = false;
@@ -181,18 +170,22 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
         THROW(APDU_CODE_OK);
     }
 
-    const char *error_msg = tx_parse(content);
+    parser_error_t error = tx_parse(content);
+    const char *error_msg = parser_getErrorDescription(error);
     CHECK_APP_CANARY()
 
-    if (error_msg != NULL) {
+    if (error != parser_ok) {
         int error_msg_length = strlen(error_msg);
         memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
         *tx += (error_msg_length);
-        if (strcmp(error_msg, parser_getErrorDescription(parser_blindsign_mode_required)) == 0) {
+
+        if (error == parser_blindsign_mode_required) {
             *flags |= IO_ASYNCH_REPLY;
             view_blindsign_error_show();
         }
-        THROW(APDU_CODE_DATA_INVALID);
+
+        uint16_t sw = parser_mapParserErrorToSW(error);
+        THROW(sw);
     }
 
     // TODO: app_sign will need to consider the content type

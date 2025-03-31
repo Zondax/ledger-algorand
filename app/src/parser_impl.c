@@ -20,10 +20,14 @@
 #include "msgpack.h"
 #include "app_mode.h"
 #include "coin.h"
-#include "crypto.h"
 #include "picohash.h"
-
+#include "apdu_codes.h"
+#include "zxerror.h"
 #include "jsmn.h"
+
+#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#include "crypto.h"
+#endif
 
 static uint8_t num_items;
 static uint8_t common_num_items;
@@ -49,6 +53,17 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v);
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v);
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v);
+
+// Arbitrary Sign
+#define APDU_CODE_INVALID_SCOPE 0x6988
+#define APDU_CODE_FAILED_DECODING 0x6989
+#define APDU_CODE_INVALID_SIGNER 0x698A
+#define APDU_CODE_MISSING_DOMAIN 0x698B
+#define APDU_CODE_MISSING_AUTHENTICATED_DATA 0x698C
+#define APDU_CODE_BAD_JSON 0x698D
+#define APDU_CODE_FAILED_DOMAIN_AUTH 0x698E
+#define APDU_CODE_FAILED_HD_PATH 0x698F
+
 
 #define SCOPE_AUTH 0x01
 #define ENCODING_BASE64 0x01
@@ -1236,7 +1251,12 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
     v->signerBuffer = c->buffer + c->offset;
 
     uint8_t raw_pubkey[PK_LEN_25519];
+    
+    #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
     zxerr_t err = crypto_extractPublicKey(raw_pubkey, PK_LEN_25519);
+    #else
+    zxerr_t err = zxerr_ok;
+    #endif
 
     if (err != zxerr_ok) {
         return parser_invalid_signer;
@@ -1359,6 +1379,29 @@ uint8_t _getCommonNumItems()
 uint8_t _getTxNumItems()
 {
     return tx_num_items;
+}
+
+uint16_t parser_mapParserErrorToSW(parser_error_t err) {
+    switch (err) {
+        case parser_invalid_scope:
+            return APDU_CODE_INVALID_SCOPE;
+        case parser_failed_decoding:
+            return APDU_CODE_FAILED_DECODING;
+        case parser_invalid_signer:
+            return APDU_CODE_INVALID_SIGNER;
+        case parser_missing_domain:
+            return APDU_CODE_MISSING_DOMAIN;
+        case parser_missing_authenticated_data:
+            return APDU_CODE_MISSING_AUTHENTICATED_DATA;
+        case parser_bad_json:
+            return APDU_CODE_BAD_JSON;
+        case parser_failed_domain_auth:
+            return APDU_CODE_FAILED_DOMAIN_AUTH;
+        case parser_failed_hd_path:
+            return APDU_CODE_FAILED_HD_PATH;
+        default:
+            return APDU_CODE_DATA_INVALID;
+    }
 }
 
 const char *parser_getErrorDescription(parser_error_t err) {
