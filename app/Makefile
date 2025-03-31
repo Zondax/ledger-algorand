@@ -79,6 +79,8 @@ SDK_SOURCE_PATH += lib_u2f
 
 LDFLAGS  += -z muldefs
 APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
+APP_SOURCE_PATH += $(MY_DIR)/../deps/picohash
+APP_SOURCE_PATH += $(MY_DIR)/../app/src/json
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 

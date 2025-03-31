@@ -31,6 +31,8 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrRe
 
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen);
 
+zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen);
+
 #ifdef __cplusplus
 }
 #endif
