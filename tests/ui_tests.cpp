@@ -91,13 +91,12 @@ std::vector<testcase_t> GetJsonTestCases(std::string jsonFile) {
     return answer;
 }
 
-void check_testcase(const testcase_t &tc, bool expert_mode) {
+void check_testcase(const testcase_t &tc, bool expert_mode, txn_content_e content) {
 
     app_mode_set_expert(expert_mode);
 
     parser_context_t ctx;
     parser_error_t err;
-    txn_content_e content = ArbitraryData;
 
     ctx.content = content;
 
@@ -128,16 +127,15 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     }
 }
 
-/*
 INSTANTIATE_TEST_SUITE_P
 
 (
     JsonTestCasesCurrentTxVer,
     JsonTestsA,
-    ::testing::ValuesIn(GetJsonTestCases("testcases.json")),
+    ::testing::ValuesIn(GetJsonTestCases("testcases/testcases.json")),
     JsonTestsA::PrintToStringParamName()
 );
-TEST_P(JsonTestsA, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true); }
+TEST_P(JsonTestsA, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true, MsgPack); }
 
 
 INSTANTIATE_TEST_SUITE_P
@@ -145,20 +143,19 @@ INSTANTIATE_TEST_SUITE_P
 (
     JsonTestsBigTransactions,
     JsonTestsA,
-    ::testing::ValuesIn(GetJsonTestCases("testcases_big_transactions.json")),
+    ::testing::ValuesIn(GetJsonTestCases("testcases/testcases_big_transactions.json")),
     JsonTestsA::PrintToStringParamName()
 );
-TEST_P(JsonTestsA, CheckUIOutput_BigTransactions) { check_testcase(GetParam(), true); }
-*/
+TEST_P(JsonTestsA, CheckUIOutput_BigTransactions) { check_testcase(GetParam(), true, MsgPack); }
 
 INSTANTIATE_TEST_SUITE_P
 
 (
     JsonTestsArbitrarySign,
     JsonTestsA,
-    ::testing::ValuesIn(GetJsonTestCases("testcases_arbitrary_sign.json")),
+    ::testing::ValuesIn(GetJsonTestCases("testcases/testcases_arbitrary_sign.json")),
     JsonTestsA::PrintToStringParamName()
 );
 
-TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign) { check_testcase(GetParam(), true); }
-TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign_Expert) { check_testcase(GetParam(), true); }
+TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign) { check_testcase(GetParam(), false, ArbitraryData); }
+TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign_Expert) { check_testcase(GetParam(), true, ArbitraryData); }
