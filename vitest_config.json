@@ -1,0 +1,14 @@
+{
+  "vitest.enable": true,
+  "vitest.include": [
+    "tests_zemu/**/*.{test,spec}.{js,ts,jsx,tsx}",
+    "tests_zemu/**/*.{test,spec}.{js,ts,jsx,tsx}"
+  ],
+  "vitest.exclude": [
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true
+  }
+}
