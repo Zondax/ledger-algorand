@@ -1367,10 +1367,10 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
     // RequestId is optional
     if (requestIdLen != 0) {
         v->requestIdBuffer = c->buffer + c->offset;
-        // Check Uppercase Hex String
+        // Check it's an uppercase hex string
         for (uint32_t i = 0; i < requestIdLen; i++) {
-            if (v->requestIdBuffer[i] < '0' || v->requestIdBuffer[i] > '9' ||
-                v->requestIdBuffer[i] < 'A' || v->requestIdBuffer[i] > 'F') {
+            if ((v->requestIdBuffer[i] < '0' && v->requestIdBuffer[i] > '9') ||
+                (v->requestIdBuffer[i] < 'A' && v->requestIdBuffer[i] > 'F')) {
                 return parser_invalid_request_id;
             }
         }
