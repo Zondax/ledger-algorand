@@ -26,6 +26,7 @@
 #include "parser_txdef.h"
 #include "common/parser.h"
 #include "parser_encoding.h"
+#include "addr.h"
 
 #include "base64.h"
 #include "algo_asa.h"
@@ -811,7 +812,7 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Signer");
 
         char addr[80] = {0};
-        if (encodePubKey((uint8_t*) addr, PK_LEN_25519, ctx->parser_arbitrary_data_obj->signerBuffer) == 0) {
+        if (encodePubKey((uint8_t*) addr, sizeof(addr), ctx->parser_arbitrary_data_obj->signerBuffer) == 0) {
             return parser_unexpected_error;
         }
 
@@ -822,24 +823,38 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
     if (displayIdx == num_json_items + 1) {
         // Domain
         *pageCount = 1;
-        snprintf(outKey, outKeyLen, "TODO");
-        snprintf(outVal, outValLen, "TODO");
+        snprintf(outKey, outKeyLen, "Domain");
+        pageString(outVal, outValLen, ctx->parser_arbitrary_data_obj->domainBuffer, pageIdx, pageCount);
         return parser_ok;
     }
 
     if (displayIdx == num_json_items + 2) {
-        // Request ID
+        // Auth Data
         *pageCount = 1;
-        snprintf(outKey, outKeyLen, "TODO");
-        snprintf(outVal, outValLen, "TODO");
+        snprintf(outKey, outKeyLen, "Auth Data");
+        pageStringHex(outVal, outValLen, ctx->parser_arbitrary_data_obj->authDataBuffer, ctx->parser_arbitrary_data_obj->authDataLen, pageIdx, pageCount);
         return parser_ok;
     }
 
     if (displayIdx == num_json_items + 3) {
-        // Auth Data
+        // Request ID
         *pageCount = 1;
-        snprintf(outKey, outKeyLen, "TODO");
-        snprintf(outVal, outValLen, "TODO");
+        if (ctx->parser_arbitrary_data_obj->requestIdLen != 0) {
+            snprintf(outKey, outKeyLen, "Request ID");
+            pageString(outVal, outValLen, ctx->parser_arbitrary_data_obj->requestIdBuffer, pageIdx, pageCount);
+            return parser_ok;
+        } else {
+            displayIdx++;
+        }
+    }
+
+    if (displayIdx == num_json_items + 4) {
+        // hdPath
+        *pageCount = 1;
+        zxerr_t err = addr_printHdPath(outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        if (err != zxerr_ok) {
+            return parser_unexpected_error;
+        }
         return parser_ok;
     }
 

@@ -22,6 +22,7 @@
 #include "app_mode.h"
 #include "crypto.h"
 
+#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 zxerr_t addr_getNumItems(uint8_t *num_items) {
     zemu_log_stack("addr_getNumItems");
     *num_items = 1;
@@ -56,4 +57,16 @@ zxerr_t addr_getItem(int8_t displayIdx,
         default:
             return zxerr_no_data;
     }
+}
+#endif
+
+zxerr_t addr_printHdPath(
+                     char *outKey, uint16_t outKeyLen,
+                     char *outVal, uint16_t outValLen,
+                     uint8_t pageIdx, uint8_t *pageCount) {
+    snprintf(outKey, outKeyLen, "hdPath");
+    char buffer[300];
+    bip32_to_str(buffer, sizeof(buffer), hdPath, HDPATH_LEN_DEFAULT);
+    pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+    return zxerr_ok;
 }

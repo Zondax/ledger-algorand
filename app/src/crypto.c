@@ -16,12 +16,11 @@
 
 #include "crypto.h"
 #include "coin.h"
-#include "cx.h"
 #include "zxmacros.h"
 #include "parser_encoding.h"
 
-uint32_t hdPath[HDPATH_LEN_DEFAULT];
-
+#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#include "cx.h"
 zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen) {
     if (pubKey == NULL || pubKeyLen < PK_LEN_25519) {
         return zxerr_invalid_crypto_settings;
@@ -126,3 +125,7 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrRe
     *addrResponseLen = PK_LEN_25519 + outLen;
     return zxerr_ok;
 }
+
+#endif
+uint32_t hdPath[HDPATH_LEN_DEFAULT];
+

@@ -25,13 +25,15 @@ extern "C" {
 #include <sigutils.h>
 #include "zxerror.h"
 
-extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
-
+#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
 zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrResponseLen);
 
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen);
 
 zxerr_t crypto_extractPublicKey(uint8_t *pubKey, uint16_t pubKeyLen);
+#endif
+
+extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
 #ifdef __cplusplus
 }

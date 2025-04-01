@@ -1237,6 +1237,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    num_items++; // hdPath, read on process_chunk
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readScope(c))
     CHECK_ERROR(_readEncoding(c))

@@ -133,7 +133,9 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxmacros.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxformat.c
         ####
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/crypto.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/addr.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/jsmn/jsmn.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/parser_json.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl.c
