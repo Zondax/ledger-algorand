@@ -32,6 +32,7 @@
 static uint8_t num_items;
 static uint8_t common_num_items;
 static uint8_t tx_num_items;
+static uint8_t num_json_items;
 
 #define MAX_PARAM_SIZE 12
 #define MAX_ITEM_ARRAY 50
@@ -1236,7 +1237,6 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_read_arbitrary_data\n");
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readScope(c))
     CHECK_ERROR(_readEncoding(c))
@@ -1249,7 +1249,6 @@ parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t
 
 static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_readSigner\n");
     v->signerBuffer = c->buffer + c->offset;
 
     
@@ -1273,7 +1272,6 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
 
 static parser_error_t _readScope(parser_context_t *c)
 {
-    printf("_readScope\n");
     uint8_t scope = 0;
     CHECK_ERROR(_readUInt8(c, &scope))
     
@@ -1286,7 +1284,6 @@ static parser_error_t _readScope(parser_context_t *c)
 
 static parser_error_t _readEncoding(parser_context_t *c)
 {
-    printf("_readEncoding\n");
     uint8_t encoding = 0;
     CHECK_ERROR(_readUInt8(c, &encoding))
     
@@ -1299,21 +1296,19 @@ static parser_error_t _readEncoding(parser_context_t *c)
 
 static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_readData\n");
     uint32_t dataLen = 0;
     CHECK_ERROR(_readUInt32(c, &dataLen))
     v->dataLen = dataLen;
+    v->dataBuffer = c->buffer + c->offset;
 
-    uint8_t items_in_json = 0;
-    CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &items_in_json))
-    num_items += items_in_json;
+    CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &num_json_items))
+    num_items += num_json_items;
 
     return parser_ok;
 }
 
 static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_readDomain\n");
     uint32_t domainLen = 0;
     CHECK_ERROR(_readUInt32(c, &domainLen))
     v->domainLen = domainLen;
@@ -1328,7 +1323,6 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
 
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_readRequestId\n");
     uint32_t requestIdLen = 0;
     CHECK_ERROR(_readUInt32(c, &requestIdLen))
 
@@ -1346,7 +1340,6 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
 
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    printf("_readAuthData\n");
     uint32_t authDataLen = 0;
     CHECK_ERROR(_readUInt32(c, &authDataLen))
     v->authDataLen = authDataLen;
@@ -1383,6 +1376,11 @@ uint8_t _getCommonNumItems()
 uint8_t _getTxNumItems()
 {
     return tx_num_items;
+}
+
+uint8_t _getNumJsonItems()
+{
+    return num_json_items;
 }
 
 uint16_t parser_mapParserErrorToSW(parser_error_t err) {
@@ -1550,4 +1548,21 @@ const char *parser_getMsgPackTypeDescription(uint8_t type) {
         default:
             return "Unrecognized type";
     }
+}
+
+parser_error_t parser_jsonGetNthKey(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen) {
+    uint16_t token_index = 0;
+    CHECK_ERROR(parser_json_object_get_nth_key(0, displayIdx, &token_index));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex(ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outKey, outKeyLen));
+    return parser_ok;
+}
+
+parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx, char *outVal, uint16_t outValLen) {
+    uint16_t token_index = 0;
+    // TODO: Check serialization for json arrays (resources in CAIP-122 come as "[\"auth\",\"sign\"]") 
+    // -> Remove backslashes?
+    // -> Current serialization is : "5b5c22617574685c222c5c227369676e5c225d"
+    CHECK_ERROR(parser_json_object_get_nth_value(0, displayIdx, &token_index));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex(ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
+    return parser_ok;
 }

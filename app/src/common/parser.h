@@ -40,6 +40,9 @@ parser_error_t parser_validate(parser_context_t *ctx);
 //// returns the number of items in the current parsing context
 parser_error_t parser_getNumItems(uint8_t *num_items);
 
+// returns the number of json items in "data" for arbitrary signing
+parser_error_t parser_getNumJsonItems(uint8_t *num_json_items);
+
 // retrieves a readable output for each field / page
 parser_error_t parser_getItem(parser_context_t *ctx,
                               uint8_t displayIdx,
@@ -48,6 +51,9 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                               uint8_t pageIdx, uint8_t *pageCount);
 
 parser_error_t getItem(uint8_t index, uint8_t* displayIdx);
+
+parser_error_t parser_jsonGetNthKey(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen);
+parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx, char *outVal, uint16_t outValLen);
 
 #ifdef __cplusplus
 }

@@ -32,8 +32,6 @@
 
 #include "crypto.h"
 
-#include "jsmn.h"
-
 parser_error_t parser_parse(parser_context_t *ctx,
                             const uint8_t *data,
                             size_t dataLen,
@@ -74,6 +72,15 @@ parser_error_t parser_getNumItems(uint8_t *num_items) {
     return parser_ok;
 }
 
+parser_error_t parser_getNumJsonItems(uint8_t *num_json_items) {
+    *num_json_items = _getNumJsonItems();
+
+    if(*num_json_items == 0) {
+        return parser_unexpected_number_items;
+    }
+    return parser_ok;
+}
+
 static parser_error_t parser_getCommonNumItems(uint8_t *common_num_items) {
     *common_num_items = _getCommonNumItems();
     if(*common_num_items == 0) {
@@ -101,6 +108,16 @@ static parser_error_t checkSanity(uint8_t numItems, uint8_t displayIdx)
     if ( displayIdx >= numItems) {
         return parser_display_idx_out_of_range;
     }
+    return parser_ok;
+}
+
+static parser_error_t parser_printJsonItem(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    *pageCount = 1;
+    CHECK_ERROR(parser_jsonGetNthKey(ctx, displayIdx, outKey, outKeyLen));
+
+    char json_val[200];
+    CHECK_ERROR(parser_jsonGetNthValue(ctx, displayIdx, json_val, sizeof(json_val)));
+    pageString(outVal, outValLen, json_val, pageIdx, pageCount);
     return parser_ok;
 }
 
@@ -774,10 +791,57 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         return parser_unexpected_value;
     }
 
-    // TODO: Implement
+    uint8_t num_json_items = 0;
+    CHECK_ERROR(parser_getNumJsonItems(&num_json_items))
 
     cleanOutput(outKey, outKeyLen, outVal, outValLen);
     *pageCount = 0;
+
+    if (displayIdx < num_json_items) {
+        // Data
+        *pageCount = 1;
+        CHECK_ERROR(parser_printJsonItem(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+        return parser_ok;
+    }
+
+    if (displayIdx == num_json_items) {
+        // Signer
+        *pageCount = 1;
+
+        snprintf(outKey, outKeyLen, "Signer");
+
+        char addr[80] = {0};
+        if (encodePubKey((uint8_t*) addr, PK_LEN_25519, ctx->parser_arbitrary_data_obj->signerBuffer) == 0) {
+            return parser_unexpected_error;
+        }
+
+        pageString(outVal, outValLen, addr, pageIdx, pageCount);
+        return parser_ok;
+    }
+
+    if (displayIdx == num_json_items + 1) {
+        // Domain
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "TODO");
+        snprintf(outVal, outValLen, "TODO");
+        return parser_ok;
+    }
+
+    if (displayIdx == num_json_items + 2) {
+        // Request ID
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "TODO");
+        snprintf(outVal, outValLen, "TODO");
+        return parser_ok;
+    }
+
+    if (displayIdx == num_json_items + 3) {
+        // Auth Data
+        *pageCount = 1;
+        snprintf(outKey, outKeyLen, "TODO");
+        snprintf(outVal, outValLen, "TODO");
+        return parser_ok;
+    }
 
     return parser_display_idx_out_of_range;
 }
