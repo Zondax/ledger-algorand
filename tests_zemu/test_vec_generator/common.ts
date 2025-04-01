@@ -172,7 +172,7 @@ export function determineVectorValidity(
 
   let requestId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value;
   if (requestId) {
-    let decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex');
+    let decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
     if (!isRequestIdValid(decodedRequestId)) {
       return false;
     }
@@ -183,7 +183,6 @@ export function determineVectorValidity(
     hdPath = hdPathAcc0;
   } 
   if (!isHdPathValid(hdPath)) {
-    console.log("hdPath", hdPath);
     return false;
   }
 
@@ -193,8 +192,6 @@ export function determineVectorValidity(
     return false;
   }
   if (!doHdPathAndSignerMatch(hdPath, signer)) {
-    console.log("hdPath", hdPath);
-    console.log("signer", signer);
     return false;
   }
 
@@ -309,7 +306,7 @@ export function generateCommonAdditionalFields(
   if (!requestId) {
     // Replace random generation with deterministic seeded generation
     const input = `${COMMON_RANDOMNESS_SEED}-${domain}-${pubkey}`;
-    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    const hash = crypto.createHash('sha256').update(input).digest('HEX');
     requestId = hash.substring(0, 32).toUpperCase();
   }
 
@@ -327,7 +324,9 @@ export function generateCommonAdditionalFields(
     const currentFields = [...baseFields];
     
     if (includeRequestId) {
-      const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
+      const requestIdBytes = Buffer.from(requestId as string, 'hex');
+      console.log("requestIdBytes", requestIdBytes);
+      const requestIdBase64 = requestIdBytes.toString('base64');
       currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
     }
 
