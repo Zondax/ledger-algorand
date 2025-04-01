@@ -65,8 +65,14 @@ zxerr_t addr_printHdPath(
                      char *outVal, uint16_t outValLen,
                      uint8_t pageIdx, uint8_t *pageCount) {
     snprintf(outKey, outKeyLen, "hdPath");
-    char buffer[300];
+
+    char buffer[50];
     bip32_to_str(buffer, sizeof(buffer), hdPath, HDPATH_LEN_DEFAULT);
-    pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+
+    char path[50];
+    strcpy(path, "m/");
+    strcat(path, buffer);
+
+    pageString(outVal, outValLen, path, pageIdx, pageCount);
     return zxerr_ok;
 }

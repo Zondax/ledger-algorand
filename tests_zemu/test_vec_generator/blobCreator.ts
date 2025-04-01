@@ -54,12 +54,14 @@ export class BaseBlobCreator implements BlobCreator {
     const dataBytes = Buffer.from(canonicalJson, 'utf-8');
     
     // Extract common fields needed for the blob
+    const hdPath = fields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value || "m/44'/283'/0'/0/0";
     const signer = this.pubkeys[vectorIdx];
     const domain = fields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value || "";
     const authData = fields.find(f => f.name === FIELD_NAMES.AUTH_DATA)?.value || "";
     const requestId = fields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
     
     // Convert to bytes
+    const hdPathBytes = serializePath(hdPath as BIP32Path);
     const signerBytes = Buffer.from(signer, 'hex');
     const domainBytes = Buffer.from(domain as string, 'utf-8');
     const authDataBytes = Buffer.from(authData, 'hex');
@@ -73,6 +75,7 @@ export class BaseBlobCreator implements BlobCreator {
     const encoding = Encoding.BASE64;
     
     // Append each field in the required order
+    blobArray.push(...Array.from(hdPathBytes));
     blobArray.push(...Array.from(signerBytes));
     blobArray.push(scope);
     blobArray.push(encoding);

@@ -1235,8 +1235,29 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
+#if !defined(TARGET_NANOS) && !defined(TARGET_NANOS2) && !defined(TARGET_NANOX) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+#include "crypto.h"
+static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrary_data_t *v)
+{
+    uint32_t serializedPathLen = sizeof(uint32_t) * HDPATH_LEN_DEFAULT;
+    memcpy(hdPath, c->buffer, serializedPathLen);
+
+    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+
+    if (!mainnet) {
+        return parser_failed_hd_path;
+    }
+    CTX_CHECK_AND_ADVANCE(c, serializedPathLen)
+    return parser_ok;
+}
+#endif
+
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
+    #if !defined(TARGET_NANOS) && !defined(TARGET_NANOS2) && !defined(TARGET_NANOX) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+    // For cpp_test, the path needs to be read here
+    CHECK_ERROR(_readSerializedHdPath(c, v))
+    #endif
     num_items++; // hdPath, read on process_chunk
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readScope(c))
