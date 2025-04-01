@@ -15,6 +15,18 @@ import {
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
+/**
+ * Inserts a field into an array of fields in alphabetical order by field name
+ */
+function insertFieldAlphabetically(fields: Field[], newField: Field): void {
+  const index = fields.findIndex(field => field.name > newField.name);
+  if (index !== -1) {
+    fields.splice(index, 0, newField);
+  } else {
+    fields.push(newField);
+  }
+}
+
 class Caip122Generator extends ProtocolGenerator {
   private chosenPubkeys: string[] = [];
   private randomGenerator = new RandomGenerator();
@@ -50,17 +62,15 @@ class Caip122Generator extends ProtocolGenerator {
       // Basic mandatory fields for CAIP-122
       { name: "account_address", value: accountAddress },
       { name: "chain_id", value: chainId },
-      { name: "uri", value: uri },
-      { name: "version", value: "1" },
-      { name: "type", value: sigType },
-      
-      // Optional CAIP-122 fields
-      { name: "statement", value: statement },
-      { name: "nonce", value: nonce },
-      { name: "issued-at", value: issuedAt },
       { name: "expiration-time", value: expiryTime },
+      { name: "issued-at", value: issuedAt },
+      { name: "nonce", value: nonce },
       { name: "not-before", value: notBeforeTime },
       { name: "resources", value: resources },
+      { name: "statement", value: statement },
+      { name: "type", value: sigType },
+      { name: "uri", value: uri },
+      { name: "version", value: "1" },
     ];
   }
 
@@ -114,9 +124,9 @@ class Caip122Generator extends ProtocolGenerator {
                 // Build the fields list - first all CAIP-122 fields
                 const caip122Fields = this.createCaip122Fields(domain, resources, accountAddress, nonce);
                 
-                // Add domain and request-id to CAIP-122 fields if chosen
+                // Add domain and request-id to CAIP-122 fields if chosen - inserted alphabetically
                 if (includeDomainInCaip122) {
-                  caip122Fields.push({ name: "domain", value: domain });
+                  insertFieldAlphabetically(caip122Fields, { name: "domain", value: domain });
                 }
                 
                 if (includeRequestIdInCaip122) {
@@ -126,7 +136,7 @@ class Caip122Generator extends ProtocolGenerator {
                     const requestIdBase64 = Buffer.from(reqId as string, 'utf8').toString('base64');
                     reqId = requestIdBase64;
                   }
-                  caip122Fields.push({ name: "request-id", value: reqId });
+                  insertFieldAlphabetically(caip122Fields, { name: "request-id", value: reqId });
                 }
                 
                 if (determineVectorValidity(caip122Fields, additionalFields) == false) {

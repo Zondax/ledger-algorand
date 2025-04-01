@@ -14,6 +14,18 @@ import {
 } from './common';
 import { BaseBlobCreator } from './blobCreator';
 
+/**
+ * Inserts a field into an array of fields in alphabetical order by field name
+ */
+function insertFieldAlphabetically(fields: Field[], newField: Field): void {
+  const index = fields.findIndex(field => field.name > newField.name);
+  if (index !== -1) {
+    fields.splice(index, 0, newField);
+  } else {
+    fields.push(newField);
+  }
+}
+
 class Fido2Generator extends ProtocolGenerator {
   private chosenPubkeys: string[] = [];
   private randomGenerator = new RandomGenerator();
@@ -32,10 +44,10 @@ class Fido2Generator extends ProtocolGenerator {
   }
   
   private createBaseFido2Fields(origin: string, challenge: string): Field[] {
-    return [
-      { name: "origin", value: origin },
-      { name: "challenge", value: challenge }
-    ];
+    const fields: Field[] = [];
+    insertFieldAlphabetically(fields, { name: "challenge", value: challenge });
+    insertFieldAlphabetically(fields, { name: "origin", value: origin });
+    return fields;
   }
   
   private createExtensions(): string {
@@ -95,19 +107,19 @@ class Fido2Generator extends ProtocolGenerator {
                     
                     // Add optional fields based on the combination
                     if (includeType && requestType) {
-                      fido2Fields.push({ name: "type", value: requestType });
+                      insertFieldAlphabetically(fido2Fields, { name: "type", value: requestType });
                     }
                     
                     if (includeRpId) {
-                      fido2Fields.push({ name: "rpId", value: domain });
+                      insertFieldAlphabetically(fido2Fields, { name: "rpId", value: domain });
                     }
                     
                     if (includeUserId) {
-                      fido2Fields.push({ name: "userId", value: userId });
+                      insertFieldAlphabetically(fido2Fields, { name: "userId", value: userId });
                     }
 
                     if (includeExtensions) {
-                      fido2Fields.push({ name: "extensions", value: this.createExtensions() });
+                      insertFieldAlphabetically(fido2Fields, { name: "extensions", value: this.createExtensions() });
                     }
                     
                     if (determineVectorValidity(fido2Fields, additionalFields) == false) {

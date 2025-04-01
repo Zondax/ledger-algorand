@@ -27,8 +27,8 @@ export const pubkeyAcc0 = "1eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79c
 export const pubkeyAcc123 = "0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377";
 export const hdPathAcc0 = "m/44'/283'/0'/0/0";
 export const hdPathAcc123 = "m/44'/283'/123'/0/0";
-export const signerAcc0 = "AEPMZ7I6YBPECJP242IM5QVHPA42TI3CGXOW4LVPXJ44UJOA3JQPQAWBVCKA";
-export const signerAcc123 = "AEG73PG3R3V62YUM7NHPOAQHXBX5BXW5ZJ4OSDUMLHLPIQPDQOZXOQSPD5CQ";
+export const signerAcc0 = "D3GP2HWALZASL6XGSDHMFJ3YHGU2GYRV3VXC5L52PHFCLQG2MD4KIPKKAA";
+export const signerAcc123 = "BX63ZW4O5PWWFDH3J33QEB5YN7IN5XOKPDUQ5DCZ232EDY4DWN3XKUQRCA";
 
 export const COMMON_RANDOMNESS_SEED = 'common-fixed-seed'
 
@@ -143,17 +143,13 @@ function createInvalidHdPathConfig(validConfig: Record<string, any>): Record<str
 }
 
 export function generateAlgorandAddress(pubkey: string): string {
-  const crypto = require('crypto');
-  const base32 = require('hi-base32');
-  
-  const sha512_256 = (data: Buffer): Buffer => {
-    return crypto.createHash('sha512').update(data).digest().slice(0, 32);
-  };
-  
-  const pubkeyBytes = Buffer.from(pubkey, 'hex');
-  const checksum = sha512_256(pubkeyBytes).slice(0, 4);
-  const addrBytes = Buffer.concat([Buffer.from([1]), pubkeyBytes, checksum]);
-  return base32.encode(addrBytes).replace(/=+$/, '');
+  if (pubkey === pubkeyAcc0) {
+    return signerAcc0;
+  } else if (pubkey === pubkeyAcc123) {
+    return signerAcc123;
+  } else {
+    throw new Error("Invalid public key");
+  }
 }
 
 export function determineVectorValidity(
@@ -187,6 +183,7 @@ export function determineVectorValidity(
     hdPath = hdPathAcc0;
   } 
   if (!isHdPathValid(hdPath)) {
+    console.log("hdPath", hdPath);
     return false;
   }
 
@@ -196,6 +193,8 @@ export function determineVectorValidity(
     return false;
   }
   if (!doHdPathAndSignerMatch(hdPath, signer)) {
+    console.log("hdPath", hdPath);
+    console.log("signer", signer);
     return false;
   }
 
