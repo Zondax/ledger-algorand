@@ -1581,10 +1581,19 @@ parser_error_t parser_jsonGetNthKey(parser_context_t *ctx, uint8_t displayIdx, c
 
 parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx, char *outVal, uint16_t outValLen) {
     uint16_t token_index = 0;
-    // TODO: Check serialization for json arrays (resources in CAIP-122 come as "[\"auth\",\"sign\"]") 
-    // -> Remove backslashes?
-    // -> Current serialization is : "5b5c22617574685c222c5c227369676e5c225d"
     CHECK_ERROR(parser_json_object_get_nth_value(0, displayIdx, &token_index));
     CHECK_ERROR(parser_getJsonItemFromTokenIndex(ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
+
+    // Remove backslashes
+    uint16_t removedBackslashes = 0;
+    for (uint16_t i = 0; i < outValLen; i++) {
+        if (outVal[i] == '\\') {
+            memmove(&outVal[i], &outVal[i + 1], outValLen - i - 1);
+            removedBackslashes++;
+        }
+        outValLen -= removedBackslashes;
+        outVal[outValLen] = '\0';
+    }
+
     return parser_ok;
 }
