@@ -74,12 +74,12 @@ function processConfigs(
   
   for (const config of configs) {
     if (isValid) {
-      if (config.error !== "parser_ok") {
-        throw new Error(`Config error (${config.error}) should be "parser_ok"`);
+      if (config.error !== "No error") {
+        throw new Error(`Config error (${config.error}) should be "No error"`);
       }
     } else {
-      if (config.error === "parser_ok") {
-        throw new Error(`Config error (${config.error}) shouldn't be "parser_ok"`);
+      if (config.error === "No error") {
+        throw new Error(`Config error (${config.error}) shouldn't be "No error"`);
       }
     }
 
