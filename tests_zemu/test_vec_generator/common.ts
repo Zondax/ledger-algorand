@@ -324,26 +324,18 @@ export function generateCommonAdditionalFields(
   ];
 
   for (const includeRequestId of [true, false]) {
-    for (const includeHdPath of [true, false]) {
-      const currentFields = [...baseFields];
-      
-      if (includeRequestId) {
-        const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
-        currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
-      }
-      if (includeHdPath) {
-        currentFields.push({ name: FIELD_NAMES.HD_PATH, value: hdPath });
-      }
-
-      if (!includeHdPath && signer === signerAcc123) {
-        // This case can't be pushed, since the signer does not match the hdPath
-        continue;
-      }
-
-      fieldCombinations.push({
-        fields: currentFields,
-      });
+    const currentFields = [...baseFields];
+    
+    if (includeRequestId) {
+      const requestIdBase64 = Buffer.from(requestId as string, 'utf8').toString('base64');
+      currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
     }
+
+    currentFields.push({ name: FIELD_NAMES.HD_PATH, value: hdPath });
+
+    fieldCombinations.push({
+      fields: currentFields,
+    });
   }
 
   return { fieldCombinations };
