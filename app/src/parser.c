@@ -841,7 +841,9 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         *pageCount = 1;
         if (ctx->parser_arbitrary_data_obj->requestIdLen != 0) {
             snprintf(outKey, outKeyLen, "Request ID");
-            pageString(outVal, outValLen, ctx->parser_arbitrary_data_obj->requestIdBuffer, pageIdx, pageCount);
+            char base64ReqId[200] = {0};
+            base64_encode(base64ReqId, sizeof(base64ReqId), ctx->parser_arbitrary_data_obj->requestIdBuffer, ctx->parser_arbitrary_data_obj->requestIdLen);
+            pageString(outVal, outValLen, base64ReqId, pageIdx, pageCount);
             return parser_ok;
         } else {
             displayIdx++;
