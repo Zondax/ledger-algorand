@@ -1323,6 +1323,8 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
     v->dataLen = dataLen;
     v->dataBuffer = c->buffer + c->offset;
 
+    // TODO : Check if data is a canonical JSON
+
     CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &num_json_items))
     num_items += num_json_items;
 
@@ -1334,7 +1336,19 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
     uint32_t domainLen = 0;
     CHECK_ERROR(_readUInt32(c, &domainLen))
     v->domainLen = domainLen;
+
+    if (domainLen == 0) {
+        return parser_missing_domain;
+    }
+
     v->domainBuffer = c->buffer + c->offset;
+
+    for (uint32_t i = 0; i < domainLen; i++) {
+        // Check for representable ASCII (32-126)
+        if (v->domainBuffer[i] < 32 || v->domainBuffer[i] > 126) {
+            return parser_invalid_domain;
+        }
+    }
 
     CTX_CHECK_AND_ADVANCE(c, domainLen)
 
@@ -1353,6 +1367,13 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
     // RequestId is optional
     if (requestIdLen != 0) {
         v->requestIdBuffer = c->buffer + c->offset;
+        // Check Uppercase Hex String
+        for (uint32_t i = 0; i < requestIdLen; i++) {
+            if (v->requestIdBuffer[i] < '0' || v->requestIdBuffer[i] > '9' ||
+                v->requestIdBuffer[i] < 'A' || v->requestIdBuffer[i] > 'F') {
+                return parser_invalid_request_id;
+            }
+        }
         CTX_CHECK_AND_ADVANCE(c, requestIdLen)
         num_items++;
     }
@@ -1365,6 +1386,11 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     uint32_t authDataLen = 0;
     CHECK_ERROR(_readUInt32(c, &authDataLen))
     v->authDataLen = authDataLen;
+
+    if (authDataLen == 0) {
+        return parser_missing_authenticated_data;
+    }
+
     v->authDataBuffer = c->buffer + c->offset;
 
     CTX_CHECK_AND_ADVANCE(c, authDataLen)
@@ -1521,6 +1547,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Invalid Signer";
         case parser_missing_domain:
             return "Missing Domain";
+        case parser_invalid_domain:
+            return "Invalid Domain";
         case parser_missing_authenticated_data:
             return "Missing Authentication Data";
         case parser_bad_json:
@@ -1529,6 +1557,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Failed Domain Auth";
         case parser_failed_hd_path:
             return "Failed HD Path";
+        case parser_invalid_request_id:
+            return "Invalid Request ID";
         default:
             return "Unrecognized error code";
     }

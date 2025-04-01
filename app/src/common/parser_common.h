@@ -90,11 +90,12 @@ typedef enum {
     parser_failed_decoding = 43,
     parser_invalid_signer = 44,
     parser_missing_domain = 45,
-    parser_missing_authenticated_data = 46,
-    parser_bad_json = 47,
-    parser_failed_domain_auth = 48,
-    parser_failed_hd_path = 49,
-
+    parser_invalid_domain = 46,
+    parser_missing_authenticated_data = 47,
+    parser_bad_json = 48,
+    parser_failed_domain_auth = 49,
+    parser_failed_hd_path = 50,
+    parser_invalid_request_id = 51,
 } parser_error_t;
 
 typedef struct {

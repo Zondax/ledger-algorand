@@ -219,7 +219,7 @@ Last APDU message
 - Signer is a raw Public Key (Hex String)
   - Algorand Address not allowed
 - Authenticated Data's first 32 bytes must be equal to sha256(Domain)
-- Domain is representable ASCII (Values in range 32..127)
+- Domain is representable ASCII (Values in range 33..126, both included)
 - Request ID is representable Hex String (0-9, A-F)
 - Data is a canonical JSON
 - hdPath is BIP44 and starts with 44'/283'
