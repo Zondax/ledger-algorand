@@ -33,9 +33,37 @@ typedef struct {
     std::string blob;
     std::vector<std::string> expected;
     std::vector<std::string> expected_expert;
+    std::string error;
 } testcase_t;
 
-class JsonTestsA : public ::testing::TestWithParam<testcase_t> {
+// Create a separate class for each test suite
+class JsonTestsTx : public ::testing::TestWithParam<testcase_t> {
+public:
+    struct PrintToStringParamName {
+        template<class ParamType>
+        std::string operator()(const testing::TestParamInfo<ParamType> &info) const {
+            auto p = static_cast<testcase_t>(info.param);
+            std::stringstream ss;
+            ss << p.index << "_" << p.name;
+            return ss.str();
+        }
+    };
+};
+
+class JsonTestsBigTx : public ::testing::TestWithParam<testcase_t> {
+public:
+    struct PrintToStringParamName {
+        template<class ParamType>
+        std::string operator()(const testing::TestParamInfo<ParamType> &info) const {
+            auto p = static_cast<testcase_t>(info.param);
+            std::stringstream ss;
+            ss << p.index << "_" << p.name;
+            return ss.str();
+        }
+    };
+};
+
+class JsonTestsArb : public ::testing::TestWithParam<testcase_t> {
 public:
     struct PrintToStringParamName {
         template<class ParamType>
@@ -79,12 +107,21 @@ std::vector<testcase_t> GetJsonTestCases(std::string jsonFile) {
             outputs_expert.push_back(s.asString());
         }
 
+        // Check testcase contains error field
+        std::string error;
+        if (obj[i].isMember("error")) {
+            error = obj[i]["error"].asString();
+        } else {
+            error = "No error";
+        }
+
         answer.push_back(testcase_t{
                 obj[i]["index"].asUInt64(),
                 obj[i]["name"].asString(),
                 obj[i]["blob"].asString(),
                 outputs,
-                outputs_expert
+                outputs_expert,
+                error
         });
     }
 
@@ -92,23 +129,38 @@ std::vector<testcase_t> GetJsonTestCases(std::string jsonFile) {
 }
 
 void check_testcase(const testcase_t &tc, bool expert_mode, txn_content_e content) {
-
+    // Reset any global state here
     app_mode_set_expert(expert_mode);
 
     parser_context_t ctx;
     parser_error_t err;
+    parser_tx_t tx_parser_obj;
+    parser_arbitrary_data_t arb_parser_obj;
 
+    // Initialize context to a known state
+    memset(&ctx, 0, sizeof(parser_context_t));
     ctx.content = content;
 
     uint8_t buffer[20000];
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
 
-    parser_tx_t tx_obj;
-    // Since we depend on default values, we need to initialize this every time (as we do in the app)
-    memset(&tx_obj, 0, sizeof(tx_obj));
+    void *parser_obj = NULL;
+    if (content == MsgPack) {
+        parser_obj = &tx_parser_obj;
+        memset(parser_obj, 0, sizeof(parser_tx_t));
+        // Since we depend on default values, we need to initialize this every time (as we do in the app)
+    } else if (content == ArbitraryData) {
+        parser_obj = &arb_parser_obj;
+        memset(parser_obj, 0, sizeof(parser_arbitrary_data_t));
+    }
 
-    err = parser_parse(&ctx, buffer, bufferLen, (void *) &tx_obj, content);
-    ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
+    err = parser_parse(&ctx, buffer, bufferLen, parser_obj, content);
+    ASSERT_EQ(parser_getErrorDescription(err), tc.error) << parser_getErrorDescription(err);
+
+    if (tc.error != "No error") {
+        // If there is an error, we don't need to check the output
+        return;
+    }
 
     auto output = dumpUI(&ctx, 39, 39);
 
@@ -128,34 +180,28 @@ void check_testcase(const testcase_t &tc, bool expert_mode, txn_content_e conten
 }
 
 INSTANTIATE_TEST_SUITE_P
-
 (
     JsonTestCasesCurrentTxVer,
-    JsonTestsA,
+    JsonTestsTx,
     ::testing::ValuesIn(GetJsonTestCases("testcases/testcases.json")),
-    JsonTestsA::PrintToStringParamName()
+    JsonTestsTx::PrintToStringParamName()
 );
-TEST_P(JsonTestsA, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true, MsgPack); }
-
+TEST_P(JsonTestsTx, CheckUIOutput_Expert) { check_testcase(GetParam(), true, MsgPack); }
 
 INSTANTIATE_TEST_SUITE_P
-
 (
     JsonTestsBigTransactions,
-    JsonTestsA,
+    JsonTestsBigTx,
     ::testing::ValuesIn(GetJsonTestCases("testcases/testcases_big_transactions.json")),
-    JsonTestsA::PrintToStringParamName()
+    JsonTestsBigTx::PrintToStringParamName()
 );
-TEST_P(JsonTestsA, CheckUIOutput_BigTransactions) { check_testcase(GetParam(), true, MsgPack); }
+TEST_P(JsonTestsBigTx, CheckUIOutput) { check_testcase(GetParam(), true, MsgPack); }
 
 INSTANTIATE_TEST_SUITE_P
-
 (
     JsonTestsArbitrarySign,
-    JsonTestsA,
+    JsonTestsArb,
     ::testing::ValuesIn(GetJsonTestCases("testcases/testcases_arbitrary_sign.json")),
-    JsonTestsA::PrintToStringParamName()
+    JsonTestsArb::PrintToStringParamName()
 );
-
-TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign) { check_testcase(GetParam(), false, ArbitraryData); }
-TEST_P(JsonTestsA, CheckUIOutput_ArbitrarySign_Expert) { check_testcase(GetParam(), true, ArbitraryData); }
+TEST_P(JsonTestsArb, CheckUIOutput_Expert) { check_testcase(GetParam(), true, ArbitraryData); }
