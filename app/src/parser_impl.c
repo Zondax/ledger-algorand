@@ -1335,10 +1335,10 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
     v->dataLen = dataLen;
     v->dataBuffer = c->buffer + c->offset;
 
-    // TODO : Check if data is a canonical JSON
-
     CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &num_json_items))
     num_items += num_json_items;
+
+    CHECK_ERROR(parser_json_check_canonical(v->dataBuffer, v->dataLen))
 
     return parser_ok;
 }

@@ -143,3 +143,96 @@ parser_error_t parser_getJsonItemFromTokenIndex(const char *jsonBuffer, uint16_t
 
     return parser_ok;
 }
+
+static bool is_key_or_value(const char *p, const char *data) {
+    parsed_json_t *json = &parsed_json;
+    uint16_t num_keys = 0;
+    uint16_t key_token_index = 0;
+    uint16_t value_token_index = 0;
+
+    parser_json_object_get_element_count(0, &num_keys);
+
+    for (uint16_t i = 0; i < num_keys; i++) {
+        CHECK_ERROR(parser_json_object_get_nth_key(0, i, &key_token_index));
+        jsmntok_t key_token = json->tokens[key_token_index];
+        CHECK_ERROR(parser_json_object_get_nth_value(0, i, &value_token_index));
+        jsmntok_t value_token = json->tokens[value_token_index];
+
+        if (p >= data + key_token.start && p <= data + key_token.end) {
+            return true;
+        }
+
+        if (p >= data + value_token.start && p <= data + value_token.end) {
+            return true;
+        }
+
+        if (p < data + value_token.start) {
+            return false;
+        }
+    }
+    return false;
+}
+
+parser_error_t parser_json_check_canonical(const char *data, size_t data_len) {
+    uint16_t num_keys = 0;
+    CHECK_ERROR(parser_json_object_get_element_count(0, &num_keys));
+
+    /*
+        Check there are no whitespaces outside of keys and values
+        -> retrieve all offsets of keys and values (start and end) and check there are no whitespaces outside of them
+
+        This is the blob with the JSON :
+
+            +---------------------------------------------------------------------------------------------------------------+
+            |                                                                                                               |
+            +---------------------------------------------------------------------------------------------------------------+
+
+        The JSMN tokens point to parts of the blob like this :
+
+            +---------------------------------------------------------------------------------------------------------------+
+            |                                                                                                               |
+            +---------------------------------------------------------------------------------------------------------------+
+                ^     ^      ^           ^     ^     ^     ^                       ^                                      
+                |     |      |           |     |     |     |                       |                                      
+                +-----+      +-----------+     +-----+     +-----------------------+                                      
+    Tokens :    firstKey,    firstValue,       secondKey,  secondValue,                  ...
+
+        We are only interested in detecting whitespaces in the following ranges (marked as x):
+
+            +---------------------------------------------------------------------------------------------------------------+
+            |xxx       xxxxxx             xxxxx       xxxxx                              ...                                |
+            +---------------------------------------------------------------------------------------------------------------+
+                ^     ^      ^           ^     ^     ^     ^                       ^                                      
+                |     |      |           |     |     |     |                       |                                      
+                +-----+      +-----------+     +-----+     +-----------------------+                                      
+
+    */
+
+    char *pData = (char *)data;
+    while (pData < data + data_len) {
+        if (!is_key_or_value(pData, data)) {
+            if (*pData == ' ') {
+                return parser_bad_json;
+            }
+        }
+        pData++;
+    }
+
+    // Check if keys are sorted lexicographically
+    char currentKey[100] = {0};
+    char lastKey[100] = {0};
+
+    for (uint16_t i = 0; i < num_keys; i++) {
+        uint16_t key_token_index = 0;
+        CHECK_ERROR(parser_json_object_get_nth_key(0, i, &key_token_index));
+        CHECK_ERROR(parser_getJsonItemFromTokenIndex(data, key_token_index, currentKey, sizeof(currentKey)));
+
+        if (strcmp(lastKey, currentKey) > 0) {
+            return parser_bad_json;
+        }
+
+        strcpy(lastKey, currentKey);
+    }
+
+    return parser_ok;
+}
