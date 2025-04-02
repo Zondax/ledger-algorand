@@ -87,14 +87,17 @@ function createInvalidDomainConfig(validConfig: Record<string, any>): Record<str
 function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<string, any> {
   const invalidConfig = { ...validConfig };
   const requestId = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.REQUEST_ID)?.value;
+  const decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
 
   if (requestId) {
-    const invalidRequestId = 'a' + requestId + 'b';
+    // '61' is the ASCII code for 'a'
+    // '62' is the ASCII code for 'b'
+    const invalidRequestId = '61' + decodedRequestId + '62';
     const requestIdFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.REQUEST_ID);
-
     if (requestIdFieldIndex !== -1) {
+      const base64RequestId = Buffer.from(invalidRequestId, 'hex').toString('base64');
       invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
-      invalidConfig.fields[requestIdFieldIndex] = { name: FIELD_NAMES.REQUEST_ID, value: invalidRequestId };
+      invalidConfig.fields[requestIdFieldIndex] = { name: FIELD_NAMES.REQUEST_ID, value: base64RequestId };
       invalidConfig.error = "Invalid Request ID";
       return changeConfigName(invalidConfig, "Invalid_Request_ID");
     } 
@@ -325,8 +328,9 @@ export function generateCommonAdditionalFields(
     const currentFields = [...baseFields];
     
     if (includeRequestId) {
-      const requestIdBytes = Buffer.from(requestId as string, 'hex');
-      const requestIdBase64 = requestIdBytes.toString('base64');
+      // The requestId encoding is the hexstring in base64, not the buffer in base64 
+      const charsRequestId = Buffer.from(requestId as string, 'utf8')
+      const requestIdBase64 = Buffer.from(charsRequestId).toString('base64');
       currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
     }
 
