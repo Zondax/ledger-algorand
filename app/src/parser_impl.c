@@ -22,6 +22,7 @@
 #include "coin.h"
 #include "picohash.h"
 #include "apdu_codes.h"
+#include "zxformat.h"
 #include "zxerror.h"
 #include "jsmn.h"
 
@@ -1274,16 +1275,27 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
     v->signerBuffer = c->buffer + c->offset;
 
     
-    #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
     uint8_t raw_pubkey[PK_LEN_25519];
+    #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
     zxerr_t err = crypto_extractPublicKey(raw_pubkey, PK_LEN_25519);
     if (err != zxerr_ok) {
         return parser_invalid_signer;
     }
+    #else
+    // in cpp_test we cannot compute the pubkey from the hdPath
+    const char *pubkeyAcc0 = "1eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8";
+    const char *pubkeyAcc123 = "0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377";
+
+    if (hdPath[2] == (HDPATH_2_DEFAULT | 0x00000000)) {
+        hexstr_to_array(raw_pubkey, PK_LEN_25519, pubkeyAcc0, strlen(pubkeyAcc0));
+    } else {
+        hexstr_to_array(raw_pubkey, PK_LEN_25519, pubkeyAcc123, strlen(pubkeyAcc123));
+    }
+    #endif
+
     if (memcmp(raw_pubkey, v->signerBuffer, PK_LEN_25519) != 0) {
         return parser_invalid_signer;
     }
-    #endif
 
     CTX_CHECK_AND_ADVANCE(c, PK_LEN_25519)
 
@@ -1369,8 +1381,8 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
         v->requestIdBuffer = c->buffer + c->offset;
         // Check it's an uppercase hex string
         for (uint32_t i = 0; i < requestIdLen; i++) {
-            if ((v->requestIdBuffer[i] < '0' && v->requestIdBuffer[i] > '9') ||
-                (v->requestIdBuffer[i] < 'A' && v->requestIdBuffer[i] > 'F')) {
+            if ((v->requestIdBuffer[i] < '0' || v->requestIdBuffer[i] > '9') &&
+                (v->requestIdBuffer[i] < 'A' || v->requestIdBuffer[i] > 'F')) {
                 return parser_invalid_request_id;
             }
         }
