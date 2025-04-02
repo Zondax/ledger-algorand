@@ -9142,5 +9142,69 @@
       "9 | Request ID [2/2] : EwMjM=",
       "10 | hdPath : m/44'/283'/123'/0/0"
     ]
+  },
+  {
+    "index": 200,
+    "name": "Algorand_non_canonical_json_has_whitespace",
+    "blob": "2c0000801b0100800000008000000000000000001eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f80101000000627b226163636f756e745f61646472657373223a225235485534575a364250544334355356544c4c595936513332534757434f5a424a4a464a4c534944434f47364b54424237485444495952353551222c2022636861696e5f6964223a22323833227d0000000861726336302e696f00000020363932313030443838463531313434423734443142423334344132443146354400000020281187fa8467178cff8d0d00caddc16d54a062eea86e4756b92fe464609aae84",
+    "error": "Bad JSON",
+    "output": [
+      "0 | account_address [1/2] : R5HU4WZ6BPTC45SVTLLYY6Q32SGWCOZBJJFJLS",
+      "0 | account_address [2/2] : IDCOG6KTBB7HTDIYR55Q",
+      "1 | chain_id : 283",
+      "2 | Signer [1/2] : D3GP2HWALZASL6XGSDHMFJ3YHGU2GYRV3VXC5L",
+      "2 | Signer [2/2] : 52PHFCLQG2MD4KIPKKAA",
+      "3 | Domain : arc60.io",
+      "4 | Auth Data [1/2] : 281187fa8467178cff8d0d00caddc16d54a062",
+      "4 | Auth Data [2/2] : eea86e4756b92fe464609aae84",
+      "5 | Request ID [1/2] : NjkyMTAwRDg4RjUxMTQ0Qjc0RDFCQjM0NEEyRD",
+      "5 | Request ID [2/2] : FGNUQ=",
+      "6 | hdPath : m/44'/283'/0'/0/0"
+    ],
+    "output_expert": [
+      "0 | account_address [1/2] : R5HU4WZ6BPTC45SVTLLYY6Q32SGWCOZBJJFJLS",
+      "0 | account_address [2/2] : IDCOG6KTBB7HTDIYR55Q",
+      "1 | chain_id : 283",
+      "2 | Signer [1/2] : D3GP2HWALZASL6XGSDHMFJ3YHGU2GYRV3VXC5L",
+      "2 | Signer [2/2] : 52PHFCLQG2MD4KIPKKAA",
+      "3 | Domain : arc60.io",
+      "4 | Auth Data [1/2] : 281187fa8467178cff8d0d00caddc16d54a062",
+      "4 | Auth Data [2/2] : eea86e4756b92fe464609aae84",
+      "5 | Request ID [1/2] : NjkyMTAwRDg4RjUxMTQ0Qjc0RDFCQjM0NEEyRD",
+      "5 | Request ID [2/2] : FGNUQ=",
+      "6 | hdPath : m/44'/283'/0'/0/0"
+    ]
+  },
+  {
+    "index": 201,
+    "name": "Algorand_non_canonical_json_unsorted_keys",
+    "blob": "2c0000801b0100800000008000000000000000001eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f80101000000617b22636861696e5f6964223a22323833222c226163636f756e745f61646472657373223a225235485534575a364250544334355356544c4c595936513332534757434f5a424a4a464a4c534944434f47364b54424237485444495952353551227d0000000861726336302e696f00000020363932313030443838463531313434423734443142423334344132443146354400000020281187fa8467178cff8d0d00caddc16d54a062eea86e4756b92fe464609aae84",
+    "error": "Bad JSON",
+    "output": [
+      "0 | chain_id : 283",
+      "1 | account_address [1/2] : R5HU4WZ6BPTC45SVTLLYY6Q32SGWCOZBJJFJLS",
+      "1 | account_address [2/2] : IDCOG6KTBB7HTDIYR55Q",
+      "2 | Signer [1/2] : D3GP2HWALZASL6XGSDHMFJ3YHGU2GYRV3VXC5L",
+      "2 | Signer [2/2] : 52PHFCLQG2MD4KIPKKAA",
+      "3 | Domain : arc60.io",
+      "4 | Auth Data [1/2] : 281187fa8467178cff8d0d00caddc16d54a062",
+      "4 | Auth Data [2/2] : eea86e4756b92fe464609aae84",
+      "5 | Request ID [1/2] : NjkyMTAwRDg4RjUxMTQ0Qjc0RDFCQjM0NEEyRD",
+      "5 | Request ID [2/2] : FGNUQ=",
+      "6 | hdPath : m/44'/283'/0'/0/0"
+    ],
+    "output_expert": [
+      "0 | chain_id : 283",
+      "1 | account_address [1/2] : R5HU4WZ6BPTC45SVTLLYY6Q32SGWCOZBJJFJLS",
+      "1 | account_address [2/2] : IDCOG6KTBB7HTDIYR55Q",
+      "2 | Signer [1/2] : D3GP2HWALZASL6XGSDHMFJ3YHGU2GYRV3VXC5L",
+      "2 | Signer [2/2] : 52PHFCLQG2MD4KIPKKAA",
+      "3 | Domain : arc60.io",
+      "4 | Auth Data [1/2] : 281187fa8467178cff8d0d00caddc16d54a062",
+      "4 | Auth Data [2/2] : eea86e4756b92fe464609aae84",
+      "5 | Request ID [1/2] : NjkyMTAwRDg4RjUxMTQ0Qjc0RDFCQjM0NEEyRD",
+      "5 | Request ID [2/2] : FGNUQ=",
+      "6 | hdPath : m/44'/283'/0'/0/0"
+    ]
   }
 ]
