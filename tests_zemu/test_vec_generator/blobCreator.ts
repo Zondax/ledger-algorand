@@ -67,7 +67,6 @@ export class BaseBlobCreator implements BlobCreator {
     const authDataBytes = Buffer.from(authData, 'hex');
     const requestIdHexStr = Buffer.from(requestId, 'base64').toString('hex');
     const requestIdBytes = Buffer.from(requestIdHexStr, 'hex');
-    console.log("requestIdBytes", requestIdBytes);
 
     // Create buffer for the blob
     const blob = Buffer.alloc(0);

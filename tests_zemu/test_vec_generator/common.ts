@@ -38,12 +38,13 @@ export abstract class ProtocolGenerator {
 
   generateInvalidConfigs(validConfig: Record<string, any>): Array<Record<string, any>> {
     const invalidConfigs: Array<Record<string, any>> = [];
+    const validConfigWithoutBlob = { ...validConfig };
+    delete validConfigWithoutBlob.blob;
     
-    // Create separate clones for each invalid config
-    const invalidDomainConfig = createInvalidDomainConfig({...validConfig});
-    const invalidRequestIdConfig = createInvalidRequestIdConfig({...validConfig});
-    const invalidHdPathConfig = createInvalidHdPathConfig({...validConfig});
-    const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig({...validConfig});
+    const invalidDomainConfig = createInvalidDomainConfig({...validConfigWithoutBlob});
+    const invalidRequestIdConfig = createInvalidRequestIdConfig({...validConfigWithoutBlob});
+    const invalidHdPathConfig = createInvalidHdPathConfig({...validConfigWithoutBlob});
+    const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig({...validConfigWithoutBlob});
 
     invalidConfigs.push(invalidDomainConfig);
     invalidConfigs.push(invalidRequestIdConfig);
@@ -325,7 +326,6 @@ export function generateCommonAdditionalFields(
     
     if (includeRequestId) {
       const requestIdBytes = Buffer.from(requestId as string, 'hex');
-      console.log("requestIdBytes", requestIdBytes);
       const requestIdBase64 = requestIdBytes.toString('base64');
       currentFields.push({ name: FIELD_NAMES.REQUEST_ID, value: requestIdBase64 });
     }
