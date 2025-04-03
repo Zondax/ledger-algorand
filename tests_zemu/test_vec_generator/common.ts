@@ -1,6 +1,7 @@
 import { serializePath } from "./bip32";
 import * as crypto from 'crypto';
 import { BaseBlobCreator } from "./blobCreator";
+import assert from "assert";
 
 interface Field {
   name: string;
@@ -97,6 +98,8 @@ function changeConfigName(config: Record<string, any>, new_name: string): Record
 }
 
 function createInvalidDataConfigUnsortedKeys(validConfig: Record<string, any>): Record<string, any> {
+  assert(validConfig.fields.length >= 2);
+
   const invalidConfig = validConfig;
   const firstFieldKey = validConfig.fields[0].name;
   const firstFieldValue = validConfig.fields[0].value;
