@@ -234,5 +234,12 @@ parser_error_t parser_json_check_canonical(const char *data, size_t data_len) {
         strcpy(lastKey, currentKey);
     }
 
+    // Check there are only ASCII characters
+    for (uint16_t i = 0; i < data_len; i++) {
+        if (data[i] < 32 || data[i] > 126) {
+            return parser_bad_json;
+        }
+    }
+
     return parser_ok;
 }
