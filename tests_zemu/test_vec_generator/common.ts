@@ -8,7 +8,7 @@ interface Field {
   value: string;
 }
 
-interface TestVector {
+export interface TestVector {
   index: number;
   name: string;
   blob: string;

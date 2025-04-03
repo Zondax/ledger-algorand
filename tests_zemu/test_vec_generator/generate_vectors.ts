@@ -4,7 +4,7 @@ import * as path from 'path';
 import yargs, { config } from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { Field, FIELD_NAMES, generateTestVector, ProtocolGenerator } from './common';
+import { Field, FIELD_NAMES, generateTestVector, ProtocolGenerator, TestVector } from './common';
 import { caip122Generator } from './caip122';
 import { fido2Generator } from './fido2';
 
@@ -49,7 +49,10 @@ function generateVectorsFromGenerators(generators: ProtocolGenerator[]): any[] {
     const invalidTestVectors = processConfigs(invalidConfigs, generator, index, false);
     index += invalidConfigs.length;
 
-    allTestVectors.push(...validTestVectors, ...invalidTestVectors);
+    // JSONs with white spaces are not valid
+    const jsonWithWhiteSpaceTestVector = generateJsonWithWhiteSpaceTestVector(completeValidConfig, generator, index);
+
+    allTestVectors.push(...validTestVectors, ...invalidTestVectors, jsonWithWhiteSpaceTestVector);
   }
 
   return allTestVectors;
@@ -67,9 +70,9 @@ function processConfigs(
   configs: Record<string, any>[], 
   generator: ProtocolGenerator, 
   startIndex: number,
-  isValid: boolean
-): any[] {
-  const testVectors: any[] = [];
+  isValid: boolean,
+): TestVector[] {
+  const testVectors: TestVector[] = [];
   let index = startIndex;
   
   for (const config of configs) {
@@ -83,12 +86,10 @@ function processConfigs(
       }
     }
 
-    if (!config.blob) {
-      const externalStartIdx = generator.findExternalFieldsStartIndex(config.fields, Object.values(FIELD_NAMES));
-      const data = generator.parseDataFields(config.fields, externalStartIdx);
-      const dataBytes = Buffer.from(JSON.stringify(data), 'utf-8');
-      config.blob = generator.createBlob(dataBytes, config.fields, config.index);
-    }
+    const externalStartIdx = generator.findExternalFieldsStartIndex(config.fields, Object.values(FIELD_NAMES));
+    const data = generator.parseDataFields(config.fields, externalStartIdx);
+    const dataBytes = Buffer.from(JSON.stringify(data), 'utf-8');
+    config.blob = generator.createBlob(dataBytes, config.fields, config.index);
 
     const testVector = generateTestVector(
       index++,
@@ -116,6 +117,28 @@ function findCompleteValidConfig(configs: Record<string, any>[]): Record<string,
       config.fields.some((field: Field) => field.name === fieldName)
     );
   }) as Record<string, any>;
+}
+
+function generateJsonWithWhiteSpaceTestVector(
+  config: Record<string, any>,
+  generator: ProtocolGenerator,
+  index: number
+): TestVector {
+    const externalStartIdx = generator.findExternalFieldsStartIndex(config.fields, Object.values(FIELD_NAMES));
+    const data = generator.parseDataFields(config.fields, externalStartIdx);
+    const dataBytes = Buffer.from(JSON.stringify(data, null, 1), 'utf-8');
+    config.blob = generator.createBlob(dataBytes, config.fields, config.index);
+    config.error = "Bad JSON";
+
+    const testVector = generateTestVector(
+      index++,
+      `${config.name}_json_with_white_space`,
+      config.blob,
+      config.fields,
+      config.error
+    );
+
+    return testVector;
 }
 
 if (require.main === module) {
