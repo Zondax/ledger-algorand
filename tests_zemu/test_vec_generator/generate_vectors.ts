@@ -84,7 +84,10 @@ function processConfigs(
     }
 
     if (!config.blob) {
-      config.blob = generator.createBlob(config.fields, config.index);
+      const externalStartIdx = generator.findExternalFieldsStartIndex(config.fields, Object.values(FIELD_NAMES));
+      const data = generator.parseDataFields(config.fields, externalStartIdx);
+      const dataBytes = Buffer.from(JSON.stringify(data), 'utf-8');
+      config.blob = generator.createBlob(dataBytes, config.fields, config.index);
     }
 
     const testVector = generateTestVector(

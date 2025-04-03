@@ -4,18 +4,7 @@ import { serializePath, BIP32Path } from './bip32';
 
 // Base interface for blob generation
 export interface BlobCreator {
-  createBlob(fields: Field[], vectorIdx: number): string;
-  parseDataFields(fields: Field[], externalStartIdx: number): Record<string, any>;
-}
-
-// Helper function to find where external fields start
-function findExternalFieldsStartIndex(fields: Field[], externalFieldNames: string[]): number {
-  for (let i = 0; i < fields.length; i++) {
-    if (externalFieldNames.includes(fields[i].name)) {
-      return i;
-    }
-  }
-  return fields.length;
+  createBlob(dataBytes: Buffer, additionalFields: Field[], vectorIdx: number): string;
 }
 
 // Base class for blob creation
@@ -27,38 +16,13 @@ export class BaseBlobCreator implements BlobCreator {
     this.pubkeys = pubkeys;
   }
 
-  parseDataFields(fields: Field[], externalStartIdx: number): Record<string, any> {
-    const data: Record<string, any> = {};
-    
-    for (let i = 0; i < externalStartIdx; i++) {
-      const field = fields[i];
-      const fieldName = field.name;
-      const fieldValue = field.value;
-      
-      data[fieldName] = fieldValue;
-    }
-    
-    return data;
-  }
-  
-  createBlob(fields: Field[], vectorIdx: number): string {
-    // Find where external fields start
-    const externalFieldNames = Object.values(FIELD_NAMES);
-    const externalStartIdx = findExternalFieldsStartIndex(fields, externalFieldNames);
-    
-    // Parse protocol-specific data fields
-    const data = this.parseDataFields(fields, externalStartIdx);
-    
-    // Convert data to canonical JSON representation
-    const canonicalJson = JSON.stringify(data, Object.keys(data).sort(), 0);
-    const dataBytes = Buffer.from(canonicalJson, 'utf-8');
-    
+  createBlob(dataBytes: Buffer, additionalFields: Field[], vectorIdx: number): string {
     // Extract common fields needed for the blob
-    const hdPath = fields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value || "m/44'/283'/0'/0/0";
+    const hdPath = additionalFields.find(f => f.name === FIELD_NAMES.HD_PATH)?.value || "m/44'/283'/0'/0/0";
     const signer = this.pubkeys[vectorIdx];
-    const domain = fields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value || "";
-    const authData = fields.find(f => f.name === FIELD_NAMES.AUTH_DATA)?.value || "";
-    const requestId = fields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
+    const domain = additionalFields.find(f => f.name === FIELD_NAMES.DOMAIN)?.value || "";
+    const authData = additionalFields.find(f => f.name === FIELD_NAMES.AUTH_DATA)?.value || "";
+    const requestId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value || "";
     
     // Convert to bytes
     const hdPathBytes = serializePath(hdPath as BIP32Path);

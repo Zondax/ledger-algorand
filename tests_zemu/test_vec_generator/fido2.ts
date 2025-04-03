@@ -27,14 +27,8 @@ function insertFieldAlphabetically(fields: Field[], newField: Field): void {
 }
 
 class Fido2Generator extends ProtocolGenerator {
-  private chosenPubkeys: string[] = [];
   private randomGenerator = new RandomGenerator();
-  
-  createBlob(fields: Field[], vectorIdx: number): string {
-    const creator = new BaseBlobCreator(this.chosenPubkeys);
-    return creator.createBlob(fields, vectorIdx);
-  }
-  
+
   private generateChallenge(): string {
     return this.randomGenerator.generateBase64Bytes(32, 'challenge');
   }

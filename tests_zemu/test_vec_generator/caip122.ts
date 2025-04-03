@@ -28,13 +28,7 @@ function insertFieldAlphabetically(fields: Field[], newField: Field): void {
 }
 
 class Caip122Generator extends ProtocolGenerator {
-  private chosenPubkeys: string[] = [];
   private randomGenerator = new RandomGenerator();
-  
-  createBlob(fields: Field[], vectorIdx: number): string {
-    const creator = new BaseBlobCreator(this.chosenPubkeys);
-    return creator.createBlob(fields, vectorIdx);
-  }
   
   private generateRequestId(): string {
     return this.randomGenerator.generateHexString(32, 'requestId');

@@ -1,5 +1,6 @@
 import { serializePath } from "./bip32";
 import * as crypto from 'crypto';
+import { BaseBlobCreator } from "./blobCreator";
 
 interface Field {
   name: string;
@@ -33,19 +34,27 @@ export const signerAcc123 = "BX63ZW4O5PWWFDH3J33QEB5YN7IN5XOKPDUQ5DCZ232EDY4DWN3
 export const COMMON_RANDOMNESS_SEED = 'common-fixed-seed'
 
 export abstract class ProtocolGenerator {
+  protected chosenPubkeys: string[] = [];
+
   abstract generateValidConfigs(): Array<Record<string, any>>;
-  abstract createBlob(fields: Field[], vectorIdx: number): string;
+
+  createBlob(dataBytes: Buffer, fields: Field[], vectorIdx: number): string {
+    const creator = new BaseBlobCreator(this.chosenPubkeys);
+    return creator.createBlob(dataBytes, fields, vectorIdx);
+  }
 
   generateInvalidConfigs(validConfig: Record<string, any>): Array<Record<string, any>> {
     const invalidConfigs: Array<Record<string, any>> = [];
     const validConfigWithoutBlob = { ...validConfig };
     delete validConfigWithoutBlob.blob;
     
-    const invalidDomainConfig = createInvalidDomainConfig({...validConfigWithoutBlob});
-    const invalidRequestIdConfig = createInvalidRequestIdConfig({...validConfigWithoutBlob});
-    const invalidHdPathConfig = createInvalidHdPathConfig({...validConfigWithoutBlob});
-    const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig({...validConfigWithoutBlob});
+    const invalidDataConfigUnsortedKeys = createInvalidDataConfigUnsortedKeys(structuredClone(validConfigWithoutBlob));
+    const invalidDomainConfig = createInvalidDomainConfig(structuredClone(validConfigWithoutBlob));
+    const invalidRequestIdConfig = createInvalidRequestIdConfig(structuredClone(validConfigWithoutBlob));
+    const invalidHdPathConfig = createInvalidHdPathConfig(structuredClone(validConfigWithoutBlob));
+    const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig(structuredClone(validConfigWithoutBlob));
 
+    invalidConfigs.push(invalidDataConfigUnsortedKeys);
     invalidConfigs.push(invalidDomainConfig);
     invalidConfigs.push(invalidRequestIdConfig);
     invalidConfigs.push(invalidHdPathConfig);
@@ -54,6 +63,28 @@ export abstract class ProtocolGenerator {
     return invalidConfigs;
   }
 
+  parseDataFields(fields: Field[], externalStartIdx: number): Record<string, any> {
+    const data: Record<string, any> = {};
+    
+    for (let i = 0; i < externalStartIdx; i++) {
+      const field = fields[i];
+      const fieldName = field.name;
+      const fieldValue = field.value;
+      
+      data[fieldName] = fieldValue;
+    }
+    
+    return data;
+  }
+
+  findExternalFieldsStartIndex(fields: Field[], externalFieldNames: string[]): number {
+    for (let i = 0; i < fields.length; i++) {
+      if (externalFieldNames.includes(fields[i].name)) {
+        return i;
+      }
+    }
+    return fields.length;
+  }
 }
 
 function changeConfigName(config: Record<string, any>, new_name: string): Record<string, any> {
@@ -65,8 +96,22 @@ function changeConfigName(config: Record<string, any>, new_name: string): Record
   return config;
 }
 
+function createInvalidDataConfigUnsortedKeys(validConfig: Record<string, any>): Record<string, any> {
+  const invalidConfig = validConfig;
+  const firstFieldKey = validConfig.fields[0].name;
+  const firstFieldValue = validConfig.fields[0].value;
+  const secondFieldKey = validConfig.fields[1].name;
+  const secondFieldValue = validConfig.fields[1].value;
+  invalidConfig.fields[0].name = secondFieldKey;
+  invalidConfig.fields[0].value = secondFieldValue;
+  invalidConfig.fields[1].name = firstFieldKey;
+  invalidConfig.fields[1].value = firstFieldValue;
+  invalidConfig.error = "Bad JSON";
+  return changeConfigName(invalidConfig, "Invalid_Data_Unsorted_Keys");
+}
+
 function createInvalidDomainConfig(validConfig: Record<string, any>): Record<string, any> {
-  const invalidConfig = { ...validConfig };
+  const invalidConfig = validConfig;
   const domain = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.DOMAIN)?.value;
 
   if (domain) {
@@ -85,7 +130,7 @@ function createInvalidDomainConfig(validConfig: Record<string, any>): Record<str
 }
 
 function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<string, any> {
-  const invalidConfig = { ...validConfig };
+  const invalidConfig = validConfig;
   const requestId = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.REQUEST_ID)?.value;
   const decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
 
@@ -107,7 +152,7 @@ function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<
 }
 
 function createInvalidSignerHdPathConfig(validConfig: Record<string, any>): Record<string, any> {
-  const invalidConfig = { ...validConfig };
+  const invalidConfig = validConfig;
   const hasSigner = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.SIGNER);
   const hasHdPath = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.HD_PATH);
 
@@ -128,7 +173,7 @@ function createInvalidSignerHdPathConfig(validConfig: Record<string, any>): Reco
 }
 
 function createInvalidHdPathConfig(validConfig: Record<string, any>): Record<string, any> {
-  const invalidConfig = { ...validConfig };
+  const invalidConfig = validConfig;
   const hasHdPath = invalidConfig.fields.find((f: Field) => f.name === FIELD_NAMES.HD_PATH);
 
   if (hasHdPath) {
