@@ -26,7 +26,7 @@
 #include "zxerror.h"
 #include "jsmn.h"
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(LEDGER_SPECIFIC)
 #include "crypto.h"
 #endif
 
@@ -1218,7 +1218,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
         CHECK_ERROR(_readTxAssetConfig(c, v))
         break;
     case TX_APPLICATION:
-        #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+        #if defined(LEDGER_SPECIFIC)
         CHECK_ERROR(_readTxApplication(c, v))
         if (!app_mode_blindsign()) {
             app_mode_skip_blindsign_ui();
@@ -1276,7 +1276,7 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
 
     
     uint8_t raw_pubkey[PK_LEN_25519];
-    #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+    #if defined(LEDGER_SPECIFIC)
     zxerr_t err = crypto_extractPublicKey(raw_pubkey, PK_LEN_25519);
     if (err != zxerr_ok) {
         return parser_invalid_signer;
@@ -1338,7 +1338,7 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
     CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &num_json_items))
     num_items += num_json_items;
 
-    CHECK_ERROR(parser_json_check_canonical(v->dataBuffer, v->dataLen))
+    CHECK_ERROR(parser_json_check_canonical((const char*)v->dataBuffer, v->dataLen))
 
     return parser_ok;
 }
@@ -1617,14 +1617,14 @@ const char *parser_getMsgPackTypeDescription(uint8_t type) {
 parser_error_t parser_jsonGetNthKey(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen) {
     uint16_t token_index = 0;
     CHECK_ERROR(parser_json_object_get_nth_key(0, displayIdx, &token_index));
-    CHECK_ERROR(parser_getJsonItemFromTokenIndex(ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outKey, outKeyLen));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char*)ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outKey, outKeyLen));
     return parser_ok;
 }
 
 parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx, char *outVal, uint16_t outValLen) {
     uint16_t token_index = 0;
     CHECK_ERROR(parser_json_object_get_nth_value(0, displayIdx, &token_index));
-    CHECK_ERROR(parser_getJsonItemFromTokenIndex(ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char*)ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
 
     // Remove backslashes
     uint16_t removedBackslashes = 0;

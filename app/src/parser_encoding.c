@@ -23,7 +23,7 @@
 #include "base32.h"
 #define CX_SHA512_SIZE 64
 
- #if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+ #if defined(LEDGER_SPECIFIC)
 
 #else
 #include "picohash.h"
@@ -48,7 +48,7 @@ uint32_t encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *public
 parser_error_t b64hash_data(unsigned char *data, size_t data_len, char *b64hash, size_t b64hashLen)
 {
     unsigned char hash[32];
-#if defined(TARGET_NANOS) || defined(TARGET_NANOS2) || defined(TARGET_NANOX) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(LEDGER_SPECIFIC)
     // Hash program and b64 encode for display
     cx_sha256_t ctx;
     memset(&ctx, 0, sizeof(ctx));

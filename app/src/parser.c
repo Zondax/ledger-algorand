@@ -824,7 +824,7 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         // Domain
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Domain");
-        pageString(outVal, outValLen, ctx->parser_arbitrary_data_obj->domainBuffer, pageIdx, pageCount);
+        pageString(outVal, outValLen, (const char*)ctx->parser_arbitrary_data_obj->domainBuffer, pageIdx, pageCount);
         return parser_ok;
     }
 
@@ -832,7 +832,7 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         // Auth Data
         *pageCount = 1;
         snprintf(outKey, outKeyLen, "Auth Data");
-        pageStringHex(outVal, outValLen, ctx->parser_arbitrary_data_obj->authDataBuffer, ctx->parser_arbitrary_data_obj->authDataLen, pageIdx, pageCount);
+        pageStringHex(outVal, outValLen, (const char*)ctx->parser_arbitrary_data_obj->authDataBuffer, ctx->parser_arbitrary_data_obj->authDataLen, pageIdx, pageCount);
         return parser_ok;
     }
 

@@ -135,6 +135,9 @@ parser_error_t parser_getJsonItemFromTokenIndex(const char *jsonBuffer, uint16_t
     jsmntok_t token = json->tokens[token_index];
 
     if (token.type == JSMN_STRING) {
+        if (token.end - token.start > outValLen) {
+            return parser_unexpected_buffer_end;
+        }
         memcpy(outVal, jsonBuffer + token.start, token.end - token.start);
         outVal[token.end - token.start] = '\0';
     } else {
@@ -144,7 +147,7 @@ parser_error_t parser_getJsonItemFromTokenIndex(const char *jsonBuffer, uint16_t
     return parser_ok;
 }
 
-static bool is_key_or_value(const char *p, const char *data) {
+static bool is_key_or_value(const char *pData, const char *data) {
     parsed_json_t *json = &parsed_json;
     uint16_t num_keys = 0;
     uint16_t key_token_index = 0;
@@ -158,22 +161,22 @@ static bool is_key_or_value(const char *p, const char *data) {
         CHECK_ERROR(parser_json_object_get_nth_value(0, i, &value_token_index));
         jsmntok_t value_token = json->tokens[value_token_index];
 
-        if (p >= data + key_token.start && p <= data + key_token.end) {
+        if (pData >= data + key_token.start && pData <= data + key_token.end) {
             return true;
         }
 
-        if (p >= data + value_token.start && p <= data + value_token.end) {
+        if (pData >= data + value_token.start && pData <= data + value_token.end) {
             return true;
         }
 
-        if (p < data + value_token.start) {
+        if (pData < data + value_token.start) {
             return false;
         }
     }
     return false;
 }
 
-parser_error_t parser_json_check_canonical(const char *data, size_t data_len) {
+parser_error_t parser_json_check_canonical(const char *data, uint16_t data_len) {
     uint16_t num_keys = 0;
     CHECK_ERROR(parser_json_object_get_element_count(0, &num_keys));
 

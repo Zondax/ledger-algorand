@@ -42,4 +42,4 @@ parser_error_t parser_json_object_get_nth_value(uint16_t object_token_index, uin
 
 parser_error_t parser_getJsonItemFromTokenIndex(const char *jsonBuffer, uint16_t token_index, char *outVal, uint16_t outValLen);
 
-parser_error_t parser_json_check_canonical(const char *data, size_t data_len);
+parser_error_t parser_json_check_canonical(const char *data, uint16_t data_len);
