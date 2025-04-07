@@ -70,7 +70,7 @@ zxerr_t addr_printHdPath(
     bip32_to_str(buffer, sizeof(buffer), hdPath, HDPATH_LEN_DEFAULT);
 
     char path[50];
-    strcpy(path, "m/");
+    strncpy(path, "m/", strlen("m/") + 1);
     strncat(path, buffer, sizeof(path) - strlen(path) - 1);
 
     pageString(outVal, outValLen, path, pageIdx, pageCount);

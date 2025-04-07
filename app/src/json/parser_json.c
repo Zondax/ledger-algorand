@@ -234,7 +234,7 @@ parser_error_t parser_json_check_canonical(const char *data, uint16_t data_len) 
             return parser_bad_json;
         }
 
-        strcpy(lastKey, currentKey);
+        strncpy(lastKey, currentKey, sizeof(lastKey) - 1);
     }
 
     // Check there are only ASCII characters
