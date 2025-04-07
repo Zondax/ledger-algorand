@@ -71,7 +71,7 @@ zxerr_t addr_printHdPath(
 
     char path[50];
     strcpy(path, "m/");
-    strcat(path, buffer);
+    strncat(path, buffer, sizeof(path) - strlen(path) - 1);
 
     pageString(outVal, outValLen, path, pageIdx, pageCount);
     return zxerr_ok;
