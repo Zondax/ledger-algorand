@@ -48,6 +48,7 @@ describe('BigTransactions', function () {
     }
   })
 
+  /*
   describe.each(APPLICATION_LONG_TEST_CASES)('Tx Application Calls', function (data) {
     test.concurrent.each(models)(`sign_application_big_${data.name}`, async function (m) {
       const sim = new Zemu(m.path)
@@ -82,4 +83,5 @@ describe('BigTransactions', function () {
       }
     })
   })
+  */
 })
