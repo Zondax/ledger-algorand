@@ -20,7 +20,7 @@
 #include "msgpack.h"
 #include "app_mode.h"
 #include "coin.h"
-#include "picohash.h"
+#include "crypto_utils.h"
 #include "apdu_codes.h"
 #include "zxformat.h"
 #include "zxerror.h"
@@ -1408,13 +1408,10 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     CTX_CHECK_AND_ADVANCE(c, authDataLen)
 
     // authData first 32 bytes should be the sha256 of the domain
-    uint8_t domainHash[PICOHASH_SHA256_DIGEST_LENGTH];
-    picohash_ctx_t ctx;
-    picohash_init_sha256(&ctx);
-    picohash_update(&ctx, v->domainBuffer, v->domainLen);
-    picohash_final(&ctx, domainHash);
+    uint8_t domainHash[SHA256_DIGEST_SIZE];
+    crypto_sha256(v->domainBuffer, v->domainLen, domainHash, SHA256_DIGEST_SIZE);
 
-    if (memcmp(domainHash, v->authDataBuffer, PICOHASH_SHA256_DIGEST_LENGTH) != 0) {
+    if (memcmp(domainHash, v->authDataBuffer, SHA256_DIGEST_SIZE) != 0) {
         return parser_failed_domain_auth;
     }
 

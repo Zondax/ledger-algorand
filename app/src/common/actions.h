@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include "crypto.h"
+#include "crypto_utils.h"
 #include "tx.h"
 #include "apdu_codes.h"
 #include <os_io_seproxyhal.h>
@@ -42,6 +43,45 @@ __Z_INLINE zxerr_t app_fill_address() {
 __Z_INLINE void app_sign() {
     const uint8_t *message = tx_get_buffer();
     const uint16_t messageLength = tx_get_buffer_length();
+
+    zxerr_t err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength);
+
+    if (err != zxerr_ok) {
+        set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    } else {
+        set_code(G_io_apdu_buffer, SK_LEN_25519, APDU_CODE_OK);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, SK_LEN_25519 + 2);
+    }
+}
+
+// EdDSA(SHA256(data) + SHA256(authenticatedData))
+__Z_INLINE void app_sign_arbitrary() {
+    parser_context_t *ctx = tx_get_parser_context();
+    const uint8_t *data = ctx->parser_arbitrary_data_obj->dataBuffer;
+    const uint16_t dataLen = ctx->parser_arbitrary_data_obj->dataLen;
+    const uint8_t *authData = ctx->parser_arbitrary_data_obj->authDataBuffer;
+    const uint16_t authDataLen = ctx->parser_arbitrary_data_obj->authDataLen;
+
+    uint8_t dataHash[SHA256_DIGEST_SIZE] = {0};
+    uint8_t authDataHash[SHA256_DIGEST_SIZE] = {0};
+    uint8_t message[SHA256_DIGEST_SIZE * 2] = {0};
+    uint16_t messageLength = SHA256_DIGEST_SIZE * 2;
+
+    if (crypto_sha256(data, dataLen, dataHash, SHA256_DIGEST_SIZE) != zxerr_ok) {
+        set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        return;
+    }
+
+    if (crypto_sha256(authData, authDataLen, authDataHash, SHA256_DIGEST_SIZE) != zxerr_ok) {
+        set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        return;
+    }
+
+    MEMMOVE((void*)message, (void*)dataHash, SHA256_DIGEST_SIZE);
+    MEMMOVE((void*)(message + SHA256_DIGEST_SIZE), (void*)authDataHash, SHA256_DIGEST_SIZE);
 
     zxerr_t err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength);
 

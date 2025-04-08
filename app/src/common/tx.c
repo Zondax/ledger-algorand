@@ -76,6 +76,11 @@ uint8_t *tx_get_buffer()
     return buffering_get_buffer()->data;
 }
 
+parser_context_t *tx_get_parser_context()
+{
+    return &ctx_parsed_tx;
+}
+
 parser_error_t tx_parse(txn_content_e content)
 {
     MEMZERO(&parser_tx_obj, sizeof(parser_tx_obj));

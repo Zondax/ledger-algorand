@@ -18,6 +18,7 @@
 #include "base64.h"
 #include "zxformat.h"
 #include "crypto.h"
+#include "crypto_utils.h"
 
 #include "sha512.h"
 #include "base32.h"
@@ -48,21 +49,9 @@ uint32_t encodePubKey(uint8_t *buffer, uint16_t bufferLen, const uint8_t *public
 parser_error_t b64hash_data(unsigned char *data, size_t data_len, char *b64hash, size_t b64hashLen)
 {
     unsigned char hash[32];
-#if defined(LEDGER_SPECIFIC)
-    // Hash program and b64 encode for display
-    cx_sha256_t ctx;
-    memset(&ctx, 0, sizeof(ctx));
-    cx_sha256_init(&ctx);
-    
-    if (cx_hash_no_throw(&ctx.header, CX_LAST, data, data_len, hash, sizeof(hash)) != CX_OK) {
-        return parser_unexpected_error;
+    if (crypto_sha256(data, data_len, hash, sizeof(hash)) != zxerr_ok) {
+        return parser_unexpected_value;
     }
-#else
-    picohash_ctx_t ctx;
-    picohash_init_sha256(&ctx);
-    picohash_update(&ctx, data, data_len);
-    picohash_final(&ctx, hash);
-#endif
     base64_encode(b64hash, b64hashLen, (const uint8_t *)hash, sizeof(hash));
     return parser_ok;
 }

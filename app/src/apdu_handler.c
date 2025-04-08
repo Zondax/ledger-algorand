@@ -202,14 +202,17 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
 
 __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
 {
+    viewfunc_accept_t sign_callback;
     if (content == MsgPack) {
         if (!process_chunk_legacy(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
+        sign_callback = app_sign;
     } else {
         if (!process_chunk(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
+        sign_callback = app_sign_arbitrary;
     }
 
 
@@ -231,8 +234,7 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
         THROW(sw);
     }
 
-    // TODO: app_sign will need to consider the content type
-    view_review_init(tx_getItem, tx_getNumItems, app_sign);
+    view_review_init(tx_getItem, tx_getNumItems, sign_callback);
     view_review_show(REVIEW_TXN);
 
     *flags |= IO_ASYNCH_REPLY;
