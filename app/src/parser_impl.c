@@ -1625,13 +1625,19 @@ parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx,
 
     // Remove backslashes
     uint16_t removedBackslashes = 0;
-    for (uint16_t i = 0; i < outValLen; i++) {
-        if (outVal[i] == '\\') {
-            memmove(&outVal[i], &outVal[i + 1], outValLen - i - 1);
+    uint16_t currentLen = strlen(outVal);
+    
+    for (uint16_t i = 0; i < currentLen - removedBackslashes; i++) {
+        if (outVal[i + removedBackslashes] == '\\') {
             removedBackslashes++;
         }
-        outValLen -= removedBackslashes;
-        outVal[outValLen] = '\0';
+        if (removedBackslashes > 0 && i + removedBackslashes < currentLen) {
+            outVal[i] = outVal[i + removedBackslashes];
+        }
+    }
+    
+    if (removedBackslashes > 0) {
+        outVal[currentLen - removedBackslashes] = '\0';
     }
 
     return parser_ok;
