@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.1",
-    "@zondax/ledger-algorand": "1.1.0",
+    "@zondax/ledger-algorand": "file:../../ledger-algorand-js",
     "@zondax/zemu": "^0.55.3",
     "algosdk": "^3.2.0",
     "yargs": "^17.7.2"
