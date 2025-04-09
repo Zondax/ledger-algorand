@@ -224,14 +224,7 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
         int error_msg_length = strlen(error_msg);
         memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
         *tx += (error_msg_length);
-
-        if (error == parser_blindsign_mode_required) {
-            *flags |= IO_ASYNCH_REPLY;
-            view_blindsign_error_show();
-        }
-
-        uint16_t sw = parser_mapParserErrorToSW(error);
-        THROW(sw);
+        THROW(APDU_CODE_DATA_INVALID);
     }
 
     view_review_init(tx_getItem, tx_getNumItems, sign_callback);

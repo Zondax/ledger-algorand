@@ -47,38 +47,35 @@ describe('BigTransactions', function () {
     }
   })
 
-  describe.each(APPLICATION_LONG_TEST_CASES)('Tx Application Calls', function (data) {
-    test.concurrent.each(models)(`sign_application_big_${data.name}`, async function (m) {
-      const sim = new Zemu(m.path)
-      try {
-        await sim.start({ ...defaultOptions, model: m.name })
-        const app = new AlgorandApp(sim.getTransport())
+  test.concurrent.each(models)('sign application big', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
 
-        const txBlob = Buffer.from(data.tx, 'hex')
+      const txBlob = Buffer.from(txApplicationLong, 'hex')
 
         const responseAddr = await app.getAddressAndPubKey(accountId)
         const pubKey = responseAddr.publicKey
 
-        if (data.blindsign_mode) {
-          await sim.toggleBlindSigning()
-        }
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.sign(accountId, txBlob)
 
-        // do not wait here.. we need to navigate
-        const signatureRequest = app.sign(accountId, txBlob)
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_big`)
 
-        // Wait until we are not in the main menu
-        await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
-        await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_application_big_${data.name}`,true, 0, 15000, data.blindsign_mode)
+      const signatureResponse = await signatureRequest
 
-        const signatureResponse = await signatureRequest
+      expect(signatureResponse.return_code).toEqual(0x9000)
+      expect(signatureResponse.error_message).toEqual('No errors')
 
-        // Now verify the signature
-        const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
-        const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
-        expect(valid).toEqual(true)
-      } finally {
-        await sim.close()
-      }
-    })
+      // Now verify the signature
+      const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
+      const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
+      expect(valid).toEqual(true)
+    } finally {
+      await sim.close()
+    }
   })
 })
