@@ -54,7 +54,7 @@ describe('Arbitrary Sign', () => {
           data: Buffer.from(params.data).toString('base64'),
           signer: pubKey,
           domain: "arc60.io",
-          requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
+          requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
           authenticationData: authData,
           hdPath: "m/44'/283'/0'/0/0"
         }
@@ -96,7 +96,7 @@ describe('Arbitrary Sign', () => {
         data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
         signer: firstPubKey,
         domain: "arc60.io",
-        requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
+        requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
         authenticationData: authData,
         hdPath: `m/44'/283'/${accountId}'/0/0`
       }
@@ -139,7 +139,7 @@ describe('Arbitrary Sign', () => {
         data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
         signer: pubKey,
         domain: "arc60.io",
-        requestId: Buffer.from(Array(32).fill(2)).toString('base64'),
+        requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
         authenticationData: authData,
       }
 
