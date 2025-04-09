@@ -31,7 +31,6 @@ const defaultOptions = {
 }
 
 const accountId = 123
-const hdPath = `m/44'/283'/${accountId}'/0/0`
 
 // Timeout is now handled in vitest.config.ts
 beforeEach(() => {
@@ -48,7 +47,6 @@ describe('BigTransactions', function () {
     }
   })
 
-  /*
   describe.each(APPLICATION_LONG_TEST_CASES)('Tx Application Calls', function (data) {
     test.concurrent.each(models)(`sign_application_big_${data.name}`, async function (m) {
       const sim = new Zemu(m.path)
@@ -58,15 +56,15 @@ describe('BigTransactions', function () {
 
         const txBlob = Buffer.from(data.tx, 'hex')
 
-        const responseAddr = await app.getAddressAndPubKey(hdPath)
-        const pubKey = responseAddr.pubkey
+        const responseAddr = await app.getAddressAndPubKey(accountId)
+        const pubKey = responseAddr.publicKey
 
         if (data.blindsign_mode) {
           await sim.toggleBlindSigning()
         }
 
         // do not wait here.. we need to navigate
-        const signatureRequest = app.sign(hdPath, txBlob)
+        const signatureRequest = app.sign(accountId, txBlob)
 
         // Wait until we are not in the main menu
         await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -83,5 +81,4 @@ describe('BigTransactions', function () {
       }
     })
   })
-  */
 })

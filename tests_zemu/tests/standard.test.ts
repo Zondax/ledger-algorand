@@ -14,6 +14,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 
+// @ts-ignore
 import Zemu, { zondaxMainmenuNavigation, DEFAULT_START_OPTIONS, ButtonKind, isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
 import { AlgorandApp } from '@zondax/ledger-algorand'
@@ -22,6 +23,7 @@ import { APP_SEED, models, APPLICATION_TEST_CASES, txAssetConfig, txAssetFreeze,
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
 import { expect, test, describe, vi, beforeEach } from 'vitest'
+import { errorCodeToString, LedgerError } from '@zondax/ledger-algorand/dist/common'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -31,9 +33,7 @@ const defaultOptions = {
 }
 
 const accountId = 123
-const hdPath = `m/44'/283'/${accountId}'/0/0`
 
-// Set timeout for all tests (replaces jest.setTimeout)
 beforeEach(() => {
   // This is handled by the vitest.config.ts file
 })
@@ -48,7 +48,6 @@ describe('Standard', function () {
     }
   })
 
-  /*
   test.concurrent.each(models)('main menu', async function (m) {
     const sim = new Zemu(m.path)
     try {
@@ -69,8 +68,8 @@ describe('Standard', function () {
 
       console.log(resp)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
+      expect(resp.returnCode).toEqual(0x9000)
+      expect(resp.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
       expect(resp).toHaveProperty('testMode')
       expect(resp).toHaveProperty('major')
       expect(resp).toHaveProperty('minor')
@@ -89,14 +88,14 @@ describe('Standard', function () {
       const tmpAccountId = 123
       const resp = await app.getAddressAndPubKey(tmpAccountId)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
+      expect(resp.returnCode).toEqual(0x9000)
+      expect(resp.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       const expected_pk = '0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377'
       const expected_address = 'BX63ZW4O5PWWFDH3J33QEB5YN7IN5XOKPDUQ5DCZ232EDY4DWN3XKUQRCA'
 
-      expect(resp.pubkey.toString('hex')).toEqual(expected_pk)
-      expect(resp.address).toEqual(expected_address)
+      expect(resp.publicKey.toString('hex')).toEqual(expected_pk)
+      expect(resp.address.toString()).toEqual(expected_address)
     } finally {
       await sim.close()
     }
@@ -112,11 +111,11 @@ describe('Standard', function () {
       const tmpAccountId = 123
       const resp = await app.getPubkey(tmpAccountId)
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
+      expect(resp.returnCode).toEqual(0x9000)
+      expect(resp.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       const expected_pk = '0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377'
-      expect(resp.pubkey.toString('hex')).toEqual(expected_pk)
+      expect(resp.publicKey.toString('hex')).toEqual(expected_pk)
     } finally {
       await sim.close()
     }
@@ -133,15 +132,15 @@ describe('Standard', function () {
       })
       const app = new AlgorandApp(sim.getTransport())
 
-      const respRequest = app.getAddressAndPubKey(hdPath, true)
+      const respRequest = app.getAddressAndPubKey(accountId, true)
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
       await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-show_address`)
 
       const resp = await respRequest
 
-      expect(resp.return_code).toEqual(0x9000)
-      expect(resp.error_message).toEqual('No errors')
+      expect(resp.returnCode).toEqual(0x9000)
+      expect(resp.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
     } finally {
       await sim.close()
     }
@@ -153,26 +152,21 @@ describe('Standard', function () {
       await sim.start({
         ...defaultOptions,
         model: m.name,
-        approveKeyword: isTouchDevice(m.name) ? 'Confirm' : '',
-        approveAction: ButtonKind.ApproveTapButton,
+        rejectKeyword: isTouchDevice(m.name) ? 'Confirm' : '',
       })
       const app = new AlgorandApp(sim.getTransport())
 
-      const respRequest = app.getAddressAndPubKey(hdPath, true)
-
+      // Create a promise that should be rejected
+      const respRequest = app.getAddressAndPubKey(accountId, true)
+      
       expect(respRequest).rejects.toMatchObject({
-        returnCode: 0x6986,
-        errorMessage: 'Transaction rejected',
+        returnCode: LedgerError.TransactionRejected,
+        errorMessage: errorCodeToString(LedgerError.TransactionRejected),
       })
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
       await sim.compareSnapshotsAndReject('.', `${m.prefix.toLowerCase()}-show_address_reject`)
-
-      const resp = await respRequest
-
-      expect(resp.return_code).toEqual(0x6986)
-      expect(resp.error_message).toEqual('Transaction rejected')
     } finally {
       await sim.close()
     }
@@ -185,11 +179,11 @@ describe('Standard', function () {
       const app = new AlgorandApp(sim.getTransport())
 
       const txBlob = Buffer.from(txAssetFreeze)
-      const responseAddr = await app.getAddressAndPubKey(hdPath)
-      const pubKey = responseAddr.pubkey
+      const responseAddr = await app.getAddressAndPubKey(accountId)
+      const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(hdPath, txBlob)
+      const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -197,8 +191,8 @@ describe('Standard', function () {
 
       const signatureResponse = await signatureRequest
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      expect(signatureResponse.returnCode).toEqual(0x9000)
+      expect(signatureResponse.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -220,7 +214,7 @@ describe('Standard', function () {
       const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(hdPath, txBlob)
+      const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -228,8 +222,8 @@ describe('Standard', function () {
 
       const signatureResponse = await signatureRequest
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      expect(signatureResponse.returnCode).toEqual(0x9000)
+      expect(signatureResponse.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -251,7 +245,7 @@ describe('Standard', function () {
       const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(hdPath, txBlob)
+      const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -259,8 +253,8 @@ describe('Standard', function () {
 
       const signatureResponse = await signatureRequest
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      expect(signatureResponse.returnCode).toEqual(0x9000)
+      expect(signatureResponse.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -282,7 +276,7 @@ describe('Standard', function () {
       const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(hdPath, txBlob)
+      const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -290,8 +284,8 @@ describe('Standard', function () {
 
       const signatureResponse = await signatureRequest
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      expect(signatureResponse.returnCode).toEqual(0x9000)
+      expect(signatureResponse.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -313,7 +307,7 @@ describe('Standard', function () {
       const pubKey = responseAddr.publicKey
 
       // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(hdPath, txBlob)
+      const signatureRequest = app.sign(accountId, txBlob)
 
       // Wait until we are not in the main menu
       await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -321,8 +315,8 @@ describe('Standard', function () {
 
       const signatureResponse = await signatureRequest
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+      expect(signatureResponse.returnCode).toEqual(0x9000)
+      expect(signatureResponse.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
 
       // Now verify the signature
       const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
@@ -341,15 +335,15 @@ describe('Standard', function () {
         const app = new AlgorandApp(sim.getTransport())
 
         const txBlob = Buffer.from(data.tx)
-        const responseAddr = await app.getAddressAndPubKey(hdPath)
-        const pubKey = responseAddr.pubkey
+        const responseAddr = await app.getAddressAndPubKey(accountId)
+        const pubKey = responseAddr.publicKey
 
         if (data.blindsign_mode) {
           await sim.toggleBlindSigning()
         }
 
         // do not wait here.. we need to navigate
-        const signatureRequest = app.sign(hdPath, txBlob)
+        const signatureRequest = app.sign(accountId, txBlob)
 
         // Wait until we are not in the main menu
         await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
@@ -366,5 +360,4 @@ describe('Standard', function () {
       }
     })
   })
-*/
 })
