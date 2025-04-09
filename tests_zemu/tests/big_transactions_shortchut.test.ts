@@ -14,11 +14,11 @@
  *  limitations under the License.
  ******************************************************************************* */
 
+import { describe, test, expect, beforeEach } from 'vitest'
 import Zemu, { DEFAULT_START_OPTIONS, ClickNavigation } from '@zondax/zemu'
-import  { zondaxToggleBlindSigning } from '@zondax/zemu/dist/zondax'
 // @ts-ignore
-import AlgorandApp from '@zondax/ledger-algorand'
-import {APP_SEED, clickableModels, txApplicationLong} from './common'
+import { AlgorandApp } from '@zondax/ledger-algorand'
+import { APP_SEED, clickableModels, txApplicationLong } from './common'
 
 // @ts-ignore
 import ed25519 from 'ed25519-supercop'
@@ -32,67 +32,73 @@ const defaultOptions = {
 
 const accountId = 123
 
-jest.setTimeout(300000)
+describe('BigTransactions - Shortcut', () => {
+  beforeEach(context => {
+    // This is handled by the vitest.config.ts file
+  })
 
-describe('BigTransactions - Shortcut', function () {
-  test.concurrent.each(clickableModels)('can start and stop container', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-    } finally {
-      await sim.close()
+  test.concurrent('can start and stop container', async ({ expect }) => {
+    for (const m of clickableModels) {
+      const sim = new Zemu(m.path)
+      try {
+        await sim.start({ ...defaultOptions, model: m.name })
+      } finally {
+        await sim.close()
+      }
     }
   })
 
-  test.concurrent.each(clickableModels)('sign application big', async function (m) {
-    const sim = new Zemu(m.path)
-    try {
-      await sim.start({ ...defaultOptions, model: m.name })
-      const app = new AlgorandApp(sim.getTransport())
+  test.concurrent('sign application big', async ({ expect }) => {
+    for (const m of clickableModels) {
+      const sim = new Zemu(m.path)
+      try {
+        await sim.start({ ...defaultOptions, model: m.name })
+        const app = new AlgorandApp(sim.getTransport())
 
-      const txBlob = Buffer.from(txApplicationLong, 'hex')
-      console.log(sim.getMainMenuSnapshot())
+        const txBlob = Buffer.from(txApplicationLong, 'hex')
+        console.log(sim.getMainMenuSnapshot())
 
-      // Enable expert mode
-      await sim.toggleExpertMode(`${m.prefix.toLowerCase()}-sign_application_big_shortcut`, true, 0);
+        // Enable expert mode
+        await sim.toggleExpertMode(`${m.prefix.toLowerCase()}-sign_application_big_shortcut`, true, 0);
 
-      // Toggle shortcut mode on nano s, s+ and x devices, and compare
-      const snapshotsDelta = m.name == "nanos" ? 3 : 0
-      let nav = new ClickNavigation([2, 0, 5 + snapshotsDelta, 0])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 3);
+        // Toggle shortcut mode on nano s, s+ and x devices, and compare
+        const snapshotsDelta = m.name == "nanos" ? 3 : 0
+        let nav = new ClickNavigation([2, 0, 5 + snapshotsDelta, 0])
+        await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 3);
 
-      // Take snapshots of the shortcut mode and compare
-      nav = new ClickNavigation([2, -2])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 12 + snapshotsDelta);
+        // Take snapshots of the shortcut mode and compare
+        nav = new ClickNavigation([2, -2])
+        await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 12 + snapshotsDelta);
 
-      console.log(sim.getMainMenuSnapshot())
-      const responseAddr = await app.getAddressAndPubKey(accountId)
-      const pubKey = responseAddr.publicKey
+        console.log(sim.getMainMenuSnapshot())
+        const responseAddr = await app.getAddressAndPubKey(accountId)
+        const pubKey = responseAddr.publicKey
 
-      await sim.deleteEvents()
+        await sim.deleteEvents()
 
-      // do not wait here.. we need to navigate
-      const signatureRequest = app.sign(accountId, txBlob)
+        // do not wait here.. we need to navigate
+        const signatureRequest = app.sign(accountId, txBlob)
 
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+        // Wait until we are not in the main menu
+        await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
 
-      // Click on "skip fields" and approve
-      nav = new ClickNavigation([1, 0, 0])
-      await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 17 + snapshotsDelta);
+        // Click on "skip fields" and approve
+        nav = new ClickNavigation([1, 0, 0])
+        await sim.navigateAndCompareSnapshots(".", `${m.prefix.toLowerCase()}-sign_application_big_shortcut`, nav.schedule, true, 17 + snapshotsDelta);
 
-      const signatureResponse = await signatureRequest
-      console.log(signatureResponse)
+        const signatureResponse = await signatureRequest
+        console.log(signatureResponse)
 
-      expect(signatureResponse.return_code).toEqual(0x9000)
-      expect(signatureResponse.error_message).toEqual('No errors')
+        expect(signatureResponse.return_code).toEqual(0x9000)
+        expect(signatureResponse.error_message).toEqual('No errors')
 
-      // Now verify the signature
-      const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
-      const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
-      expect(valid).toEqual(true)
-    } finally {
-      await sim.close()
+        // Now verify the signature
+        const prehash = Buffer.concat([Buffer.from('TX'), txBlob])
+        const valid = ed25519.verify(signatureResponse.signature, prehash, pubKey)
+        expect(valid).toEqual(true)
+      } finally {
+        await sim.close()
+      }
     }
   })
 })
