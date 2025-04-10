@@ -1211,7 +1211,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-#if !defined(TARGET_NANOS) && !defined(TARGET_NANOS2) && !defined(TARGET_NANOX) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+#if !defined(LEDGER_SPECIFIC)
 #include "crypto.h"
 static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrary_data_t *v)
 {
@@ -1230,7 +1230,7 @@ static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrar
 
 parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    #if !defined(TARGET_NANOS) && !defined(TARGET_NANOS2) && !defined(TARGET_NANOX) && !defined(TARGET_STAX) && !defined(TARGET_FLEX)
+    #if !defined(LEDGER_SPECIFIC)
     // For cpp_test, the path needs to be read here
     CHECK_ERROR(_readSerializedHdPath(c, v))
     #endif

@@ -44,6 +44,15 @@ VARIANT_PARAM=COIN
 VARIANT_VALUES=$(COIN)
 
 include $(CURDIR)/Makefile.version
+APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
+
+# Application icons following guidelines:
+# https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
+ICON_NANOS = nanos_icon.gif
+ICON_NANOX = nanox_icon.gif
+ICON_NANOSP = nanox_icon.gif
+ICON_STAX = stax_icon.gif
+ICON_FLEX = flex_icon.gif
 
 $(info COIN  = [$(COIN)])
 
@@ -78,10 +87,9 @@ DEFINES += HAVE_U2F HAVE_IO_U2F U2F_PROXY_MAGIC=\"algo\" USB_SEGMENT_SIZE=64 BLE
 SDK_SOURCE_PATH += lib_u2f
 
 LDFLAGS  += -z muldefs
+APP_SOURCE_PATH += $(MY_DIR)/../app/src/
 APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
 APP_SOURCE_PATH += $(MY_DIR)/../deps/picohash
-APP_SOURCE_PATH += $(MY_DIR)/../app/src/json
-APP_SOURCE_PATH += $(MY_DIR)/../app/src/json/jsmn
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 
