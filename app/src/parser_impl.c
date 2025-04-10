@@ -55,17 +55,6 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v);
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v);
 
-// Arbitrary Sign
-#define APDU_CODE_INVALID_SCOPE 0x6988
-#define APDU_CODE_FAILED_DECODING 0x6989
-#define APDU_CODE_INVALID_SIGNER 0x698A
-#define APDU_CODE_MISSING_DOMAIN 0x698B
-#define APDU_CODE_MISSING_AUTHENTICATED_DATA 0x698C
-#define APDU_CODE_BAD_JSON 0x698D
-#define APDU_CODE_FAILED_DOMAIN_AUTH 0x698E
-#define APDU_CODE_FAILED_HD_PATH 0x698F
-
-
 #define SCOPE_AUTH 0x01
 #define ENCODING_BASE64 0x01
 
