@@ -1,3 +1,4 @@
+import { canonify } from '@truestamp/canonify'
 import { IDeviceModel } from '@zondax/zemu'
 import { resolve } from 'path'
 
@@ -112,14 +113,14 @@ export const txApplicationLong =
 export const ARBITRARY_SIGN_TEST_CASES = [
   {
     idx: 0,
-    data: '{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }',
+    data: canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '',
   },
   {
     idx: 1,
-    data: '{"account_address":"BYVBFXCGJLDU5Q7POFA2G4CLAGUBWRU3TOKDPNQG57D44KW6CVY3FPIXRM","chain_id":"283","domain":"arc60.io","expiration-time":"2022-12-31T23:59:59Z","issued-at":"2021-12-31T23:59:59Z","nonce":"A4nEQYY3Ss9sCkTMwIIZui5VeUS5Y1HAQDK2+ivNtX8=","not-before":"2021-12-31T23:59:59Z","resources":["auth","sign"],"statement":"We are requesting you to sign this message to authenticate to arc60.io","type":"ed25519","uri":"https://arc60.io","version":"1"}',
+    data: canonify({ account_address: "BYVBFXCGJLDU5Q7POFA2G4CLAGUBWRU3TOKDPNQG57D44KW6CVY3FPIXRM", chain_id: "283", domain: "arc60.io", expiration_time: "2022-12-31T23:59:59Z", issued_at: "2021-12-31T23:59:59Z", nonce: "A4nEQYY3Ss9sCkTMwIIZui5VeUS5Y1HAQDK2+ivNtX8=", not_before: "2021-12-31T23:59:59Z", resources: ["auth", "sign"], statement: "We are requesting you to sign this message to authenticate to arc60.io", type: "ed25519", uri: "https://arc60.io", version: "1" }) || '',
   },
   {
     idx: 2,
-    data: '{ "origin": "https://webauthn.io", "resources": [ "auth", "sign" ], "rpId": "webauthn.io", "challenge": "g8OebU4sWOCGljYnKXw4WUFNDszbeWfBJJKwmrTHuvc" }',
+    data: canonify({ origin: "https://webauthn.io", resources: ["auth", "sign"], rpId: "webauthn.io", challenge: "g8OebU4sWOCGljYnKXw4WUFNDszbeWfBJJKwmrTHuvc" }) || '',
   },
 ]

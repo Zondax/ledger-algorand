@@ -93,7 +93,7 @@ describe('Arbitrary Sign', () => {
       const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       let authRequest: StdSigData = {
-        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '').toString('base64'),
         signer: firstPubKey,
         domain: "arc60.io",
         requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
@@ -136,7 +136,7 @@ describe('Arbitrary Sign', () => {
       const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       const authRequest: StdSigData = {
-        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '').toString('base64'),
         signer: pubKey,
         domain: "arc60.io",
         requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
@@ -174,7 +174,7 @@ describe('Arbitrary Sign', () => {
       const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       const authRequest: StdSigData = {
-        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '').toString('base64'),
         signer: pubKey,
         domain: "arc60.io",
         authenticationData: authData,
@@ -212,7 +212,7 @@ describe('Arbitrary Sign', () => {
       const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
 
       const authRequest: StdSigData = {
-        data: Buffer.from('{ "type": "arc60.create", "challenge": "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", "origin": "https://arc60.io" }').toString('base64'),
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '').toString('base64'),
         signer: pubKey,
         domain: "arc60.io",
         authenticationData: authData,
@@ -236,6 +236,205 @@ describe('Arbitrary Sign', () => {
       await sim.close()
     }
   })
+
+  test.each(models)('arbitrary sign - invalid scope', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      // Invalid scope type
+      await expect(app.signData(authRequest, { scope: ScopeType.UNKNOWN, encoding: 'base64' })).rejects.toThrow('Invalid Scope')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - failed decoding', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'wrong_encoding' })).rejects.toThrow('Failed decoding')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - invalid signer', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const invalidPubKey = Buffer.from(Array(32).fill(1))
+      
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: invalidPubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Invalid Signer')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - missing domain', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        // domain is missing
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      } as any
+
+      await expect(app.signData(authRequest as StdSigData, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Missing Domain')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - missing authenticated data', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        // authenticationData is missing
+        hdPath: "m/44'/283'/0'/0/0"
+      } as any
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Missing Authentication Data')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - bad JSON', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from('{ this is not valid JSON').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Bad JSON')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - failed domain auth', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      // Use an authData that doesn't match the domain
+      const wrongAuthData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("wrong-domain.com").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: wrongAuthData,  // Auth data doesn't match domain
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Failed Domain Auth')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - failed hd path', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/999'/0'/0/0"
+      }
+
+      await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Failed HD Path')
+    } finally {
+      await sim.close()
+    }
+  })
 })
 
 function buildToSign(authRequest: StdSigData) {
@@ -243,7 +442,7 @@ function buildToSign(authRequest: StdSigData) {
 
   let clientDataJson = JSON.parse(decodedData.toString());
 
-  const canonifiedClientDataJson = canonify(clientDataJson);
+  const canonifiedClientDataJson = canonify(clientDataJson) || JSON.stringify(clientDataJson);
   if (!canonifiedClientDataJson) {
     throw new Error('Wrong JSON');
   }
