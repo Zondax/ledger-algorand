@@ -24,6 +24,8 @@
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
 
+#define TX_PREFIX_LENGTH 2
+
 // Ram
 uint8_t ram_buffer[RAM_BUFFER_SIZE];
 
@@ -87,7 +89,7 @@ parser_error_t tx_parse(txn_content_e content)
 
     if (content == MsgPack) {
         parser_obj = (void *) &parser_tx_obj;
-        offset = 2;   // 'TX' is prepended to input buffer
+        offset = TX_PREFIX_LENGTH;   // 'TX' is prepended to input buffer
     } else if (content == ArbitraryData) {
         parser_obj = (void *) &parser_arbitrary_data_obj;
     } else {
