@@ -15,7 +15,7 @@
  ******************************************************************************* */
 
 import { describe, test, expect, beforeAll } from 'vitest'
-import Zemu, { DEFAULT_START_OPTIONS } from '@zondax/zemu'
+import Zemu, { DEFAULT_START_OPTIONS , isTouchDevice } from '@zondax/zemu'
 // @ts-ignore
 import { AlgorandApp, ScopeType, StdSigData } from '@zondax/ledger-algorand'
 import { APP_SEED, models, ARBITRARY_SIGN_TEST_CASES } from './common'
@@ -431,6 +431,91 @@ describe('Arbitrary Sign', () => {
       }
 
       await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Failed HD Path')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.concurrent.each(models)('arbitrary sign - multiple signatures', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const authData: Uint8Array = new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest())
+
+      const request1: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "eSZVsYmvNCjJGH5a9WWIjKp5jm5DFxlwBBAw9zc8FZM=", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest1 = app.signData(request1, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      const lastSnapshotIdx = await sim.navigateUntilText(
+        '.',
+        `${m.prefix.toLowerCase()}-sign_arbitrary_multiple_signatures`,
+        sim.startOptions.approveKeyword,
+        true,
+        true,
+        0,
+        15000,
+        true,
+        true,
+        false
+      );
+
+      if (isTouchDevice(sim.startOptions.model)) {
+        // Avoid taking a snapshot of the final animation
+        await sim.waitUntilScreenIs(sim.mainMenuSnapshot);
+        await sim.takeSnapshotAndOverwrite('.', `${m.prefix.toLowerCase()}-sign_arbitrary_multiple_signatures`, lastSnapshotIdx);
+      }
+
+      await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_arbitrary_multiple_signatures`, lastSnapshotIdx);
+
+
+      const signatureResponse1 = await signatureRequest1
+
+      const toSign1 = buildToSign(request1)
+
+      // Now verify the signature
+      const valid1 = ed25519.verify(signatureResponse1.signature, toSign1, pubKey)
+      expect(valid1).toBe(true)
+
+      await sim.deleteEvents()
+
+      const request2: StdSigData = {
+        data: Buffer.from(canonify({ account_address: "BYVBFXCGJLDU5Q7POFA2G4CLAGUBWRU3TOKDPNQG57D44KW6CVY3FPIXRM", chain_id: "283", domain: "arc60.io", expiration_time: "2022-12-31T23:59:59Z", issued_at: "2021-12-31T23:59:59Z", nonce: "A4nEQYY3Ss9sCkTMwIIZui5VeUS5Y1HAQDK2+ivNtX8=", not_before: "2021-12-31T23:59:59Z", resources: ["auth", "sign"], statement: "We are requesting you to sign this message to authenticate to arc60.io", type: "ed25519", uri: "https://arc60.io", version: "1" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest2 = app.signData(request2, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary_multiple_signatures`, true, lastSnapshotIdx + 1)
+
+      const signatureResponse2 = await signatureRequest2
+
+      const toSign2 = buildToSign(request2)
+
+      // Now verify the signature
+      const valid2 = ed25519.verify(signatureResponse2.signature, toSign2, pubKey)
+      expect(valid2).toBe(true)
     } finally {
       await sim.close()
     }

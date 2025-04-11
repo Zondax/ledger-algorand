@@ -358,4 +358,77 @@ describe('Standard', function () {
       await sim.close()
     }
   })
+
+  test.concurrent.each(models)('sign asset freeze and sign application', async function (m) {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const txBlobAssetFreeze = Buffer.from(txAssetFreeze)
+      const responseAddr = await app.getAddressAndPubKey(accountId)
+      const pubKey = responseAddr.publicKey
+
+      // do not wait here.. we need to navigate
+      const signatureRequestAssetFreeze = app.sign(accountId, txBlobAssetFreeze)
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+
+      const lastSnapshotIdx = await sim.navigateUntilText(
+        '.',
+        `${m.prefix.toLowerCase()}-sign_asset_freeze_and_application`,
+        sim.startOptions.approveKeyword,
+        true,
+        true,
+        0,
+        15000,
+        true,
+        true,
+        false
+      );
+
+      if (isTouchDevice(sim.startOptions.model)) {
+        // Avoid taking a snapshot of the final animation
+        await sim.waitUntilScreenIs(sim.mainMenuSnapshot);
+        await sim.takeSnapshotAndOverwrite('.', `${m.prefix.toLowerCase()}-sign_asset_freeze_and_application`, lastSnapshotIdx);
+      }
+
+      await sim.compareSnapshots('.', `${m.prefix.toLowerCase()}-sign_asset_freeze_and_application`, lastSnapshotIdx);
+
+      const signatureResponseAssetFreeze = await signatureRequestAssetFreeze
+
+      expect(signatureResponseAssetFreeze.returnCode).toEqual(0x9000)
+      expect(signatureResponseAssetFreeze.errorMessage).toEqual(errorCodeToString(LedgerError.NoErrors))
+
+      // Now verify the signature
+      const prehashAssetFreeze = Buffer.concat([Buffer.from('TX'), txBlobAssetFreeze])
+      const validAssetFreeze = ed25519.verify(signatureResponseAssetFreeze.signature, prehashAssetFreeze, pubKey)
+      expect(validAssetFreeze).toEqual(true)
+
+      await sim.deleteEvents()
+
+      const txBlobApplication = Buffer.from(txApplication)
+      console.log(sim.getMainMenuSnapshot())
+
+      // do not wait here.. we need to navigate
+      const signatureRequestApplication = app.sign(accountId, txBlobApplication)
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_asset_freeze_and_application`, true, lastSnapshotIdx + 1)
+
+      const signatureResponseApplication = await signatureRequestApplication
+
+      expect(signatureResponseApplication.return_code).toEqual(0x9000)
+      expect(signatureResponseApplication.error_message).toEqual('No errors')
+
+      // Now verify the signature
+      const prehashApplication = Buffer.concat([Buffer.from('TX'), txBlobApplication])
+      const validApplication = ed25519.verify(signatureResponseApplication.signature, prehashApplication, pubKey)
+      expect(validApplication).toEqual(true)
+    } finally {
+      await sim.close()
+    }
+  })
 })
