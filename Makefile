@@ -18,7 +18,8 @@
 # BOLOS_SDK IS  DEFINED	 	We use the plain Makefile for Ledger
 # BOLOS_SDK NOT DEFINED		We use a containerized build approach
 
-#TESTS_JS_PACKAGE = "@zondax/ledger-algorand"
+TESTS_JS_PACKAGE = "@zondax/ledger-algorand"
+TESTS_JS_DIR = $(CURDIR)/js
 
 ifeq ($(BOLOS_SDK),)
 # In this case, there is not predefined SDK and we run dockerized
@@ -42,6 +43,7 @@ default:
 endif
 
 test_all:
-	cd tests_zemu && bun install
+	cd js && yarn install && yarn build
+	cd $(TESTS_ZEMU_DIR) && bun install
 	make
 	make zemu_test
