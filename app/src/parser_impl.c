@@ -1585,19 +1585,29 @@ parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx,
     CHECK_ERROR(parser_json_object_get_nth_value(0, displayIdx, &token_index));
     CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char*)ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
 
-    // Remove backslashes
+    // Remove backslashes from JSON string values
+    // This is needed because we don't want to display backslashes in the UI
+
+    // Counter for backslashes removed so far
     uint16_t removedBackslashes = 0;
+
     uint16_t currentLen = strlen(outVal);
     
     for (uint16_t i = 0; i < currentLen - removedBackslashes; i++) {
+        // Check if current character is a backslash (takes into account previous shifts)
         if (outVal[i + removedBackslashes] == '\\') {
+            // Found a backslash, increment counter
             removedBackslashes++;
         }
+
+        // If we've removed any backslashes, shift characters to the left
         if (removedBackslashes > 0 && i + removedBackslashes < currentLen) {
+            // Move character from position (i + removedBackslashes) to position i
             outVal[i] = outVal[i + removedBackslashes];
         }
     }
     
+    // If we removed any backslashes, add null terminator at the new end of string
     if (removedBackslashes > 0) {
         outVal[currentLen - removedBackslashes] = '\0';
     }
