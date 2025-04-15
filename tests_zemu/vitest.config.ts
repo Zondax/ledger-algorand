@@ -5,15 +5,26 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./globalsetup.js'],
-    include: ['tests/**/*.test.ts'],
+    include: [
+      'tests/**/*.test.ts',
+    ],
     testTimeout: 600000, // 10 minutes
     poolOptions: {
       threads: {
         singleThread: false,
       },
       forks: {
-        maxForks: 2, // Equivalent to Jest's maxConcurrency: 2
+        maxForks: 2,
       },
     },
+    maxWorkers: 2,
+    minWorkers: 1,
+    isolate: true,
+    sequence: {
+      concurrent: true
+    },
+    pool: 'forks',
+    fileParallelism: true
   },
 })
+

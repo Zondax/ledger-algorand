@@ -17,11 +17,7 @@
 
 #include "jsmn.h"
 
-#if defined(TARGET_NANOS)
-#define MAX_NUMBER_OF_JSMN_TOKENS 30
-#else
 #define MAX_NUMBER_OF_JSMN_TOKENS 80
-#endif
 
 typedef struct {
     jsmntok_t *tokens;

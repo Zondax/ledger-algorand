@@ -11,7 +11,7 @@ _Please visit our website at [zondax.ch](https://www.zondax.ch)_
 
 ---
 
-This project contains the Algorand app for Ledger Nano S Nano S+ and X.
+This project contains the Algorand app for Ledger Nano S+, Nano X, Flex and Stax.
 
 - Ledger Nano S/S+/X Algorand app
 - Specs / Documentation

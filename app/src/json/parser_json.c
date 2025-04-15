@@ -134,7 +134,7 @@ parser_error_t parser_getJsonItemFromTokenIndex(const char *jsonBuffer, uint16_t
     parsed_json_t *json = &parsed_json;
     jsmntok_t token = json->tokens[token_index];
 
-    if (token.type == JSMN_STRING) {
+    if (token.type == JSMN_STRING || token.type == JSMN_ARRAY) {
         if (token.end - token.start > outValLen) {
             return parser_unexpected_buffer_end;
         }

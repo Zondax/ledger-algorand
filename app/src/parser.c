@@ -836,18 +836,18 @@ static parser_error_t parser_getItemArbitrary(parser_context_t *ctx,
         return parser_ok;
     }
 
-    if (displayIdx == num_json_items + 3) {
-        // Request ID
-        *pageCount = 1;
-        if (ctx->parser_arbitrary_data_obj->requestIdLen != 0) {
+    if (ctx->parser_arbitrary_data_obj->requestIdLen != 0) {
+        if (displayIdx == num_json_items + 3) {
+            // Request ID
+            *pageCount = 1;
             snprintf(outKey, outKeyLen, "Request ID");
             char base64ReqId[200] = {0};
             base64_encode(base64ReqId, sizeof(base64ReqId), ctx->parser_arbitrary_data_obj->requestIdBuffer, ctx->parser_arbitrary_data_obj->requestIdLen);
             pageString(outVal, outValLen, base64ReqId, pageIdx, pageCount);
             return parser_ok;
-        } else {
-            displayIdx++;
         }
+    } else {
+        displayIdx++;
     }
 
     if (displayIdx == num_json_items + 4) {

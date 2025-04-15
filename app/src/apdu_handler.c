@@ -49,7 +49,7 @@ void extractHDPath(uint32_t rx, uint32_t offset) {
     const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
 
     if (!mainnet) {
-        THROW(APDU_CODE_DATA_INVALID);
+        THROW(APDU_CODE_FAILED_HD_PATH);
     }
 }
 
@@ -202,14 +202,17 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
 
 __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
 {
+    viewfunc_accept_t sign_callback;
     if (content == MsgPack) {
         if (!process_chunk_legacy(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
+        sign_callback = app_sign;
     } else {
         if (!process_chunk(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
+        sign_callback = app_sign_arbitrary;
     }
 
 
@@ -221,18 +224,10 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
         int error_msg_length = strlen(error_msg);
         memcpy(G_io_apdu_buffer, error_msg, error_msg_length);
         *tx += (error_msg_length);
-
-        if (error == parser_blindsign_mode_required) {
-            *flags |= IO_ASYNCH_REPLY;
-            view_blindsign_error_show();
-        }
-
-        uint16_t sw = parser_mapParserErrorToSW(error);
-        THROW(sw);
+        THROW(parser_mapParserErrorToSW(error));
     }
 
-    // TODO: app_sign will need to consider the content type
-    view_review_init(tx_getItem, tx_getNumItems, app_sign);
+    view_review_init(tx_getItem, tx_getNumItems, sign_callback);
     view_review_show(REVIEW_TXN);
 
     *flags |= IO_ASYNCH_REPLY;
