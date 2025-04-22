@@ -5,7 +5,6 @@ import { resolve } from 'path'
 export const APP_SEED =
   'glory promote mansion idle axis finger extra february uncover one trip resource lawn turtle enact monster seven myth punch hobby comfort wild raise skin'
 
-const APP_PATH_S = resolve('../app/output/app_s.elf')
 const APP_PATH_X = resolve('../app/output/app_x.elf')
 const APP_PATH_SP = resolve('../app/output/app_s2.elf')
 const APP_PATH_ST = resolve('../app/output/app_stax.elf')

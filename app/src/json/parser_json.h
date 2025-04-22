@@ -17,7 +17,7 @@
 
 #include "jsmn.h"
 
-#define MAX_NUMBER_OF_JSMN_TOKENS 80
+#define MAX_NUMBER_OF_JSMN_TOKENS 600
 
 typedef struct {
     jsmntok_t *tokens;
