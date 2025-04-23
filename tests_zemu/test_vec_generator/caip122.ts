@@ -102,7 +102,8 @@ class Caip122Generator extends ProtocolGenerator {
 
           // Get all possible additional field combinations
           const requestId = this.generateRequestId();
-          const { fieldCombinations } = generateCommonAdditionalFields(domain, pubkey, hdPath, requestId);
+          const authData = crypto.createHash('sha256').update(domain).digest('hex');
+          const { fieldCombinations } = generateCommonAdditionalFields(domain, authData, pubkey, hdPath, requestId);
           
           // Domain in CAIP-122 options
           for (const includeDomainInCaip122 of [true, false]) {

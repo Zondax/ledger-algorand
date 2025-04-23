@@ -346,18 +346,18 @@ export const FIELD_NAMES = {
 // Function to generate all possible combinations of common additional fields
 export function generateCommonAdditionalFields(
   domain: string,
+  authData: string,
   pubkey: string,
   hdPath: string,
   requestId?: string
 ): { fieldCombinations: { fields: Field[]}[] } {
-  const crypto = require('crypto');
-  const authData = crypto.createHash('sha256').update(domain).digest('hex');
   const signer = generateAlgorandAddress(pubkey);
 
   // Create deterministic request ID if not provided
   if (!requestId) {
     // Replace random generation with deterministic seeded generation
     const input = `${COMMON_RANDOMNESS_SEED}-${domain}-${pubkey}`;
+    const crypto = require('crypto');
     const hash = crypto.createHash('sha256').update(input).digest('HEX');
     requestId = hash.substring(0, 32).toUpperCase();
   }
@@ -431,6 +431,10 @@ export class RandomGenerator {
       result += charset.charAt(randomIndex);
     }
     return result;
+  }
+
+  generateRandomNumber(min: number, max: number, purposePrefix: string): number {
+    return Math.floor(this.getSeededRandom(`${purposePrefix}-${min}-${max}`) * (max - min + 1)) + min;
   }
 }
 
