@@ -87,6 +87,8 @@ DEFINES += HAVE_U2F HAVE_IO_U2F U2F_PROXY_MAGIC=\"algo\" USB_SEGMENT_SIZE=64 BLE
 SDK_SOURCE_PATH += lib_u2f
 
 LDFLAGS  += -z muldefs
+CFLAGS += -I$(MY_DIR)/../deps/tinycbor/src
+APP_SOURCE_PATH += $(MY_DIR)/../deps/tinycbor-ledger
 APP_SOURCE_PATH += $(MY_DIR)/../app/src/
 APP_SOURCE_PATH += $(MY_DIR)/../deps/sha512
 APP_SOURCE_PATH += $(MY_DIR)/../deps/picohash

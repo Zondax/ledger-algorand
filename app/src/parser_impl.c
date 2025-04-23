@@ -17,6 +17,7 @@
 #include "common/parser.h"
 #include "parser_impl.h"
 #include "parser_json.h"
+#include "parser_cbor.h"
 #include "msgpack.h"
 #include "coin.h"
 #include "crypto_utils.h"
@@ -33,6 +34,8 @@ static uint8_t num_items;
 static uint8_t common_num_items;
 static uint8_t tx_num_items;
 static uint8_t num_json_items;
+
+static bool found_alg = false;
 
 #define MAX_PARAM_SIZE 12
 #define MAX_ITEM_ARRAY 50
@@ -54,6 +57,8 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v);
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v);
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v);
+static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, cbor_value_t *value);
+static parser_error_t checkExtensionsItem(cbor_value_t *key, cbor_value_t *value);
 
 #define SCOPE_AUTH 0x01
 #define ENCODING_BASE64 0x01
@@ -1361,6 +1366,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
 {
     uint32_t authDataLen = 0;
     CHECK_ERROR(_readUInt32(c, &authDataLen))
+    uint32_t startOffset = c->offset;
     v->authDataLen = authDataLen;
 
     if (authDataLen == 0) {
@@ -1368,8 +1374,6 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     }
 
     v->authDataBuffer = c->buffer + c->offset;
-
-    CTX_CHECK_AND_ADVANCE(c, authDataLen)
 
     // authData first 32 bytes should be the sha256 of the domain
     uint8_t domainHash[SHA256_DIGEST_SIZE];
@@ -1379,8 +1383,118 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
         return parser_failed_domain_auth;
     }
 
+    CTX_CHECK_AND_ADVANCE(c, SHA256_DIGEST_SIZE)
+
+    if (authDataLen == SHA256_DIGEST_SIZE) {
+        num_items++;
+        return parser_ok;
+    }
+
+    // Keep reading, there's more data besides the domain hash
+
+    typedef struct flags {
+        uint8_t up: 1;     // Bit 0 User Presence
+        uint8_t pad1: 2;   // Bits 1-2 (padding)
+        uint8_t uv: 1;     // Bit 3 User Verified
+        uint8_t pad2: 2;   // Bits 4-5 (padding)
+        uint8_t at: 1;     // Bit 6 Attestation
+        uint8_t ed: 1;     // Bit 7 Extensions
+    } flags_t;
+
+    // read flags
+    flags_t flags;
+    CHECK_ERROR(_readUInt8(c, (uint8_t*)&flags))
+
+    // read signCount
+    uint32_t signCount;
+    CHECK_ERROR(_readUInt32(c, &signCount))
+
+    cbor_parser_t parser;
+    cbor_value_t value;
+
+    if (flags.at) {
+        // read AAGUID
+        uint8_t aaguid[16];
+        CHECK_ERROR(_readBytes(c, aaguid, 16))
+
+        // read credentialIdLength
+        uint16_t credentialIdLen;
+        CHECK_ERROR(_readUInt16(c, &credentialIdLen))
+
+        // read credentialId
+        uint8_t credentialId[400];
+        CHECK_ERROR(_readBytes(c, credentialId, credentialIdLen))
+
+        parser_init_cbor(&parser, &value, c->buffer + c->offset, authDataLen);
+
+        // read credentialPublicKey
+        found_alg = false;
+        CHECK_ERROR(parser_traverse_map_entries(&value, checkCredentialPublicKeyItem))
+
+        if (!found_alg) {
+            return parser_failed_domain_auth;
+        }
+        
+        const uint8_t *next_byte = cbor_value_get_next_byte(&value);
+        size_t bytesConsumed = 0;
+
+        if (next_byte < (c->buffer + c->offset)) {
+            return parser_failed_domain_auth;
+        }
+
+        bytesConsumed = next_byte - (c->buffer + c->offset);
+            
+        // Advance the parser as many bytes as were consumed by the CBOR parser
+        CTX_CHECK_AND_ADVANCE(c, bytesConsumed)
+    }
+
+    if (flags.ed) {
+        parser_init_cbor(&parser, &value, c->buffer + c->offset, authDataLen);
+        // read extensions
+        CHECK_ERROR(parser_traverse_map_entries(&value, checkExtensionsItem))
+
+        const uint8_t *next_byte = cbor_value_get_next_byte(&value);
+        size_t bytesConsumed = 0;
+        
+        if (next_byte < (c->buffer + c->offset)) {
+            return parser_failed_domain_auth;
+        }
+
+        bytesConsumed = next_byte - (c->buffer + c->offset);
+            
+        // Advance the parser as many bytes as were consumed by the CBOR parser
+        CTX_CHECK_AND_ADVANCE(c, bytesConsumed)
+    }
+
+    if (startOffset + authDataLen != c->offset) {
+        return parser_failed_domain_auth;
+    }
+
     num_items++;
 
+    return parser_ok;
+}
+
+static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, __Z_UNUSED cbor_value_t *value) {
+    if (key->type != CborIntegerType) {
+        found_alg = true;
+    } else {
+        int keyValue = 0;
+        CHECK_ERROR(cbor_value_get_int(key, &keyValue))
+
+        // Check if key is "alg" (COSE key 3), which is mandatory for FIDO2
+        if (keyValue == 3) {
+            found_alg = true;
+        }
+    }
+
+    return parser_ok;
+}
+
+static parser_error_t checkExtensionsItem(cbor_value_t *key, __Z_UNUSED cbor_value_t *value) {
+    if (key->type != CborTextStringType) {
+        return parser_failed_domain_auth;
+    }
     return parser_ok;
 }
 
@@ -1530,6 +1644,14 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Failed HD Path";
         case parser_invalid_request_id:
             return "Invalid Request ID";
+        case parser_cbor_error_parser_init:
+            return "CBOR parser init error";
+        case parser_cbor_error_invalid_type:
+            return "CBOR invalid type";
+        case parser_cbor_error_map_entry:
+            return "CBOR map entry error";
+        case parser_cbor_error_unexpected:
+            return "CBOR unexpected error";
         default:
             return "Unrecognized error code";
     }

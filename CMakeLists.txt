@@ -139,12 +139,16 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/addr.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/jsmn/jsmn.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/parser_json.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/cbor/parser_cbor.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_encoding.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/algo_asa.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/sha512/sha512.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/base32.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/picohash/
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/tinycbor/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/tinycbor/src/cborparser.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/tinycbor/src/cborvalidation.c
         )
 
 add_library(app_lib STATIC ${LIB_SRC})
@@ -153,11 +157,13 @@ target_include_directories(app_lib PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/include
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/sha512
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/picohash
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/tinycbor/src
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/lib
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/common
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/jsmn
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/json/
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/cbor/
         )
 
 ##############################################################
