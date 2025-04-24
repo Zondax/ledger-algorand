@@ -61,8 +61,6 @@ class Fido2Generator extends ProtocolGenerator {
 
     const bitValues = [false, true];
 
-    var flags: number = 0;
-
     const authDataValues: string[] = [];
 
     const rpIdHash: Buffer = Buffer.from(crypto.createHash('sha256').update(domain).digest('hex'), 'hex');
@@ -71,6 +69,8 @@ class Fido2Generator extends ProtocolGenerator {
       for (const uv of bitValues) {
         for (const at of bitValues) {
           for (const ed of bitValues) {
+            var flags: number = 0;
+
             if (up) {
               flags = flags | 0b00000001
             }
@@ -89,11 +89,11 @@ class Fido2Generator extends ProtocolGenerator {
             const credentialId: Buffer = this.randomGenerator.generateRandomBytes(16, 'credentialId');
             const credentialIdLength = credentialId.length;
             const credentialPublicKey = {
-              kty: 2,
-              alg: -7,
-              crv: 1,
-              x: this.randomGenerator.generateRandomBytes(32, 'credPubKeyX'),
-              y: this.randomGenerator.generateRandomBytes(32, 'credPubKeyY')
+              "1": 2,
+              "3": -7,
+              "-1": 1,
+              "-2": this.randomGenerator.generateRandomBytes(32, 'credPubKeyX'),
+              "-3": this.randomGenerator.generateRandomBytes(32, 'credPubKeyY')
             };
             const credentialPublicKeyBuffer: Buffer = cbor.encode(credentialPublicKey);
             const extensions: Buffer = this.createExtensionsCBOR();
@@ -120,7 +120,7 @@ class Fido2Generator extends ProtocolGenerator {
             if (at) {
               aaguid.copy(authData, offset);
               offset += aaguid.length;
-              authData.writeUInt16LE(credentialIdLength, offset);
+              authData.writeUInt16BE(credentialIdLength, offset);
               offset += 2;
               credentialId.copy(authData, offset);
               offset += credentialId.length;
