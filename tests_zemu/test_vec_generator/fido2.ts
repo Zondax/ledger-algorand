@@ -88,51 +88,61 @@ class Fido2Generator extends ProtocolGenerator {
             const aaguid: Buffer = this.randomGenerator.generateRandomBytes(16, 'aaguid');
             const credentialId: Buffer = this.randomGenerator.generateRandomBytes(16, 'credentialId');
             const credentialIdLength = credentialId.length;
-            const credentialPublicKey = {
-              "1": 2,
-              "3": -7,
-              "-1": 1,
-              "-2": this.randomGenerator.generateRandomBytes(32, 'credPubKeyX'),
-              "-3": this.randomGenerator.generateRandomBytes(32, 'credPubKeyY')
-            };
-            const credentialPublicKeyBuffer: Buffer = cbor.encode(credentialPublicKey);
-            const extensions: Buffer = this.createExtensionsCBOR();
+            const credentialPublicKey1 = new Map<number, number | Buffer>([
+              [1, 2],
+              [3, -7],
+              [-1, 1],
+              [-2, this.randomGenerator.generateRandomBytes(32, 'credPubKeyX')],
+              [-3, this.randomGenerator.generateRandomBytes(32, 'credPubKeyY')]
+            ]);
 
-            var authDataLength = rpIdHash.length + 1 + 4
+            const credentialPublicKey2 = new Map<number, number | Buffer>([
+              [1, 3],
+              [3, -37],
+              [-1, this.randomGenerator.generateRandomBytes(256, 'credPubKeyN')],
+              [-2, this.randomGenerator.generateRandomBytes(3, 'credPubKeyE')]
+            ]);
+            
+            for (const credentialPublicKey of [credentialPublicKey1, credentialPublicKey2]) {
+              const credentialPublicKeyBuffer: Buffer = cbor.encode(credentialPublicKey);
+              const extensions: Buffer = this.createExtensionsCBOR();
 
-            if (at) {
-              authDataLength += aaguid.length + 2 + credentialIdLength + credentialPublicKeyBuffer.length;
+              var authDataLength = rpIdHash.length + 1 + 4
+
+              if (at) {
+                authDataLength += aaguid.length + 2 + credentialIdLength + credentialPublicKeyBuffer.length;
+              }
+              if (ed) {
+                authDataLength += extensions.length;
+              }
+
+              const authData: Buffer = Buffer.alloc(authDataLength);
+
+              var offset = 0;
+              rpIdHash.copy(authData, offset);
+              offset += rpIdHash.length;
+              authData.writeUInt8(flags, offset);
+              offset += 1;
+              authData.writeUInt32LE(signCount, offset);
+              offset += 4;
+
+              if (at) {
+                aaguid.copy(authData, offset);
+                offset += aaguid.length;
+                authData.writeUInt16BE(credentialIdLength, offset);
+                offset += 2;
+                credentialId.copy(authData, offset);
+                offset += credentialId.length;
+                credentialPublicKeyBuffer.copy(authData, offset);
+                offset += credentialPublicKeyBuffer.length;
+              }
+
+              if (ed) {
+                extensions.copy(authData, offset);
+              }
+
+              authDataValues.push(authData.toString('hex'));
             }
-            if (ed) {
-              authDataLength += extensions.length;
-            }
-
-            const authData: Buffer = Buffer.alloc(authDataLength);
-
-            var offset = 0;
-            rpIdHash.copy(authData, offset);
-            offset += rpIdHash.length;
-            authData.writeUInt8(flags, offset);
-            offset += 1;
-            authData.writeUInt32LE(signCount, offset);
-            offset += 4;
-
-            if (at) {
-              aaguid.copy(authData, offset);
-              offset += aaguid.length;
-              authData.writeUInt16BE(credentialIdLength, offset);
-              offset += 2;
-              credentialId.copy(authData, offset);
-              offset += credentialId.length;
-              credentialPublicKeyBuffer.copy(authData, offset);
-              offset += credentialPublicKeyBuffer.length;
-            }
-
-            if (ed) {
-              extensions.copy(authData, offset);
-            }
-
-            authDataValues.push(authData.toString('hex'));
           }
         }
       }
