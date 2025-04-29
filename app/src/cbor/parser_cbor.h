@@ -98,6 +98,19 @@ parser_error_t parser_leave_map(
     cbor_value_t *map,
     const cbor_value_t *mapValue);
 
+/**
+ * Reads an array of integers from a CBOR array
+ *
+ * @param[in] value Pointer to a cbor_value_t that contains a CBOR array
+ * @param[out] values Pointer to an integer array where the values will be stored
+ * @param[out] count Pointer to a size_t variable where the number of values will be stored
+ * @return parser_ok on success, error code otherwise
+ */
+parser_error_t read_int_array(
+    cbor_value_t *value,
+    int *values,
+    size_t *count);
+
 #ifdef __cplusplus
 }
 #endif

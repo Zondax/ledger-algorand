@@ -30,12 +30,118 @@
 #include "crypto.h"
 #endif
 
+typedef struct {
+    uint8_t kty;
+    int alg;
+    uint8_t crv;
+    bool found_alg;
+    bool found_crv;
+} credential_public_key_t;
+
+typedef enum {
+    UNASSIGNED_MINUS_65536 = -65536,
+    RS1 = -65535,
+    A128CTR = -65534,
+    A192CTR = -65533,
+    A256CTR = -65532,
+    A128CBC = -65531,
+    A192CBC = -65530,
+    A256CBC = -65529,
+    KT256 = -264,
+    KT128 = -263,
+    TURBOSHAKE256 = -262,
+    TURBOSHAKE128 = -261,
+    WALNUTDSA = -260,
+    RS512 = -259,
+    RS384 = -258,
+    RS256 = -257,
+    ML_DSA_87 = -50,
+    ML_DSA_65 = -49,
+    ML_DSA_44 = -48,
+    ES256K = -47,
+    HSS_LMS = -46,
+    SHAKE256 = -45,
+    SHA_512 = -44,
+    SHA_384 = -43,
+    RSAES_OAEP_W_SHA_512 = -42,
+    RSAES_OAEP_W_SHA_256 = -41,
+    RSAES_OAEP_W_RFC_8017_DEFAULT_PARAMETERS = -40,
+    PS512 = -39,
+    PS384 = -38,
+    PS256 = -37,
+    ES512 = -36,
+    ES384 = -35,
+    ECDH_SS_A256KW = -34,
+    ECDH_SS_A192KW = -33,
+    ECDH_SS_A128KW = -32,
+    ECDH_ES_A256KW = -31,
+    ECDH_ES_A192KW = -30,
+    ECDH_ES_A128KW = -29,
+    ECDH_SS_HKDF_512 = -28,
+    ECDH_SS_HKDF_256 = -27,
+    ECDH_ES_HKDF_512 = -26,
+    ECDH_ES_HKDF_256 = -25,
+    SHAKE128 = -18,
+    SHA_512_256 = -17,
+    SHA_256 = -16,
+    SHA_256_64 = -15,
+    SHA_1 = -14,
+    DIRECT_HKDF_AES_256 = -13,
+    DIRECT_HKDF_AES_128 = -12,
+    DIRECT_HKDF_SHA_512 = -11,
+    DIRECT_HKDF_SHA_256 = -10,
+    EDDSA = -8,
+    ES256 = -7,
+    DIRECT = -6,
+    A256KW = -5,
+    A192KW = -4,
+    A128KW = -3,
+    RESERVED = 0,
+    A128GCM = 1,
+    A192GCM = 2,
+    A256GCM = 3,
+    HMAC_256_64 = 4,
+    HMAC_256_256 = 5,
+    HMAC_384_384 = 6,
+    HMAC_512_512 = 7,
+    AES_CCM_16_64_128 = 10,
+    AES_CCM_16_64_256 = 11,
+    AES_CCM_64_64_128 = 12,
+    AES_CCM_64_64_256 = 13,
+    AES_MAC_128_64 = 14,
+    AES_MAC_256_64 = 15,
+    CHACHA20_POLY1305 = 24,
+    AES_MAC_128_128 = 25,
+    AES_MAC_256_128 = 26,
+    AES_CCM_16_128_128 = 30,
+    AES_CCM_16_128_256 = 31,
+    AES_CCM_64_128_128 = 32,
+    AES_CCM_64_128_256 = 33,
+    IV_GENERATION = 34
+} CoseAlgorithm_e;
+
 static uint8_t num_items;
 static uint8_t common_num_items;
 static uint8_t tx_num_items;
 static uint8_t num_json_items;
 
-static bool found_alg = false;
+static credential_public_key_t credential_public_key;
+
+#define KEY_VALUE_CRV -1
+#define KEY_VALUE_KTY 1
+#define KEY_VALUE_ALG 3
+#define KEY_VALUE_KEY_OPS 4
+#define INT_VAULE_SIGN 1
+#define INT_VAULE_VERIFY 2
+
+// crv Types
+#define CRV_P256 1
+#define CRV_P384 2
+#define CRV_P521 3
+#define CRV_X25519 4
+#define CRV_X448 5
+#define CRV_ED25519 6
+#define CRV_ED448 7
 
 #define MAX_PARAM_SIZE 12
 #define MAX_ITEM_ARRAY 50
@@ -1428,10 +1534,10 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
         parser_init_cbor(&parser, &value, c->buffer + c->offset, authDataLen);
 
         // read credentialPublicKey
-        found_alg = false;
+        MEMZERO(&credential_public_key, sizeof(credential_public_key_t));
         CHECK_ERROR(parser_traverse_map_entries(&value, checkCredentialPublicKeyItem))
 
-        if (!found_alg) {
+        if (!credential_public_key.found_alg) {
             return parser_failed_domain_auth;
         }
         
@@ -1475,16 +1581,183 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     return parser_ok;
 }
 
-static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, __Z_UNUSED cbor_value_t *value) {
-    if (key->type != CborIntegerType) {
-        found_alg = true;
-    } else {
+static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, cbor_value_t *value) {
+    if (cbor_value_is_integer(key)) {
         int keyValue = 0;
         CHECK_ERROR(cbor_value_get_int(key, &keyValue))
+        
+        if (keyValue == KEY_VALUE_CRV) {
+            int valueValue = 0;
+            if (cbor_value_is_text_string(value) || cbor_value_is_byte_string(value)) {
+                // Valid value, but it won't be used
+                credential_public_key.found_crv = true;
+                return parser_ok;
+            }
+            if (cbor_value_is_integer(value)) {
+                CHECK_ERROR(cbor_value_get_int(value, &valueValue))
+                credential_public_key.crv = valueValue;
+                credential_public_key.found_crv = true;
+            } else {
+                return parser_failed_domain_auth;
+            }
+        }
+
+        // Key is "kty"
+        else if (keyValue == KEY_VALUE_KTY) {
+            int valueValue = 0;
+            if (cbor_value_is_integer(value)) {
+                CHECK_ERROR(cbor_value_get_int(value, &valueValue))
+            } else {
+                return parser_failed_domain_auth;
+            }
+
+            credential_public_key.kty = valueValue;
+        }
 
         // Check if key is "alg" (COSE key 3), which is mandatory for FIDO2
-        if (keyValue == 3) {
-            found_alg = true;
+        else if (keyValue == KEY_VALUE_ALG) {
+            int valueValue = 0;
+            if (cbor_value_is_integer(value)) {
+                CHECK_ERROR(cbor_value_get_int(value, &valueValue))
+            }
+            // Check if the algorithm value is a valid CoseAlgorithm_e
+            switch (valueValue) {
+                case UNASSIGNED_MINUS_65536:
+                case RS1:
+                case A128CTR:
+                case A192CTR:
+                case A256CTR:
+                case A128CBC:
+                case A192CBC:
+                case A256CBC:
+                case KT256:
+                case KT128:
+                case TURBOSHAKE256:
+                case TURBOSHAKE128:
+                case WALNUTDSA:
+                case RS512:
+                case RS384:
+                case RS256:
+                case ML_DSA_87:
+                case ML_DSA_65:
+                case ML_DSA_44:
+                case ES256K:
+                case HSS_LMS:
+                case SHAKE256:
+                case SHA_512:
+                case SHA_384:
+                case RSAES_OAEP_W_SHA_512:
+                case RSAES_OAEP_W_SHA_256:
+                case RSAES_OAEP_W_RFC_8017_DEFAULT_PARAMETERS:
+                case PS512:
+                case PS384:
+                case PS256:
+                case ECDH_SS_A256KW:
+                case ECDH_SS_A192KW:
+                case ECDH_SS_A128KW:
+                case ECDH_ES_A256KW:
+                case ECDH_ES_A192KW:
+                case ECDH_ES_A128KW:
+                case ECDH_SS_HKDF_512:
+                case ECDH_SS_HKDF_256:
+                case ECDH_ES_HKDF_512:
+                case ECDH_ES_HKDF_256:
+                case SHAKE128:
+                case SHA_512_256:
+                case SHA_256:
+                case SHA_256_64:
+                case SHA_1:
+                case DIRECT_HKDF_AES_256:
+                case DIRECT_HKDF_AES_128:
+                case DIRECT_HKDF_SHA_512:
+                case DIRECT_HKDF_SHA_256:
+                case DIRECT:
+                case A256KW:
+                case A192KW:
+                case A128KW:
+                case RESERVED:
+                case A128GCM:
+                case A192GCM:
+                case A256GCM:
+                case HMAC_256_64:
+                case HMAC_256_256:
+                case HMAC_384_384:
+                case HMAC_512_512:
+                case AES_CCM_16_64_128:
+                case AES_CCM_16_64_256:
+                case AES_CCM_64_64_128:
+                case AES_CCM_64_64_256:
+                case AES_MAC_128_64:
+                case AES_MAC_256_64:
+                case CHACHA20_POLY1305:
+                case AES_MAC_128_128:
+                case AES_MAC_256_128:
+                case AES_CCM_16_128_128:
+                case AES_CCM_16_128_256:
+                case AES_CCM_64_128_128:
+                case AES_CCM_64_128_256:
+                case IV_GENERATION:
+                    credential_public_key.found_alg = true;
+                    credential_public_key.alg = valueValue;
+                    break;
+                case ES256:
+                case ES384:
+                case ES512:
+                    // Value of "kty" must be "2" (EC2)
+                    // RFC8152 - Section 8.1 : https://datatracker.ietf.org/doc/html/rfc8152#section-8.1
+                    if (credential_public_key.kty != 2) {
+                        return parser_failed_domain_auth;
+                    }
+                    credential_public_key.found_alg = true;
+                    credential_public_key.alg = valueValue;
+                    break;
+                case EDDSA:
+                    // Value of "kty" must be "1" (OKP)
+                    // RFC8152 - Section 8.2 : https://datatracker.ietf.org/doc/html/rfc8152#section-8.2
+                    if (credential_public_key.kty != 1) {
+                        return parser_failed_domain_auth;
+                    }
+                    // Value of "crv" must be a valid curve (Table 22 )
+                    // RFC8152 - Section 8.2 : https://datatracker.ietf.org/doc/html/rfc8152#section-8.2
+                    if (!credential_public_key.found_crv) {
+                        return parser_failed_domain_auth;
+                    }
+                    if (credential_public_key.crv != CRV_ED25519 && credential_public_key.crv != CRV_ED448) {
+                        return parser_failed_domain_auth;
+                    }
+                    credential_public_key.found_alg = true;
+                    credential_public_key.alg = valueValue;
+                break;
+                default:
+                    return parser_failed_domain_auth;
+            }
+        }
+    
+        // Key is "key_ops"
+        else if (keyValue == KEY_VALUE_KEY_OPS) {
+            // Value is an array and must contain "sign" and "verify" when using ECDSA
+            // RFC8152 - Section 8.1 : https://datatracker.ietf.org/doc/html/rfc8152#section-8.1
+            if (credential_public_key.alg == ES256 || credential_public_key.alg == ES384 || credential_public_key.alg == ES512 || credential_public_key.alg == EDDSA) {
+                int values[30];
+                size_t count = 0;
+                bool found_sign = false;
+                bool found_verify = false;
+
+                parser_read_int_array(value, values, &count);
+
+                // "key_ops" values explained in https://datatracker.ietf.org/doc/html/rfc8152#section-7.1 Table 4
+                for (uint8_t i = 0; i < count; i++) {
+                    if (values[i] == INT_VAULE_SIGN) {
+                        found_sign = true;
+                    } else if (values[i] == INT_VAULE_VERIFY) {
+                        found_verify = true;
+                    }
+                }
+
+                if (!found_sign || !found_verify) {
+                    return parser_failed_domain_auth;
+                }
+            }
         }
     }
 

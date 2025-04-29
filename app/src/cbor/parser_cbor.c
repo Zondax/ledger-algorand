@@ -107,3 +107,54 @@ parser_error_t parser_leave_map(
     return parser_ok;
 }
 
+parser_error_t read_int_array(CborValue *value, int *values, size_t *count) {
+    CborValue element;
+    CborError err;
+    size_t i = 0;
+    size_t max_items = 0;
+
+    if (cbor_value_get_array_length(value, &max_items) != CborNoError) {
+        return parser_cbor_error_unexpected;
+    }
+
+    // Verify it's an array
+    if (!cbor_value_is_array(value))
+        return parser_cbor_error_invalid_type;
+        
+    // Get array length if known
+    size_t array_length;
+    if (cbor_value_is_length_known(value)) {
+        if ((err = cbor_value_get_array_length(value, &array_length)) != CborNoError)
+            return parser_cbor_error_unexpected;
+        if (array_length > max_items)
+            return parser_cbor_error_out_of_memory;
+    }
+    
+    // Enter the array container
+    if ((err = cbor_value_enter_container(value, &element)) != CborNoError)
+        return parser_cbor_error_container;
+    
+    // Iterate through array elements
+    while (!cbor_value_at_end(&element) && i < max_items) {
+        // Make sure we're looking at an integer
+        if (!cbor_value_is_integer(&element))
+            return parser_cbor_error_invalid_type;
+            
+        // Get the integer value
+        if ((err = cbor_value_get_int(&element, &values[i])) != CborNoError)
+            return parser_cbor_error_unexpected;
+            
+        // Move to next element
+        if ((err = cbor_value_advance(&element)) != CborNoError)
+            return parser_cbor_error_unexpected;
+            
+        i++;
+    }
+    
+    // Leave the array container
+    if ((err = cbor_value_leave_container(value, &element)) != CborNoError)
+        return parser_cbor_error_container;
+    
+    *count = i;
+    return parser_ok;
+}

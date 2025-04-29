@@ -25,6 +25,7 @@ import ed25519 from 'ed25519-supercop'
 
 import { canonify } from '@truestamp/canonify';
 import * as crypto from 'crypto'
+import * as cbor from 'cbor'
 
 const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -355,6 +356,88 @@ describe('Arbitrary Sign', () => {
       } as any
 
       await expect(app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })).rejects.toThrow('Missing Authentication Data')
+    } finally {
+      await sim.close()
+    }
+  })
+
+  test.each(models)('arbitrary sign - authenticator data with flags', async (m) => {
+    const sim = new Zemu(m.path)
+    try {
+      await sim.start({ ...defaultOptions, model: m.name })
+      const app = new AlgorandApp(sim.getTransport())
+
+      const responseAddr = await app.getAddressAndPubKey()
+      const pubKey = responseAddr.publicKey
+
+      const rpIdHash: Buffer = Buffer.from(new Uint8Array(crypto.createHash('sha256').update("arc60.io").digest()))
+      const flags: number = 0b11000011
+
+      const signCount = 0;
+      const aaguid: Buffer = Buffer.from(Array(16).fill(1))
+      const credentialId: Buffer = Buffer.from(Array(16).fill(2))
+      const credentialIdLength = credentialId.length;
+      const credentialPublicKey = new Map<number, number | Buffer>([
+        [1, 2],
+        [3, -7],
+        [-1, 1],
+        [-2, Buffer.from(Array(32).fill(3))],
+        [-3, Buffer.from(Array(32).fill(4))]
+      ]);
+
+      const credentialPublicKeyBuffer: Buffer = cbor.encode(credentialPublicKey);
+      const extensions = {
+        booleanExt: true,
+        numericExt: 42,
+        stringExt: "test-value"
+      };
+      const extensionsBuffer: Buffer = cbor.encode(extensions);
+
+      var authDataLength = rpIdHash.length + 1 + 4 + aaguid.length + 2 + credentialIdLength + credentialPublicKeyBuffer.length + extensionsBuffer.length
+
+      const authData: Buffer = Buffer.alloc(authDataLength);
+
+      var offset = 0;
+      rpIdHash.copy(authData, offset);
+      offset += rpIdHash.length;
+      authData.writeUInt8(flags, offset);
+      offset += 1;
+      authData.writeUInt32LE(signCount, offset);
+      offset += 4;
+
+      aaguid.copy(authData, offset);
+      offset += aaguid.length;
+      authData.writeUInt16BE(credentialIdLength, offset);
+      offset += 2;
+      credentialId.copy(authData, offset);
+      offset += credentialId.length;
+      credentialPublicKeyBuffer.copy(authData, offset);
+      offset += credentialPublicKeyBuffer.length;
+
+      extensionsBuffer.copy(authData, offset);
+
+      const authRequest: StdSigData = {
+        data: Buffer.from(canonify({ type: "arc60.create", challenge: "test", origin: "https://arc60.io" }) || '').toString('base64'),
+        signer: pubKey,
+        domain: "arc60.io",
+        authenticationData: authData,
+        hdPath: "m/44'/283'/0'/0/0"
+      }
+
+      // do not wait here.. we need to navigate
+      const signatureRequest = app.signData(authRequest, { scope: ScopeType.AUTH, encoding: 'base64' })
+
+      // Wait until we are not in the main menu
+      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot())
+      await sim.compareSnapshotsAndApprove('.', `${m.prefix.toLowerCase()}-sign_arbitrary-authenticator-data-with-flags`)
+
+      const signatureResponse = await signatureRequest
+
+      const toSign = buildToSign(authRequest)
+
+      // Now verify the signature
+      const valid = ed25519.verify(signatureResponse.signature, toSign, pubKey)
+      expect(valid).toBe(true)
     } finally {
       await sim.close()
     }
