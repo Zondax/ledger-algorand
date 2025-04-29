@@ -101,6 +101,8 @@ typedef enum {
     parser_cbor_error_invalid_type = 52,
     parser_cbor_error_map_entry = 53,
     parser_cbor_error_unexpected = 54,
+    parser_cbor_error_out_of_memory = 55,
+    parser_cbor_error_container = 56,
 } parser_error_t;
 
 typedef struct {
