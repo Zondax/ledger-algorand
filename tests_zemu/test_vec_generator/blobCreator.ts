@@ -56,8 +56,8 @@ export class BaseBlobCreator implements BlobCreator {
   // Updated function to correctly handle the buffer as an array
   private appendFieldToBlob(blob: number[], fieldBytes: number[]): void {
     // Create a buffer for length (UInt32BE)
-    const lengthBuffer = Buffer.alloc(4);
-    lengthBuffer.writeUInt32BE(fieldBytes.length);
+    const lengthBuffer = Buffer.alloc(2);
+    lengthBuffer.writeUInt16BE(fieldBytes.length);
     // Append length and field bytes to the blob
     blob.push(...Array.from(lengthBuffer));
     blob.push(...fieldBytes);
