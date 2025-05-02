@@ -30,14 +30,6 @@
 #include "crypto.h"
 #endif
 
-typedef struct {
-    uint8_t kty;
-    int alg;
-    uint8_t crv;
-    bool found_alg;
-    bool found_crv;
-} credential_public_key_t;
-
 typedef enum {
     UNASSIGNED_MINUS_65536 = -65536,
     RS1 = -65535,
@@ -168,6 +160,8 @@ static parser_error_t checkExtensionsItem(cbor_value_t *key, cbor_value_t *value
 
 #define SCOPE_AUTH 0x01
 #define ENCODING_BASE64 0x01
+
+#define AAGUID_LEN 16
 
 #define DISPLAY_ITEM(type, len, counter)        \
     for(uint8_t j = 0; j < len; j++) {          \
@@ -1405,8 +1399,8 @@ static parser_error_t _readEncoding(parser_context_t *c)
 
 static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    uint32_t dataLen = 0;
-    CHECK_ERROR(_readUInt32(c, &dataLen))
+    size_t dataLen = 0;
+    CHECK_ERROR(_readUInt16(c, (uint16_t*)&dataLen))
     v->dataLen = dataLen;
     v->dataBuffer = c->buffer + c->offset;
 
@@ -1420,8 +1414,8 @@ static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
 
 static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    uint32_t domainLen = 0;
-    CHECK_ERROR(_readUInt32(c, &domainLen))
+    uint16_t domainLen = 0;
+    CHECK_ERROR(_readUInt16(c, &domainLen))
     v->domainLen = domainLen;
 
     if (domainLen == 0) {
@@ -1446,8 +1440,8 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
 
 static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    uint32_t requestIdLen = 0;
-    CHECK_ERROR(_readUInt32(c, &requestIdLen))
+    uint16_t requestIdLen = 0;
+    CHECK_ERROR(_readUInt16(c, &requestIdLen))
 
     v->requestIdLen = requestIdLen;
 
@@ -1470,10 +1464,10 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
 
 static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v)
 {
-    uint32_t authDataLen = 0;
-    CHECK_ERROR(_readUInt32(c, &authDataLen))
+    size_t authDataLen = 0;
+    CHECK_ERROR(_readUInt16(c, (uint16_t*)&authDataLen))
     uint32_t startOffset = c->offset;
-    v->authDataLen = authDataLen;
+    v->authDataLen = (uint16_t)authDataLen;
 
     if (authDataLen == 0) {
         return parser_missing_authenticated_data;
@@ -1498,15 +1492,6 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
 
     // Keep reading, there's more data besides the domain hash
 
-    typedef struct flags {
-        uint8_t up: 1;     // Bit 0 User Presence
-        uint8_t pad1: 2;   // Bits 1-2 (padding)
-        uint8_t uv: 1;     // Bit 3 User Verified
-        uint8_t pad2: 2;   // Bits 4-5 (padding)
-        uint8_t at: 1;     // Bit 6 Attestation
-        uint8_t ed: 1;     // Bit 7 Extensions
-    } flags_t;
-
     // read flags
     flags_t flags;
     MEMZERO(&flags, sizeof(flags_t));
@@ -1521,8 +1506,8 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
 
     if (flags.at) {
         // read AAGUID
-        uint8_t aaguid[16];
-        CHECK_ERROR(_readBytes(c, aaguid, 16))
+        uint8_t aaguid[AAGUID_LEN];
+        CHECK_ERROR(_readBytes(c, aaguid, AAGUID_LEN))
 
         // read credentialIdLength
         uint16_t credentialIdLen;

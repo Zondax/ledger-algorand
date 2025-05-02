@@ -23,6 +23,9 @@ parser_error_t parser_init_cbor(
     cbor_value_t *value,
     const uint8_t *buffer,
     size_t bufferSize) {
+    if (parser == NULL || value == NULL || buffer == NULL || bufferSize == 0) {
+        return parser_cbor_error_invalid_parameters;
+    }
     
     CborError err = cbor_parser_init(buffer, bufferSize, 0, parser, value);
     
@@ -37,6 +40,10 @@ parser_error_t parser_traverse_map_entries(
     cbor_value_t *map,
     parser_error_t (*callback)(cbor_value_t *key, cbor_value_t *value)) {
     
+    if (map == NULL || callback == NULL) {
+        return parser_cbor_error_invalid_parameters;
+    }
+
     if (!cbor_value_is_map(map)) {
         return parser_cbor_error_invalid_type;
     }
@@ -111,6 +118,10 @@ parser_error_t read_int_array(cbor_value_t *value, int *values, size_t *count) {
     cbor_value_t element;
     size_t i = 0;
     size_t max_items = 0;
+
+    if (value == NULL || values == NULL || count == NULL) {
+        return parser_cbor_error_invalid_parameters;
+    }
 
     if (cbor_value_get_array_length(value, &max_items) != CborNoError) {
         return parser_cbor_error_unexpected;
