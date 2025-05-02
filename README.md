@@ -13,7 +13,7 @@ _Please visit our website at [zondax.ch](https://www.zondax.ch)_
 
 This project contains the Algorand app for Ledger Nano S+, Nano X, Flex and Stax.
 
-- Ledger Nano S/S+/X Algorand app
+- Ledger Nano S+/Nano X/Flex/Stax Algorand app
 - Specs / Documentation
 - C++ unit tests
 - Zemu tests
@@ -152,36 +152,6 @@ To run a single specific test:
 
   Refer to Ledger documentation: https://support.ledger.com/hc/en-us/articles/115005165269-Fix-connection-issues
 
-**2 - Set a test mnemonic**
-
-Many of our integration tests expect the device to be configured with a known test mnemonic.
-
-- Plug your device while pressing the right button
-
-- Your device will show "Recovery" in the screen
-
-- Double click
-
-- Run `make dev_init`. This will take about 2 minutes. The device will be initialized to:
-
-   ```
-   PIN: 5555
-   Mnemonic: equip will roof matter pink blind book anxiety banner elbow sun young
-   ```
-
-**3 - Add a development certificate**
-
-- Plug your device while pressing the right button
-
-- Your device will show "Recovery" in the screen
-
-- Click both buttons at the same time
-
-- Enter your pin if necessary
-
-- Run `make dev_ca`. The device will receive a development certificate to avoid constant manual confirmations.
-
-
 ### Loading into your development device
 
 The Makefile will build the firmware in a docker container and leave the binary in the correct directory.
@@ -189,13 +159,13 @@ The Makefile will build the firmware in a docker container and leave the binary 
 - Build
 
    ```
-   make                # Builds the app
+   make                          # Builds the app for all devices
+   make build<S2/X/FL/ST>        # Builds the app for the specified device
    ```
 
 - Upload to a device
-   The following command will upload the application to the ledger. _Warning: The application will be deleted before uploading._
    ```
-   make load          # Builds and loads the app to the device
+   make load<S2/X/FL/ST>         # Builds and loads the app to the device
    ```
 
 ## APDU Specifications

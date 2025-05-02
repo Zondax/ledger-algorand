@@ -29,7 +29,9 @@ The general structure of commands and responses is as follows:
 | 0x6400      | Execution Error         |
 | 0x6982      | Empty buffer            |
 | 0x6983      | Output buffer too small |
+| 0x6984      | Data invalid            |
 | 0x6986      | Command not allowed     |
+| 0x6987      | Tx not initialized      |
 | 0x6D00      | INS not supported       |
 | 0x6E00      | CLA not supported       |
 | 0x6F00      | Unknown                 |
@@ -192,19 +194,19 @@ Last APDU message
 
 ##### Arbitrary Data Chunks
 
-| Range | Field                  | Restrictions             | Max Size (bytes) |
-| ----- | ---------------------- | ------------------------ | ---------------- |
-| 0..31 | Signer                 | -                        | 32               |
-| 32    | Scope                  | see Supported Scopes     | 1                |
-| 33    | Encoding               | see Supported Encodings  | 1                |
-| 34    | Data Len               |                          | 2 (TBD)          |
-|       | Data                   | Canonical JSON           | 511              |
-|       | Domain Len             |                          | 1 (TBD)          |
-|       | Domain                 | Representable ASCII      | 255              |
-|       | Request ID Len         |                          | 1 (TBD)          |
-|       | Request ID             | Representable Hex String | 255              |
-|       | Authenticated Data Len |                          | 1 (TBD)          |
-|       | Authenticated Data     | Encoding format TBD      | 256              |
+| Field                  | Restrictions             | Max Size (bytes) |
+| ---------------------- | ------------------------ | ---------------- |
+| Signer                 | -                        | 32               |
+| Scope                  | see Supported Scopes     | 1                |
+| Encoding               | see Supported Encodings  | 1                |
+| Data Len               |                          | 2                |
+| Data                   | Canonical JSON           | 511              |
+| Domain Len             |                          | 2                |
+| Domain                 | Representable ASCII      | 255              |
+| Request ID Len         |                          | 2                |
+| Request ID             | Representable Hex String | 255              |
+| Authenticated Data Len |                          | 2                |
+| Authenticated Data     | Encoding format TBD      | 256              |
 
 ##### Supported Scopes
 
