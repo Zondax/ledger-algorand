@@ -204,9 +204,9 @@ Last APDU message
 | Domain Len             |                          | 2                |
 | Domain                 | Representable ASCII      | 255              |
 | Request ID Len         |                          | 2                |
-| Request ID             | Representable Hex String | 255              |
+| Request ID             |                          | 255              |
 | Authenticated Data Len |                          | 2                |
-| Authenticated Data     | Encoding format TBD      | 256              |
+| Authenticated Data     |                          | 256              |
 
 ##### Supported Scopes
 
@@ -222,7 +222,6 @@ Last APDU message
   - Algorand Address not allowed
 - Authenticated Data's first 32 bytes must be equal to sha256(Domain)
 - Domain is representable ASCII (Values in range 33..126, both included)
-- Request ID is representable Hex String (0-9, A-F)
 - Data is a canonical JSON
 - hdPath is BIP44 and starts with 44'/283'
 - hdPath hardening restrictions
