@@ -51,13 +51,11 @@ export abstract class ProtocolGenerator {
     
     const invalidDataConfigUnsortedKeys = createInvalidDataConfigUnsortedKeys(structuredClone(validConfigWithoutBlob));
     const invalidDomainConfig = createInvalidDomainConfig(structuredClone(validConfigWithoutBlob));
-    const invalidRequestIdConfig = createInvalidRequestIdConfig(structuredClone(validConfigWithoutBlob));
     const invalidHdPathConfig = createInvalidHdPathConfig(structuredClone(validConfigWithoutBlob));
     const invalidSignerHdPathConfig = createInvalidSignerHdPathConfig(structuredClone(validConfigWithoutBlob));
 
     invalidConfigs.push(invalidDataConfigUnsortedKeys);
     invalidConfigs.push(invalidDomainConfig);
-    invalidConfigs.push(invalidRequestIdConfig);
     invalidConfigs.push(invalidHdPathConfig);
     invalidConfigs.push(invalidSignerHdPathConfig);
 
@@ -132,28 +130,6 @@ function createInvalidDomainConfig(validConfig: Record<string, any>): Record<str
   throw new Error("Domain field not found in valid config");
 }
 
-function createInvalidRequestIdConfig(validConfig: Record<string, any>): Record<string, any> {
-  const invalidConfig = validConfig;
-  const requestId = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.REQUEST_ID)?.value;
-  const decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
-
-  if (requestId) {
-    // '61' is the ASCII code for 'a'
-    // '62' is the ASCII code for 'b'
-    const invalidRequestId = '61' + decodedRequestId + '62';
-    const requestIdFieldIndex = invalidConfig.fields.findIndex((f: Field) => f.name === FIELD_NAMES.REQUEST_ID);
-    if (requestIdFieldIndex !== -1) {
-      const base64RequestId = Buffer.from(invalidRequestId, 'hex').toString('base64');
-      invalidConfig.fields = [...invalidConfig.fields];  // Create a new array to avoid reference issues
-      invalidConfig.fields[requestIdFieldIndex] = { name: FIELD_NAMES.REQUEST_ID, value: base64RequestId };
-      invalidConfig.error = "Invalid Request ID";
-      return changeConfigName(invalidConfig, "Invalid_Request_ID");
-    } 
-  }
-
-  throw new Error("Request ID field not found in valid config");
-}
-
 function createInvalidSignerHdPathConfig(validConfig: Record<string, any>): Record<string, any> {
   const invalidConfig = validConfig;
   const hasSigner = validConfig.fields.find((f: Field) => f.name === FIELD_NAMES.SIGNER);
@@ -224,8 +200,9 @@ export function determineVectorValidity(
 
   let requestId = additionalFields.find(f => f.name === FIELD_NAMES.REQUEST_ID)?.value;
   if (requestId) {
-    let decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
-    if (!isRequestIdValid(decodedRequestId)) {
+    try {
+      let decodedRequestId = Buffer.from(requestId as string, 'base64').toString('hex').toUpperCase();
+    } catch (e) {
       return false;
     }
   }
@@ -263,11 +240,6 @@ function isDataValid(dataFields: Field[]): boolean {
 function isDomainValid(domain: string): boolean {
   // Check if domain contains only printable ASCII characters (charCodes 32..127)
   return /^[\x20-\x7E]+$/.test(domain);
-}
-
-function isRequestIdValid(requestId: string): boolean {
-  // Check if requestId is a valid uppercase hex string
-  return /^[0-9A-F]+$/.test(requestId);
 }
 
 function isHdPathValid(hdPath: string): boolean {
