@@ -32,6 +32,9 @@ extern "C" {
 #define APDU_CODE_FAILED_DOMAIN_AUTH 0x698E
 #define APDU_CODE_FAILED_HD_PATH 0x698F
 
+// Request ID in binary can be up to 255 bytes, so in base64 it can be up to 340 bytes
+#define REQUEST_ID_MAX_LEN 255
+#define BASE64_REQUEST_ID_MAX_LEN 340
 const char *parser_getErrorDescription(parser_error_t err);
 const char *parser_getMsgPackTypeDescription(uint8_t type);
 

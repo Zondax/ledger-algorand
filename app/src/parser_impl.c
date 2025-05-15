@@ -1444,12 +1444,16 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
     uint16_t requestIdLen = 0;
     CHECK_ERROR(_readUInt16(c, &requestIdLen))
 
+    if (requestIdLen > REQUEST_ID_MAX_LEN) {
+        return parser_invalid_request_id;
+    }
+
     v->requestIdLen = requestIdLen;
 
     // RequestId is optional
     if (requestIdLen != 0) {
         v->requestIdBuffer = c->buffer + c->offset;
-        char base64ReqId[200] = {0};
+        char base64ReqId[BASE64_REQUEST_ID_MAX_LEN] = {0};
         // Check it can be encoded as base64
         if (base64_encode(base64ReqId, (uint16_t)sizeof(base64ReqId), v->requestIdBuffer, v->requestIdLen) == 0) {
             return parser_invalid_request_id;
