@@ -113,10 +113,8 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
             tx_initialized = false;
             if (added != rx - OFFSET_DATA) {
-                tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
-            tx_initialized = false;
             return true;
     }
 

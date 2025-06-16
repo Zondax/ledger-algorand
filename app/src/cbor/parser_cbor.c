@@ -128,8 +128,9 @@ parser_error_t read_int_array(cbor_value_t *value, int *values, size_t *count) {
     }
 
     // Verify it's an array
-    if (!cbor_value_is_array(value))
+    if (!cbor_value_is_array(value)) {
         return parser_cbor_error_invalid_type;
+    }
         
     // Get array length if known
     size_t array_length;

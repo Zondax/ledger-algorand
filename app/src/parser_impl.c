@@ -1664,7 +1664,6 @@ static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, cbor_value
                 case A256KW:
                 case A192KW:
                 case A128KW:
-                case RESERVED:
                 case A128GCM:
                 case A192GCM:
                 case A256GCM:
@@ -1971,30 +1970,24 @@ parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx,
 
     // Remove backslashes from JSON string values
     // This is needed because we don't want to display backslashes in the UI
-
-    // Counter for backslashes removed so far
-    uint16_t removedBackslashes = 0;
-
+    uint16_t writePos = 0;
+    uint16_t readPos = 0;
     uint16_t currentLen = strlen(outVal);
     
-    for (uint16_t i = 0; i < currentLen - removedBackslashes; i++) {
-        // Check if current character is a backslash (takes into account previous shifts)
-        if (outVal[i + removedBackslashes] == '\\') {
-            // Found a backslash, increment counter
-            removedBackslashes++;
-        }
-
-        // If we've removed any backslashes, shift characters to the left
-        if (removedBackslashes > 0 && i + removedBackslashes < currentLen) {
-            // Move character from position (i + removedBackslashes) to position i
-            outVal[i] = outVal[i + removedBackslashes];
+    while (readPos < currentLen) {
+        if (outVal[readPos] == '\\') {
+            // Skip the backslash
+            readPos++;
+        } else {
+            // Copy character if not a backslash
+            outVal[writePos] = outVal[readPos];
+            writePos++;
+            readPos++;
         }
     }
     
-    // If we removed any backslashes, add null terminator at the new end of string
-    if (removedBackslashes > 0) {
-        outVal[currentLen - removedBackslashes] = '\0';
-    }
+    // Add null terminator at the new end of string
+    outVal[writePos] = '\0';
 
     return parser_ok;
 }

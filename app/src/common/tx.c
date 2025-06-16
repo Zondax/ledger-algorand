@@ -97,8 +97,8 @@ parser_error_t tx_parse(txn_content_e content)
     }
 
     err = parser_parse(&ctx_parsed_tx,
-                                   tx_get_buffer()+offset,
-                                   tx_get_buffer_length(),
+                                   tx_get_buffer() + offset,
+                                   tx_get_buffer_length() - offset,
                                    parser_obj,
                                    content);
     CHECK_APP_CANARY()
