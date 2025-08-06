@@ -22,32 +22,32 @@
     "generate_vectors": "ts-node test_vec_generator/generate_vectors.ts"
   },
   "dependencies": {
-    "@msgpack/msgpack": "^3.1.1",
+    "@msgpack/msgpack": "^3.1.2",
     "@zondax/ledger-algorand": "../js",
-    "@zondax/zemu": "^0.55.3",
-    "algosdk": "^3.2.0",
-    "cbor": "^10.0.3",
+    "@zondax/zemu": "^0.61.0",
+    "algosdk": "^3.4.0",
+    "cbor": "^10.0.10",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@ledgerhq/hw-transport-node-hid": "^6.29.5",
+    "@ledgerhq/hw-transport-node-hid": "^6.29.9",
     "@truestamp/canonify": "^2.1.0",
     "@types/ledgerhq__hw-transport": "^6.0.0",
-    "@types/node": "^20.11.0",
+    "@types/node": "^20.19.9",
     "@types/yargs": "^17.0.32",
-    "@typescript-eslint/eslint-plugin": "^8.28.0",
-    "@typescript-eslint/parser": "^8.28.0",
-    "@vitest/ui": "^3.0.9",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "@vitest/ui": "^3.2.4",
     "crypto-js": "4.2.0",
     "ed25519-supercop": "^2.0.1",
-    "eslint": "^9.23.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-prettier": "^5.2.5",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4",
     "jssha": "^3.3.1",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2",
-    "vitest": "^1.6.1"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }
