@@ -201,16 +201,19 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
 __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
 {
     viewfunc_accept_t sign_callback;
+    review_type_e review_type;
     if (content == MsgPack) {
         if (!process_chunk_legacy(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
         sign_callback = app_sign;
+        review_type = REVIEW_TXN;
     } else {
         if (!process_chunk(tx, rx)) {
             THROW(APDU_CODE_OK);
         }
         sign_callback = app_sign_arbitrary;
+        review_type = REVIEW_MSG;
     }
 
 
@@ -226,7 +229,7 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
     }
 
     view_review_init(tx_getItem, tx_getNumItems, sign_callback);
-    view_review_show(REVIEW_TXN);
+    view_review_show(review_type);
 
     *flags |= IO_ASYNCH_REPLY;
 }
