@@ -79,9 +79,6 @@ VARIANT_PARAM=COIN
 VARIANT_VALUES=$(COIN)
 
 INCLUDES_PATH += $(CURDIR)/src/common
-# INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
-
-DEFINES += APP_BLINDSIGN_MODE_ENABLED
 
 ########################################
 # Application communication interfaces #
@@ -124,6 +121,7 @@ endif
 
 # Add the PRODUCTION_BUILD definition to the compiler flags
 DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
+DEFINES += SHORTCUT_MODE_ENABLED
 
 ########################################
 
