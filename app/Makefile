@@ -121,7 +121,12 @@ endif
 
 # Add the PRODUCTION_BUILD definition to the compiler flags
 DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
-DEFINES += SHORTCUT_MODE_ENABLED
+DEFINES += REVIEW_SCREEN_ENABLED SHORTCUT_MODE_ENABLED
+
+# Support for U2F transport
+DEFINES += HAVE_U2F HAVE_IO_U2F U2F_PROXY_MAGIC=\"algo\"
+SDK_SOURCE_PATH += lib_u2f
+LDFLAGS  += -z muldefs
 
 ########################################
 
