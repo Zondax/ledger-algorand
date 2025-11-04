@@ -24,20 +24,20 @@
   "dependencies": {
     "@msgpack/msgpack": "^3.1.2",
     "@zondax/ledger-algorand": "../js",
-    "@zondax/zemu": "^0.61.11",
+    "@zondax/zemu": "^0.62.1",
     "algosdk": "^3.4.0",
     "cbor": "^10.0.10",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@ledgerhq/hw-transport-node-hid": "^6.29.9",
     "@truestamp/canonify": "^2.1.0",
     "@types/ledgerhq__hw-transport": "^6.0.0",
-    "@types/node": "^20.19.9",
+    "@types/node": "^24.10.0",
     "@types/yargs": "^17.0.32",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.0.6",
     "crypto-js": "4.2.0",
     "ed25519-supercop": "^2.0.1",
     "eslint": "^9.32.0",
@@ -48,6 +48,6 @@
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.6"
   }
 }
