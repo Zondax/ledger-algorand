@@ -121,31 +121,45 @@ parser_error_t read_int_array(cbor_value_t *value, int *values, size_t *count) {
     }
 
     // Get array length if known
-    size_t array_length;
+    size_t array_length = 0;
     if (cbor_value_is_length_known(value)) {
-        if (cbor_value_get_array_length(value, &array_length) != CborNoError) return parser_cbor_error_unexpected;
-        if (array_length > max_items) return parser_cbor_error_out_of_memory;
+        if (cbor_value_get_array_length(value, &array_length) != CborNoError) {
+            return parser_cbor_error_unexpected;
+        }
+        if (array_length > max_items) {
+            return parser_cbor_error_out_of_memory;
+        }
     }
 
     // Enter the array container
-    if (cbor_value_enter_container(value, &element) != CborNoError) return parser_cbor_error_container;
+    if (cbor_value_enter_container(value, &element) != CborNoError) {
+        return parser_cbor_error_container;
+    }
 
     // Iterate through array elements
     while (!cbor_value_at_end(&element) && i < max_items) {
         // Make sure we're looking at an integer
-        if (!cbor_value_is_integer(&element)) return parser_cbor_error_invalid_type;
+        if (!cbor_value_is_integer(&element)) {
+            return parser_cbor_error_invalid_type;
+        }
 
         // Get the integer value
-        if (cbor_value_get_int(&element, &values[i]) != CborNoError) return parser_cbor_error_unexpected;
+        if (cbor_value_get_int(&element, &values[i]) != CborNoError) {
+            return parser_cbor_error_unexpected;
+        }
 
         // Move to next element
-        if (cbor_value_advance(&element) != CborNoError) return parser_cbor_error_unexpected;
+        if (cbor_value_advance(&element) != CborNoError) {
+            return parser_cbor_error_unexpected;
+        }
 
         i++;
     }
 
     // Leave the array container
-    if (cbor_value_leave_container(value, &element) != CborNoError) return parser_cbor_error_container;
+    if (cbor_value_leave_container(value, &element) != CborNoError) {
+        return parser_cbor_error_container;
+    }
 
     *count = i;
     return parser_ok;

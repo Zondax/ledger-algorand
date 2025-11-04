@@ -4,7 +4,7 @@
  * Allocates a fresh unused token from the token pool.
  */
 static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens, const size_t num_tokens) {
-    jsmntok_t *tok;
+    jsmntok_t *tok = NULL;
     if (parser->toknext >= num_tokens) {
         return NULL;
     }
@@ -32,8 +32,8 @@ static void jsmn_fill_token(jsmntok_t *token, const jsmntype_t type, const int s
  */
 static int jsmn_parse_primitive(jsmn_parser *parser, const char *js, const size_t len, jsmntok_t *tokens,
                                 const size_t num_tokens) {
-    jsmntok_t *token;
-    int start;
+    jsmntok_t *token = NULL;
+    int start = 0;
 
     start = parser->pos;
 
@@ -89,7 +89,7 @@ found:
  */
 static int jsmn_parse_string(jsmn_parser *parser, const char *js, const size_t len, jsmntok_t *tokens,
                              const size_t num_tokens) {
-    jsmntok_t *token;
+    jsmntok_t *token = NULL;
 
     int start = parser->pos;
 
@@ -118,7 +118,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js, const size_t l
 
         /* Backslash: Quoted symbol expected */
         if (c == '\\' && parser->pos + 1 < len) {
-            int i;
+            int i = 0;
             parser->pos++;
             switch (js[parser->pos]) {
                 /* Allowed escaped symbols */
@@ -162,14 +162,14 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js, const size_t l
  */
 JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len, jsmntok_t *tokens,
                         const unsigned int num_tokens) {
-    int r;
-    int i;
-    jsmntok_t *token;
+    int r = 0;
+    int i = 0;
+    jsmntok_t *token = NULL;
     int count = parser->toknext;
 
     for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
-        char c;
-        jsmntype_t type;
+        char c = 0;
+        jsmntype_t type = JSMN_UNDEFINED;
 
         c = js[parser->pos];
         switch (c) {

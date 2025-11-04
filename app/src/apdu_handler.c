@@ -68,11 +68,14 @@ __Z_INLINE void extract_accountId_into_HDpath() {
 __Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2) {
     if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
         return P1_INIT;
-    } else if (p1 == P1_MORE && p2 == P2_MORE) {
+    }
+    if (p1 == P1_MORE && p2 == P2_MORE) {
         return P1_ADD;
-    } else if (p1 == P1_MORE && p2 == P2_LAST) {
+    }
+    if (p1 == P1_MORE && p2 == P2_LAST) {
         return P1_LAST;
-    } else if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_LAST) {
+    }
+    if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_LAST) {
         // Transaction fits in one chunk
         return P1_SINGLE_CHUNK;
     }
@@ -86,7 +89,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
-    uint32_t added;
+    uint32_t added = 0;
     switch (p1) {
         case P1_INIT:
             tx_initialize();
@@ -117,6 +120,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
     }
 
     THROW(APDU_CODE_INVALIDP1P2);
+    return false;
 }
 
 __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
@@ -128,7 +132,7 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
-    uint32_t added;
+    uint32_t added = 0;
     uint8_t accountIdSize = 0;
     uint8_t hdPathSize = 0;
 
@@ -195,11 +199,12 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
     }
 
     THROW(APDU_CODE_INVALIDP1P2);
+    return false;
 }
 
 __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content) {
-    viewfunc_accept_t sign_callback;
-    review_type_e review_type;
+    viewfunc_accept_t sign_callback = NULL;
+    review_type_e review_type = REVIEW_TXN;
     if (content == MsgPack) {
         if (!process_chunk_legacy(tx, rx)) {
             THROW(APDU_CODE_OK);

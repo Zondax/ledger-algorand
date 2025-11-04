@@ -224,7 +224,8 @@ parser_error_t getItem(uint8_t index, uint8_t *displayIdx) {
 static uint8_t getMsgPackType(uint8_t byte) {
     if (byte >= FIXMAP_0 && byte <= FIXARR_15) {
         return FIXMAP_0;
-    } else if (byte >= FIXSTR_0 && byte <= FIXSTR_31) {
+    }
+    if (byte >= FIXSTR_0 && byte <= FIXSTR_31) {
         return FIXSTR_0;
     }
     return byte;
@@ -916,7 +917,9 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v) {
 }
 
 static parser_error_t _verifyValue(parser_context_t *c) {
-    if (c == NULL) return parser_unexpected_error;
+    if (c == NULL) {
+        return parser_unexpected_error;
+    }
 
     CHECK_APP_CANARY()
 
@@ -1445,7 +1448,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     CHECK_ERROR(_readUInt8(c, (uint8_t *)&flags))
 
     // read signCount
-    uint32_t signCount;
+    uint32_t signCount = 0;
     CHECK_ERROR(_readUInt32(c, &signCount))
 
     cbor_parser_t parser;
@@ -1457,7 +1460,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
         CHECK_ERROR(_readBytes(c, aaguid, AAGUID_LEN))
 
         // read credentialIdLength
-        uint16_t credentialIdLen;
+        uint16_t credentialIdLen = 0;
         CHECK_ERROR(_readUInt16(c, &credentialIdLen))
 
         // read credentialId

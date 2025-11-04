@@ -15,7 +15,10 @@
  ********************************************************************************/
 #pragma once
 
+#include <stdint.h>
+
 #include "jsmn.h"
+#include "parser_common.h"
 
 #define MAX_NUMBER_OF_JSMN_TOKENS 600
 

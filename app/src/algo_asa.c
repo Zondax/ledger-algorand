@@ -49,7 +49,7 @@ static const algo_asset_info_t algo_assets[] = {
 };
 
 const algo_asset_info_t *algo_asa_get(uint64_t id) {
-    const algo_asset_info_t *p;
+    const algo_asset_info_t *p = NULL;
     const algo_asset_info_t *endp = algo_assets + ARRAY_SIZE(algo_assets);
 
     for (p = algo_assets; p && p < endp; p++) {
