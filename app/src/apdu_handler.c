@@ -1,35 +1,34 @@
 /*******************************************************************************
-*   (c) 2018 - 2022 Zondax AG
-*   (c) 2016 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   (c) 2018 - 2022 Zondax AG
+ *   (c) 2016 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
-#include "app_main.h"
-
-#include <string.h>
-#include <os_io_seproxyhal.h>
 #include <os.h>
+#include <os_io_seproxyhal.h>
+#include <string.h>
 #include <ux.h>
 
-#include "view.h"
-#include "view_internal.h"
 #include "actions.h"
-#include "tx.h"
 #include "addr.h"
-#include "crypto.h"
+#include "app_main.h"
 #include "coin.h"
 #include "common/parser.h"
+#include "crypto.h"
+#include "tx.h"
+#include "view.h"
+#include "view_internal.h"
 #include "zxmacros.h"
 
 #define SERIALIZED_HDPATH_LENGTH (sizeof(uint32_t) * HDPATH_LEN_DEFAULT)
@@ -66,8 +65,7 @@ __Z_INLINE void extract_accountId_into_HDpath() {
     }
 }
 
-__Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2)
-{
+__Z_INLINE uint8_t convertP1P2(const uint8_t p1, const uint8_t p2) {
     if (p1 <= P1_FIRST_ACCOUNT_ID && p2 == P2_MORE) {
         return P1_INIT;
     } else if (p1 == P1_MORE && p2 == P2_MORE) {
@@ -121,8 +119,7 @@ __Z_INLINE bool process_chunk(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
-__Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t rx)
-{
+__Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t rx) {
     const uint8_t P1 = G_io_apdu_buffer[OFFSET_P1];
     const uint8_t P2 = G_io_apdu_buffer[OFFSET_P2];
     const uint8_t payloadType = convertP1P2(P1, P2);
@@ -142,15 +139,16 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
             if (P1 == P1_FIRST_ACCOUNT_ID) {
                 extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
-            } 
+            }
             tx_initialized = true;
-            tx_append((unsigned char*)tmpBuff, 2);
+            tx_append((unsigned char *)tmpBuff, 2);
 
             if (rx < (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 THROW(APDU_CODE_WRONG_LENGTH);
             }
 
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]), rx - (OFFSET_DATA + accountIdSize + hdPathSize));
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]),
+                              rx - (OFFSET_DATA + accountIdSize + hdPathSize));
             if (added != rx - (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
@@ -186,8 +184,9 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
                 extract_accountId_into_HDpath();
                 accountIdSize = ACCOUNT_ID_LENGTH;
             }
-            tx_append((unsigned char*)tmpBuff, 2);
-            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]), rx - (OFFSET_DATA + accountIdSize + hdPathSize));
+            tx_append((unsigned char *)tmpBuff, 2);
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA + accountIdSize + hdPathSize]),
+                              rx - (OFFSET_DATA + accountIdSize + hdPathSize));
             tx_initialized = false;
             if (added != rx - (OFFSET_DATA + accountIdSize + hdPathSize)) {
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
@@ -198,8 +197,7 @@ __Z_INLINE bool process_chunk_legacy(__Z_UNUSED volatile uint32_t *tx, uint32_t 
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
-__Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content)
-{
+__Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx, txn_content_e content) {
     viewfunc_accept_t sign_callback;
     review_type_e review_type;
     if (content == MsgPack) {
@@ -215,7 +213,6 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
         sign_callback = app_sign_arbitrary;
         review_type = REVIEW_MSG;
     }
-
 
     parser_error_t error = tx_parse(content);
     const char *error_msg = parser_getErrorDescription(error);
@@ -234,8 +231,7 @@ __Z_INLINE void handle_sign(volatile uint32_t *flags, volatile uint32_t *tx, uin
     *flags |= IO_ASYNCH_REPLY;
 }
 
-__Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, __Z_UNUSED uint32_t rx)
-{
+__Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_t *tx, __Z_UNUSED uint32_t rx) {
     const uint8_t requireConfirmation = G_io_apdu_buffer[OFFSET_P1];
     const bool u2f_compatibility = G_io_apdu_buffer[OFFSET_INS] == INS_GET_PUBLIC_KEY;
     extract_accountId_into_HDpath();
@@ -252,7 +248,7 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
         return;
     }
 
-    //U2F compatibility: return only pubkey
+    // U2F compatibility: return only pubkey
     if (u2f_compatibility) {
         action_addrResponseLen = PK_LEN_25519;
     }
@@ -261,8 +257,7 @@ __Z_INLINE void handle_get_public_key(volatile uint32_t *flags, volatile uint32_
     THROW(APDU_CODE_OK);
 }
 
-__Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile uint32_t *tx)
-{
+__Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile uint32_t *tx) {
     G_io_apdu_buffer[0] = 0;
 
 #if defined(APP_TESTING)
@@ -292,10 +287,8 @@ __Z_INLINE void handle_getversion(__Z_UNUSED volatile uint32_t *flags, volatile 
 void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
     uint16_t sw = 0;
 
-    BEGIN_TRY
-    {
-        TRY
-        {
+    BEGIN_TRY {
+        TRY {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(APDU_CODE_CLA_NOT_SUPPORTED);
             }
@@ -318,7 +311,6 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
                     break;
                 }
 
-
                 case INS_GET_ADDRESS:
                 case INS_GET_PUBLIC_KEY: {
                     CHECK_PIN_VALIDATED()
@@ -336,12 +328,8 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
                     THROW(APDU_CODE_INS_NOT_SUPPORTED);
             }
         }
-        CATCH(EXCEPTION_IO_RESET)
-        {
-            THROW(EXCEPTION_IO_RESET);
-        }
-        CATCH_OTHER(e)
-        {
+        CATCH(EXCEPTION_IO_RESET) { THROW(EXCEPTION_IO_RESET); }
+        CATCH_OTHER(e) {
             switch (e & 0xF000) {
                 case 0x6000:
                 case APDU_CODE_OK:
@@ -355,9 +343,7 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
             G_io_apdu_buffer[*tx + 1] = sw & 0xFF;
             *tx += 2;
         }
-        FINALLY
-        {
-        }
+        FINALLY {}
     }
     END_TRY;
 }

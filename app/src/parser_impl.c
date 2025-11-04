@@ -1,31 +1,32 @@
 /*******************************************************************************
-*  (c) 2018 - 2022 Zondax AG
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *  (c) 2018 - 2022 Zondax AG
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
-#include "common/parser.h"
 #include "parser_impl.h"
-#include "parser_json.h"
-#include "parser_cbor.h"
-#include "msgpack.h"
-#include "coin.h"
-#include "crypto_utils.h"
+
 #include "apdu_codes.h"
-#include "zxformat.h"
-#include "zxerror.h"
-#include "jsmn.h"
 #include "base64.h"
+#include "coin.h"
+#include "common/parser.h"
+#include "crypto_utils.h"
+#include "jsmn.h"
+#include "msgpack.h"
+#include "parser_cbor.h"
+#include "parser_json.h"
+#include "zxerror.h"
+#include "zxformat.h"
 
 #if defined(LEDGER_SPECIFIC)
 #include "crypto.h"
@@ -164,18 +165,16 @@ static parser_error_t checkExtensionsItem(cbor_value_t *key, cbor_value_t *value
 
 #define AAGUID_LEN 16
 
-#define DISPLAY_ITEM(type, len, counter)        \
-    for(uint8_t j = 0; j < len; j++) {          \
-        CHECK_ERROR(addItem(type))              \
-        counter++;                              \
+#define DISPLAY_ITEM(type, len, counter) \
+    for (uint8_t j = 0; j < len; j++) {  \
+        CHECK_ERROR(addItem(type))       \
+        counter++;                       \
     }
 
-static parser_error_t parser_init_context(parser_context_t *ctx,
-                                   const uint8_t *buffer,
-                                   uint16_t bufferSize,
-                                   txn_content_e content) {
+static parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize,
+                                          txn_content_e content) {
     if (ctx == NULL || bufferSize == 0 || buffer == NULL) {
-         return parser_init_context_empty;
+        return parser_init_context_empty;
     }
 
     ctx->offset = 0;
@@ -196,18 +195,16 @@ parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_
     return parser_ok;
 }
 
-static parser_error_t initializeItemArray()
-{
-    for(uint8_t i = 0; i < MAX_ITEM_ARRAY; i++) {
+static parser_error_t initializeItemArray() {
+    for (uint8_t i = 0; i < MAX_ITEM_ARRAY; i++) {
         itemArray[i] = 0xFF;
     }
     itemIndex = 0;
     return parser_ok;
 }
 
-parser_error_t addItem(uint8_t displayIdx)
-{
-    if(itemIndex >= MAX_ITEM_ARRAY) {
+parser_error_t addItem(uint8_t displayIdx) {
+    if (itemIndex >= MAX_ITEM_ARRAY) {
         return parser_unexpected_buffer_end;
     }
     itemArray[itemIndex] = displayIdx;
@@ -216,17 +213,15 @@ parser_error_t addItem(uint8_t displayIdx)
     return parser_ok;
 }
 
-parser_error_t getItem(uint8_t index, uint8_t* displayIdx)
-{
-    if(index >= itemIndex) {
+parser_error_t getItem(uint8_t index, uint8_t *displayIdx) {
+    if (index >= itemIndex) {
         return parser_display_page_out_of_range;
     }
     *displayIdx = itemArray[index];
     return parser_ok;
 }
 
-static uint8_t getMsgPackType(uint8_t byte)
-{
+static uint8_t getMsgPackType(uint8_t byte) {
     if (byte >= FIXMAP_0 && byte <= FIXARR_15) {
         return FIXMAP_0;
     } else if (byte >= FIXSTR_0 && byte <= FIXSTR_31) {
@@ -235,10 +230,9 @@ static uint8_t getMsgPackType(uint8_t byte)
     return byte;
 }
 
-parser_error_t _readMapSize(parser_context_t *c, uint16_t *mapItems)
-{
+parser_error_t _readMapSize(parser_context_t *c, uint16_t *mapItems) {
     if (c == NULL || mapItems == NULL) {
-         return parser_unexpected_value;
+        return parser_unexpected_value;
     }
 
     uint8_t byte = 0;
@@ -246,16 +240,16 @@ parser_error_t _readMapSize(parser_context_t *c, uint16_t *mapItems)
 
     switch (getMsgPackType(byte)) {
         case FIXMAP_0:
-            *mapItems = (uint16_t) byte - FIXMAP_0;
-        break;
+            *mapItems = (uint16_t)byte - FIXMAP_0;
+            break;
 
         case MAP16:
             CHECK_ERROR(_readUInt16(c, mapItems))
-        break;
+            break;
 
         case MAP32:
             return parser_msgpack_map_type_not_supported;
-        break;
+            break;
 
         default:
             return parser_msgpack_unexpected_type;
@@ -263,8 +257,7 @@ parser_error_t _readMapSize(parser_context_t *c, uint16_t *mapItems)
     return parser_ok;
 }
 
-parser_error_t _readArraySize(parser_context_t *c, uint8_t *arrayItems)
-{
+parser_error_t _readArraySize(parser_context_t *c, uint8_t *arrayItems) {
     uint8_t byte = 0;
     CHECK_ERROR(_readUInt8(c, &byte))
 
@@ -276,10 +269,10 @@ parser_error_t _readArraySize(parser_context_t *c, uint8_t *arrayItems)
         case ARR16: {
             uint16_t tmpItems = 0;
             CHECK_ERROR(_readUInt16(c, &tmpItems))
-            if(tmpItems > UINT8_MAX) {
+            if (tmpItems > UINT8_MAX) {
                 return parser_unexpected_number_items;
             }
-            *arrayItems = (uint8_t) tmpItems;
+            *arrayItems = (uint8_t)tmpItems;
             return parser_ok;
         }
         case ARR32:
@@ -290,56 +283,52 @@ parser_error_t _readArraySize(parser_context_t *c, uint8_t *arrayItems)
     return parser_msgpack_unexpected_type;
 }
 
-static parser_error_t _verifyBytes(parser_context_t *c, uint16_t buffLen)
-{
+static parser_error_t _verifyBytes(parser_context_t *c, uint16_t buffLen) {
     CTX_CHECK_AVAIL(c, buffLen)
     CTX_CHECK_AND_ADVANCE(c, buffLen)
     return parser_ok;
 }
 
-static parser_error_t _getPointerBytes(parser_context_t *c, const uint8_t **buff, uint16_t buffLen)
-{
+static parser_error_t _getPointerBytes(parser_context_t *c, const uint8_t **buff, uint16_t buffLen) {
     CTX_CHECK_AVAIL(c, buffLen)
     *buff = c->buffer + c->offset;
     CTX_CHECK_AND_ADVANCE(c, buffLen)
     return parser_ok;
 }
 
-parser_error_t _readBytes(parser_context_t *c, uint8_t *buff, uint16_t buffLen)
-{
+parser_error_t _readBytes(parser_context_t *c, uint8_t *buff, uint16_t buffLen) {
     CTX_CHECK_AVAIL(c, buffLen)
     MEMCPY(buff, (c->buffer + c->offset), buffLen);
     CTX_CHECK_AND_ADVANCE(c, buffLen)
     return parser_ok;
 }
 
-parser_error_t _readString(parser_context_t *c, uint8_t *buff, uint16_t buffLen)
-{
+parser_error_t _readString(parser_context_t *c, uint8_t *buff, uint16_t buffLen) {
     uint8_t byte = 0;
     uint8_t strLen = 0;
     CHECK_ERROR(_readUInt8(c, &byte))
     memset(buff, 0, buffLen);
 
     switch (getMsgPackType(byte)) {
-    case FIXSTR_0:
-        strLen = byte - FIXSTR_0;
-        break;
+        case FIXSTR_0:
+            strLen = byte - FIXSTR_0;
+            break;
 
-    case STR8:
-        CHECK_ERROR(_readUInt8(c, &strLen))
-        break;
+        case STR8:
+            CHECK_ERROR(_readUInt8(c, &strLen))
+            break;
 
-    case STR16:
-        return parser_msgpack_str_type_not_supported;
-        break;
+        case STR16:
+            return parser_msgpack_str_type_not_supported;
+            break;
 
-    case STR32:
-        return parser_msgpack_str_type_not_supported;
-        break;
+        case STR32:
+            return parser_msgpack_str_type_not_supported;
+            break;
 
-    default:
-        return parser_msgpack_str_type_expected;
-        break;
+        default:
+            return parser_msgpack_str_type_expected;
+            break;
     }
 
     if (strLen >= buffLen) {
@@ -349,8 +338,7 @@ parser_error_t _readString(parser_context_t *c, uint8_t *buff, uint16_t buffLen)
     return parser_ok;
 }
 
-parser_error_t _readInteger(parser_context_t *c, uint64_t* value)
-{
+parser_error_t _readInteger(parser_context_t *c, uint64_t *value) {
     uint8_t intType = 0;
     CHECK_ERROR(_readBytes(c, &intType, 1))
 
@@ -359,45 +347,42 @@ parser_error_t _readInteger(parser_context_t *c, uint64_t* value)
         return parser_ok;
     }
 
-    switch (intType)
-    {
-    case UINT8: {
-        uint8_t tmp = 0;
-        CHECK_ERROR(_readUInt8(c, &tmp))
-        *value = (uint64_t)tmp;
-        break;
-    }
-    case UINT16: {
-        uint16_t tmp = 0;
-        CHECK_ERROR(_readUInt16(c, &tmp))
-        *value = (uint64_t)tmp;
-        break;
-    }
-    case UINT32: {
-        uint32_t tmp = 0;
-        CHECK_ERROR(_readUInt32(c, &tmp))
-        *value = (uint64_t)tmp;
-        break;
-    }
-    case UINT64: {
-        CHECK_ERROR(_readUInt64(c, value))
-        break;
-    }
-    default:
-        return parser_msgpack_int_type_expected;
-        break;
+    switch (intType) {
+        case UINT8: {
+            uint8_t tmp = 0;
+            CHECK_ERROR(_readUInt8(c, &tmp))
+            *value = (uint64_t)tmp;
+            break;
+        }
+        case UINT16: {
+            uint16_t tmp = 0;
+            CHECK_ERROR(_readUInt16(c, &tmp))
+            *value = (uint64_t)tmp;
+            break;
+        }
+        case UINT32: {
+            uint32_t tmp = 0;
+            CHECK_ERROR(_readUInt32(c, &tmp))
+            *value = (uint64_t)tmp;
+            break;
+        }
+        case UINT64: {
+            CHECK_ERROR(_readUInt64(c, value))
+            break;
+        }
+        default:
+            return parser_msgpack_int_type_expected;
+            break;
     }
 
     return parser_ok;
 }
 
-parser_error_t _readBinFixed(parser_context_t *c, uint8_t *buff, uint16_t bufferLen)
-{
+parser_error_t _readBinFixed(parser_context_t *c, uint8_t *buff, uint16_t bufferLen) {
     uint8_t binType = 0;
     uint8_t binLen = 0;
     CHECK_ERROR(_readUInt8(c, &binType))
-    switch (binType)
-    {
+    switch (binType) {
         case BIN8: {
             CHECK_ERROR(_readUInt8(c, &binLen))
             break;
@@ -413,19 +398,17 @@ parser_error_t _readBinFixed(parser_context_t *c, uint8_t *buff, uint16_t buffer
         }
     }
 
-    if(binLen != bufferLen) {
+    if (binLen != bufferLen) {
         return parser_msgpack_bin_unexpected_size;
     }
     CHECK_ERROR(_readBytes(c, buff, bufferLen))
     return parser_ok;
 }
 
-static parser_error_t _readBinSize(parser_context_t *c, uint16_t *binSize)
-{
+static parser_error_t _readBinSize(parser_context_t *c, uint16_t *binSize) {
     uint8_t binType = 0;
     CHECK_ERROR(_readUInt8(c, &binType))
-    switch (binType)
-    {
+    switch (binType) {
         case BIN8: {
             uint8_t tmp = 0;
             CHECK_ERROR(_readUInt8(c, &tmp))
@@ -448,13 +431,11 @@ static parser_error_t _readBinSize(parser_context_t *c, uint16_t *binSize)
     return parser_ok;
 }
 
-static parser_error_t _verifyBin(parser_context_t *c, uint16_t *buffer_len, uint16_t max_buffer_len)
-{
+static parser_error_t _verifyBin(parser_context_t *c, uint16_t *buffer_len, uint16_t max_buffer_len) {
     uint8_t binType = 0;
     uint16_t binLen = 0;
     CHECK_ERROR(_readUInt8(c, &binType))
-    switch (binType)
-    {
+    switch (binType) {
         case BIN8: {
             uint8_t tmp = 0;
             CHECK_ERROR(_readUInt8(c, &tmp))
@@ -475,7 +456,7 @@ static parser_error_t _verifyBin(parser_context_t *c, uint16_t *buffer_len, uint
         }
     }
 
-    if(binLen > max_buffer_len) {
+    if (binLen > max_buffer_len) {
         return parser_msgpack_bin_unexpected_size;
     }
 
@@ -484,13 +465,11 @@ static parser_error_t _verifyBin(parser_context_t *c, uint16_t *buffer_len, uint
     return parser_ok;
 }
 
-static parser_error_t _readBin(parser_context_t *c, uint8_t *buff, uint16_t *bufferLen, uint16_t bufferMaxSize)
-{
+static parser_error_t _readBin(parser_context_t *c, uint8_t *buff, uint16_t *bufferLen, uint16_t bufferMaxSize) {
     uint8_t binType = 0;
     uint16_t binLen = 0;
     CHECK_ERROR(_readUInt8(c, &binType))
-    switch (binType)
-    {
+    switch (binType) {
         case BIN8: {
             uint8_t tmp = 0;
             CHECK_ERROR(_readUInt8(c, &tmp))
@@ -511,7 +490,7 @@ static parser_error_t _readBin(parser_context_t *c, uint8_t *buff, uint16_t *buf
         }
     }
 
-    if(binLen > bufferMaxSize) {
+    if (binLen > bufferMaxSize) {
         return parser_msgpack_bin_unexpected_size;
     }
 
@@ -520,14 +499,11 @@ static parser_error_t _readBin(parser_context_t *c, uint8_t *buff, uint16_t *buf
     return parser_ok;
 }
 
-
-static parser_error_t _getPointerBin(parser_context_t *c, const uint8_t **buff, uint16_t *bufferLen)
-{
+static parser_error_t _getPointerBin(parser_context_t *c, const uint8_t **buff, uint16_t *bufferLen) {
     uint8_t binType = 0;
     uint16_t binLen = 0;
     CHECK_ERROR(_readUInt8(c, &binType))
-    switch (binType)
-    {
+    switch (binType) {
         case BIN8: {
             uint8_t tmp = 0;
             CHECK_ERROR(_readUInt8(c, &tmp))
@@ -552,17 +528,13 @@ static parser_error_t _getPointerBin(parser_context_t *c, const uint8_t **buff, 
 
     CHECK_ERROR(_getPointerBytes(c, buff, *bufferLen));
 
-
     return parser_ok;
 }
 
-
-parser_error_t _readBool(parser_context_t *c, uint8_t *value)
-{
+parser_error_t _readBool(parser_context_t *c, uint8_t *value) {
     uint8_t tmp = 0;
     CHECK_ERROR(_readUInt8(c, &tmp))
-    switch (tmp)
-    {
+    switch (tmp) {
         case BOOL_TRUE: {
             *value = 1;
             break;
@@ -580,140 +552,137 @@ parser_error_t _readBool(parser_context_t *c, uint8_t *value)
     return parser_ok;
 }
 
-static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *asset_config)
-{
+static parser_error_t _readAssetParams(parser_context_t *c, txn_asset_config *asset_config) {
     uint8_t available_params[MAX_PARAM_SIZE];
     memset(available_params, 0xFF, MAX_PARAM_SIZE);
 
     uint16_t paramsSize = 0;
     CHECK_ERROR(_readMapSize(c, &paramsSize))
 
-    if(paramsSize > MAX_PARAM_SIZE) {
+    if (paramsSize > MAX_PARAM_SIZE) {
         return parser_unexpected_number_items;
     }
 
     uint8_t key[10] = {0};
-    for(uint16_t i = 0; i < paramsSize; i++) {
+    for (uint16_t i = 0; i < paramsSize; i++) {
         CHECK_ERROR(_readString(c, key, sizeof(key)))
 
-        if (strncmp((char*)key, KEY_APARAMS_TOTAL, strlen(KEY_APARAMS_TOTAL)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_TOTAL, strlen(KEY_APARAMS_TOTAL)) == 0) {
             CHECK_ERROR(_readInteger(c, &asset_config->params.total))
             available_params[IDX_CONFIG_TOTAL_UNITS] = IDX_CONFIG_TOTAL_UNITS;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_DEF_FROZEN, strlen(KEY_APARAMS_DEF_FROZEN)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_DEF_FROZEN, strlen(KEY_APARAMS_DEF_FROZEN)) == 0) {
             CHECK_ERROR(_readBool(c, &asset_config->params.default_frozen))
             available_params[IDX_CONFIG_FROZEN] = IDX_CONFIG_FROZEN;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_UNIT_NAME, strlen(KEY_APARAMS_UNIT_NAME)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_UNIT_NAME, strlen(KEY_APARAMS_UNIT_NAME)) == 0) {
             memset(asset_config->params.unitname, 0, sizeof(asset_config->params.unitname));
-            CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
+            CHECK_ERROR(_readString(c, (uint8_t *)asset_config->params.unitname, sizeof(asset_config->params.unitname)))
             available_params[IDX_CONFIG_UNIT_NAME] = IDX_CONFIG_UNIT_NAME;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_DECIMALS, strlen(KEY_APARAMS_DECIMALS)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_DECIMALS, strlen(KEY_APARAMS_DECIMALS)) == 0) {
             CHECK_ERROR(_readInteger(c, &asset_config->params.decimals))
             available_params[IDX_CONFIG_DECIMALS] = IDX_CONFIG_DECIMALS;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_ASSET_NAME, strlen(KEY_APARAMS_ASSET_NAME)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_ASSET_NAME, strlen(KEY_APARAMS_ASSET_NAME)) == 0) {
             memset(asset_config->params.assetname, 0, sizeof(asset_config->params.assetname));
-            CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
+            CHECK_ERROR(_readString(c, (uint8_t *)asset_config->params.assetname, sizeof(asset_config->params.assetname)))
             available_params[IDX_CONFIG_ASSET_NAME] = IDX_CONFIG_ASSET_NAME;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_URL, strlen(KEY_APARAMS_URL)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_URL, strlen(KEY_APARAMS_URL)) == 0) {
             memset(asset_config->params.url, 0, sizeof(asset_config->params.url));
-            CHECK_ERROR(_readString(c, (uint8_t*)asset_config->params.url, sizeof(asset_config->params.url)))
+            CHECK_ERROR(_readString(c, (uint8_t *)asset_config->params.url, sizeof(asset_config->params.url)))
             available_params[IDX_CONFIG_URL] = IDX_CONFIG_URL;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_METADATA_HASH, strlen(KEY_APARAMS_METADATA_HASH)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_METADATA_HASH, strlen(KEY_APARAMS_METADATA_HASH)) == 0) {
             CHECK_ERROR(_readBinFixed(c, asset_config->params.metadata_hash, sizeof(asset_config->params.metadata_hash)))
             available_params[IDX_CONFIG_METADATA_HASH] = IDX_CONFIG_METADATA_HASH;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_MANAGER, strlen(KEY_APARAMS_MANAGER)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_MANAGER, strlen(KEY_APARAMS_MANAGER)) == 0) {
             CHECK_ERROR(_readBinFixed(c, asset_config->params.manager, sizeof(asset_config->params.manager)))
             available_params[IDX_CONFIG_MANAGER] = IDX_CONFIG_MANAGER;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_RESERVE, strlen(KEY_APARAMS_RESERVE)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_RESERVE, strlen(KEY_APARAMS_RESERVE)) == 0) {
             CHECK_ERROR(_readBinFixed(c, asset_config->params.reserve, sizeof(asset_config->params.reserve)))
             available_params[IDX_CONFIG_RESERVE] = IDX_CONFIG_RESERVE;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_FREEZE, strlen(KEY_APARAMS_FREEZE)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_FREEZE, strlen(KEY_APARAMS_FREEZE)) == 0) {
             CHECK_ERROR(_readBinFixed(c, asset_config->params.freeze, sizeof(asset_config->params.freeze)))
             available_params[IDX_CONFIG_FREEZER] = IDX_CONFIG_FREEZER;
             continue;
         }
 
-        if (strncmp((char*)key, KEY_APARAMS_CLAWBACK, strlen(KEY_APARAMS_CLAWBACK)) == 0) {
+        if (strncmp((char *)key, KEY_APARAMS_CLAWBACK, strlen(KEY_APARAMS_CLAWBACK)) == 0) {
             CHECK_ERROR(_readBinFixed(c, asset_config->params.clawback, sizeof(asset_config->params.clawback)))
             available_params[IDX_CONFIG_CLAWBACK] = IDX_CONFIG_CLAWBACK;
             continue;
         }
     }
 
-    for(uint8_t i = 0; i < MAX_PARAM_SIZE; i++) {
-        switch (available_params[i])
-        {
-        case IDX_CONFIG_ASSET_ID:
-            DISPLAY_ITEM(IDX_CONFIG_ASSET_ID, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_TOTAL_UNITS:
-            DISPLAY_ITEM(IDX_CONFIG_TOTAL_UNITS, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_FROZEN:
-            DISPLAY_ITEM(IDX_CONFIG_FROZEN, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_UNIT_NAME:
-            DISPLAY_ITEM(IDX_CONFIG_UNIT_NAME, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_DECIMALS:
-            DISPLAY_ITEM(IDX_CONFIG_DECIMALS, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_ASSET_NAME:
-            DISPLAY_ITEM(IDX_CONFIG_ASSET_NAME, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_URL:
-            DISPLAY_ITEM(IDX_CONFIG_URL, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_METADATA_HASH:
-            DISPLAY_ITEM(IDX_CONFIG_METADATA_HASH, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_MANAGER:
-            DISPLAY_ITEM(IDX_CONFIG_MANAGER, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_RESERVE:
-            DISPLAY_ITEM(IDX_CONFIG_RESERVE, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_FREEZER:
-            DISPLAY_ITEM(IDX_CONFIG_FREEZER, 1, tx_num_items)
-            break;
-        case IDX_CONFIG_CLAWBACK:
-            DISPLAY_ITEM(IDX_CONFIG_CLAWBACK, 1, tx_num_items)
-            break;
-        default:
-            break;
+    for (uint8_t i = 0; i < MAX_PARAM_SIZE; i++) {
+        switch (available_params[i]) {
+            case IDX_CONFIG_ASSET_ID:
+                DISPLAY_ITEM(IDX_CONFIG_ASSET_ID, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_TOTAL_UNITS:
+                DISPLAY_ITEM(IDX_CONFIG_TOTAL_UNITS, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_FROZEN:
+                DISPLAY_ITEM(IDX_CONFIG_FROZEN, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_UNIT_NAME:
+                DISPLAY_ITEM(IDX_CONFIG_UNIT_NAME, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_DECIMALS:
+                DISPLAY_ITEM(IDX_CONFIG_DECIMALS, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_ASSET_NAME:
+                DISPLAY_ITEM(IDX_CONFIG_ASSET_NAME, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_URL:
+                DISPLAY_ITEM(IDX_CONFIG_URL, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_METADATA_HASH:
+                DISPLAY_ITEM(IDX_CONFIG_METADATA_HASH, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_MANAGER:
+                DISPLAY_ITEM(IDX_CONFIG_MANAGER, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_RESERVE:
+                DISPLAY_ITEM(IDX_CONFIG_RESERVE, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_FREEZER:
+                DISPLAY_ITEM(IDX_CONFIG_FREEZER, 1, tx_num_items)
+                break;
+            case IDX_CONFIG_CLAWBACK:
+                DISPLAY_ITEM(IDX_CONFIG_CLAWBACK, 1, tx_num_items)
+                break;
+            default:
+                break;
         }
     }
     return parser_ok;
 }
 
-parser_error_t _verifyAppArgs(parser_context_t *c, uint16_t args_len[], uint8_t *args_array_len, size_t max_array_len)
-{
+parser_error_t _verifyAppArgs(parser_context_t *c, uint16_t args_len[], uint8_t *args_array_len, size_t max_array_len) {
     CHECK_ERROR(_readArraySize(c, args_array_len))
     if (*args_array_len > max_array_len) {
         return parser_msgpack_array_too_big;
@@ -726,29 +695,29 @@ parser_error_t _verifyAppArgs(parser_context_t *c, uint16_t args_len[], uint8_t 
     return parser_ok;
 }
 
-parser_error_t _getAppArg(parser_context_t *c, uint8_t **args, uint16_t* args_len, uint8_t args_idx, uint16_t max_args_len, uint8_t max_array_len)
-{
+parser_error_t _getAppArg(parser_context_t *c, uint8_t **args, uint16_t *args_len, uint8_t args_idx, uint16_t max_args_len,
+                          uint8_t max_array_len) {
     uint8_t tmp_array_len = 0;
     CHECK_ERROR(_findKey(c, KEY_APP_ARGS))
     CHECK_ERROR(_readArraySize(c, &tmp_array_len))
 
-    if(tmp_array_len > max_array_len || args_idx >= tmp_array_len) {
+    if (tmp_array_len > max_array_len || args_idx >= tmp_array_len) {
         return parser_unexpected_number_items;
     }
 
-    for(uint8_t i = 0; i < args_idx + 1; i++) {
+    for (uint8_t i = 0; i < args_idx + 1; i++) {
         CHECK_ERROR(_verifyBin(c, args_len, max_args_len))
     }
 
     if (c->offset < *args_len) {
         return parser_unexpected_value;
     }
-    (*args) = (uint8_t*)(c->buffer + c->offset - *args_len);
+    (*args) = (uint8_t *)(c->buffer + c->offset - *args_len);
     return parser_ok;
 }
 
-parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], size_t args_len[], size_t *argsSize, size_t maxArgs)
-{
+parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], size_t args_len[], size_t *argsSize,
+                            size_t maxArgs) {
     uint8_t tmpFIX = 0;
     CHECK_ERROR(_readArraySize(c, &tmpFIX))
     *argsSize = tmpFIX;
@@ -758,14 +727,13 @@ parser_error_t _readAppArgs(parser_context_t *c, uint8_t args[][MAX_ARGLEN], siz
     }
 
     for (size_t i = 0; i < *argsSize; i++) {
-        CHECK_ERROR(_readBin(c, args[i], (uint16_t*)&args_len[i], MAX_ARGLEN))
+        CHECK_ERROR(_readBin(c, args[i], (uint16_t *)&args_len[i], MAX_ARGLEN))
     }
 
     return parser_ok;
 }
 
-parser_error_t _readAccountsSize(parser_context_t *c, uint8_t *numAccounts, uint8_t maxAccounts)
-{
+parser_error_t _readAccountsSize(parser_context_t *c, uint8_t *numAccounts, uint8_t maxAccounts) {
     CHECK_ERROR(_readArraySize(c, numAccounts))
     if (*numAccounts > maxAccounts) {
         return parser_msgpack_array_too_big;
@@ -773,12 +741,11 @@ parser_error_t _readAccountsSize(parser_context_t *c, uint8_t *numAccounts, uint
     return parser_ok;
 }
 
-parser_error_t _getAccount(parser_context_t *c, uint8_t* account, uint8_t account_idx, uint8_t num_accounts)
-{
+parser_error_t _getAccount(parser_context_t *c, uint8_t *account, uint8_t account_idx, uint8_t num_accounts) {
     uint8_t tmp_num_accounts = 0;
     CHECK_ERROR(_findKey(c, KEY_APP_ACCOUNTS))
     CHECK_ERROR(_readAccountsSize(c, &tmp_num_accounts, num_accounts))
-    if(tmp_num_accounts != num_accounts || account_idx >= num_accounts) {
+    if (tmp_num_accounts != num_accounts || account_idx >= num_accounts) {
         return parser_unexpected_number_items;
     }
     // Read until we get the right account index
@@ -788,8 +755,7 @@ parser_error_t _getAccount(parser_context_t *c, uint8_t* account, uint8_t accoun
     return parser_ok;
 }
 
-parser_error_t _verifyAccounts(parser_context_t *c, uint8_t* num_accounts, uint8_t maxNumAccounts)
-{
+parser_error_t _verifyAccounts(parser_context_t *c, uint8_t *num_accounts, uint8_t maxNumAccounts) {
     uint8_t tmpBuf[ACCT_SIZE] = {0};
     CHECK_ERROR(_readAccountsSize(c, num_accounts, maxNumAccounts))
     for (uint8_t i = 0; i < *num_accounts; i++) {
@@ -798,16 +764,15 @@ parser_error_t _verifyAccounts(parser_context_t *c, uint8_t* num_accounts, uint8
     return parser_ok;
 }
 
-parser_error_t _readStateSchema(parser_context_t *c, state_schema *schema)
-{
+parser_error_t _readStateSchema(parser_context_t *c, state_schema *schema) {
     uint16_t mapSize = 0;
     CHECK_ERROR(_readMapSize(c, &mapSize))
     uint8_t key[32];
     for (uint16_t i = 0; i < mapSize; i++) {
         CHECK_ERROR(_readString(c, key, sizeof(key)))
-        if (strncmp((char*)key, KEY_SCHEMA_NUI, sizeof(KEY_SCHEMA_NUI)) == 0) {
+        if (strncmp((char *)key, KEY_SCHEMA_NUI, sizeof(KEY_SCHEMA_NUI)) == 0) {
             CHECK_ERROR(_readInteger(c, &schema->num_uint))
-        } else if (strncmp((char*)key, KEY_SCHEMA_NBS, sizeof(KEY_SCHEMA_NBS)) == 0) {
+        } else if (strncmp((char *)key, KEY_SCHEMA_NBS, sizeof(KEY_SCHEMA_NBS)) == 0) {
             CHECK_ERROR(_readInteger(c, &schema->num_byteslice))
         } else {
             return parser_msgpack_unexpected_key;
@@ -816,8 +781,7 @@ parser_error_t _readStateSchema(parser_context_t *c, state_schema *schema)
     return parser_ok;
 }
 
-parser_error_t _readArrayU64(parser_context_t *c, uint64_t elements[], uint8_t *num_elements, uint8_t max_elements)
-{
+parser_error_t _readArrayU64(parser_context_t *c, uint64_t elements[], uint8_t *num_elements, uint8_t max_elements) {
     CHECK_ERROR(_readArraySize(c, num_elements))
     if (*num_elements > max_elements) {
         return parser_msgpack_array_too_big;
@@ -830,7 +794,6 @@ parser_error_t _readArrayU64(parser_context_t *c, uint64_t elements[], uint8_t *
 }
 
 __Z_INLINE parser_error_t _readBoxElement(parser_context_t *c, box *box) {
-
     uint8_t key[2] = {0};
     uint16_t mapSize = 0;
     CHECK_ERROR(_readMapSize(c, &mapSize))
@@ -840,10 +803,10 @@ __Z_INLINE parser_error_t _readBoxElement(parser_context_t *c, box *box) {
 
     for (uint16_t index = 0; index < mapSize; index++) {
         CHECK_ERROR(_readString(c, key, sizeof(key)))
-        if (strncmp((char*)key, KEY_APP_BOX_INDEX, sizeof(KEY_APP_BOX_INDEX)) == 0) {
+        if (strncmp((char *)key, KEY_APP_BOX_INDEX, sizeof(KEY_APP_BOX_INDEX)) == 0) {
             CHECK_ERROR(_readUInt8(c, &box->i))
 
-        } else if (strncmp((char*)key, KEY_APP_BOX_NAME, sizeof(KEY_APP_BOX_NAME)) == 0) {
+        } else if (strncmp((char *)key, KEY_APP_BOX_NAME, sizeof(KEY_APP_BOX_NAME)) == 0) {
             CHECK_ERROR(_getPointerBin(c, &box->n, &box->n_len))
 
             if (box->n_len > BOX_NAME_MAX_LENGTH) {
@@ -857,8 +820,7 @@ __Z_INLINE parser_error_t _readBoxElement(parser_context_t *c, box *box) {
     return parser_ok;
 }
 
-parser_error_t _readBoxes(parser_context_t *c, box boxes[], uint8_t *num_elements)
-{
+parser_error_t _readBoxes(parser_context_t *c, box boxes[], uint8_t *num_elements) {
     CHECK_ERROR(_readArraySize(c, num_elements))
     if (*num_elements > MAX_FOREIGN_APPS) {
         return parser_msgpack_array_too_big;
@@ -871,11 +833,10 @@ parser_error_t _readBoxes(parser_context_t *c, box boxes[], uint8_t *num_element
     return parser_ok;
 }
 
-static parser_error_t _readTxType(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxType(parser_context_t *c, parser_tx_t *v) {
     char typeStr[10] = {0};
     CHECK_ERROR(_findKey(c, KEY_COMMON_TYPE))
-    CHECK_ERROR(_readString(c, (uint8_t*) typeStr, sizeof(typeStr)))
+    CHECK_ERROR(_readString(c, (uint8_t *)typeStr, sizeof(typeStr)))
 
     if (strncmp(typeStr, KEY_TX_PAY, sizeof(KEY_TX_PAY)) == 0) {
         v->type = TX_PAYMENT;
@@ -897,8 +858,7 @@ static parser_error_t _readTxType(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v) {
     common_num_items = 0;
 
     MEMZERO(v->rekey, sizeof(v->rekey));
@@ -924,7 +884,7 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
     DISPLAY_ITEM(IDX_COMMON_FEE, 1, common_num_items)
 
     if (_findKey(c, KEY_COMMON_GEN_ID) == parser_ok) {
-        CHECK_ERROR(_readString(c, (uint8_t*)v->genesisID, sizeof(v->genesisID)))
+        CHECK_ERROR(_readString(c, (uint8_t *)v->genesisID, sizeof(v->genesisID)))
         DISPLAY_ITEM(IDX_COMMON_GEN_ID, 1, common_num_items)
     }
 
@@ -939,7 +899,7 @@ static parser_error_t _readTxCommonParams(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_COMMON_NOTE) == parser_ok) {
         CHECK_ERROR(_readBinSize(c, &v->note_len))
-        if(v->note_len > MAX_NOTE_LEN) {
+        if (v->note_len > MAX_NOTE_LEN) {
             return parser_unexpected_value;
         }
         DISPLAY_ITEM(IDX_COMMON_NOTE, 1, common_num_items)
@@ -1024,7 +984,7 @@ parser_error_t _findKey(parser_context_t *c, const char *key) {
     CHECK_ERROR(_readMapSize(c, &keysLen))
     for (uint16_t i = 0; i < keysLen; i++) {
         CHECK_ERROR(_readString(c, tmpKey, sizeof(tmpKey)))
-        if (strncmp((char*)tmpKey, key, strlen(key)) == 0) {
+        if (strncmp((char *)tmpKey, key, strlen(key)) == 0) {
             return parser_ok;
         }
         CHECK_ERROR(_verifyValue(c))
@@ -1033,8 +993,7 @@ parser_error_t _findKey(parser_context_t *c, const char *key) {
     return parser_no_data;
 }
 
-static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     MEMZERO(v->payment.close, sizeof(v->payment.close));
 
@@ -1056,8 +1015,7 @@ static parser_error_t _readTxPayment(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     if (_findKey(c, KEY_VOTE_PK) == parser_ok) {
         CHECK_ERROR(_readBinFixed(c, v->keyreg.votepk, sizeof(v->keyreg.votepk)))
@@ -1096,8 +1054,7 @@ static parser_error_t _readTxKeyreg(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     MEMZERO(v->asset_xfer.close, sizeof(v->asset_xfer.close));
 
@@ -1128,8 +1085,7 @@ static parser_error_t _readTxAssetXfer(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxAssetFreeze(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxAssetFreeze(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     CHECK_ERROR(_findKey(c, KEY_FREEZE_ID))
     CHECK_ERROR(_readInteger(c, &v->asset_freeze.id))
@@ -1149,8 +1105,7 @@ static parser_error_t _readTxAssetFreeze(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     if (_findKey(c, KEY_CONFIG_ID) == parser_ok) {
         CHECK_ERROR(_readInteger(c, &v->asset_config.id))
@@ -1164,8 +1119,7 @@ static parser_error_t _readTxAssetConfig(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
-{
+static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v) {
     tx_num_items = 0;
     txn_application *application = &v->application;
     application->num_boxes = 0;
@@ -1208,7 +1162,7 @@ static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
         DISPLAY_ITEM(IDX_ACCOUNTS, application->num_accounts, tx_num_items)
     }
 
-    if(application->num_accounts + application->num_foreign_apps + application->num_foreign_assets > ACCT_FOREIGN_LIMIT) {
+    if (application->num_accounts + application->num_foreign_apps + application->num_foreign_assets > ACCT_FOREIGN_LIMIT) {
         return parser_unexpected_number_items;
     }
 
@@ -1218,9 +1172,9 @@ static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
     }
 
     uint16_t app_args_total_len = 0;
-    for(uint8_t i = 0; i< application->num_app_args; i++) {
+    for (uint8_t i = 0; i < application->num_app_args; i++) {
         app_args_total_len += application->app_args_len[i];
-        if(app_args_total_len > MAX_ARGLEN) {
+        if (app_args_total_len > MAX_ARGLEN) {
             return parser_unexpected_number_items;
         }
     }
@@ -1237,7 +1191,7 @@ static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
 
     if (_findKey(c, KEY_APP_EXTRA_PAGES) == parser_ok) {
         CHECK_ERROR(_readUInt8(c, &application->extra_pages))
-        if (application->extra_pages > 3){
+        if (application->extra_pages > 3) {
             return parser_too_many_extra_pages;
         }
         DISPLAY_ITEM(IDX_EXTRA_PAGES, 1, tx_num_items)
@@ -1248,12 +1202,13 @@ static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
         DISPLAY_ITEM(IDX_APPROVE, 1, tx_num_items)
     }
 
-   if (_findKey(c, KEY_APP_CPROG_LEN) == parser_ok) {
-       CHECK_ERROR(_getPointerBin(c, &application->cprog, &application->cprog_len))
-       DISPLAY_ITEM(IDX_CLEAR, 1, tx_num_items)
-   }
+    if (_findKey(c, KEY_APP_CPROG_LEN) == parser_ok) {
+        CHECK_ERROR(_getPointerBin(c, &application->cprog, &application->cprog_len))
+        DISPLAY_ITEM(IDX_CLEAR, 1, tx_num_items)
+    }
 
-    if (application->id == 0 && application->cprog_len + application->aprog_len > PAGE_LEN *(1+application->extra_pages)){
+    if (application->id == 0 &&
+        application->cprog_len + application->aprog_len > PAGE_LEN * (1 + application->extra_pages)) {
         // ExtraPages needs to be checked only on application creation
         return parser_program_fields_too_long;
     }
@@ -1261,13 +1216,12 @@ static parser_error_t _readTxApplication(parser_context_t *c, parser_tx_t *v)
     return parser_ok;
 }
 
-parser_error_t _read(parser_context_t *c, parser_tx_t *v)
-{
+parser_error_t _read(parser_context_t *c, parser_tx_t *v) {
     uint16_t keyLen = 0;
     CHECK_ERROR(initializeItemArray())
 
     CHECK_ERROR(_readMapSize(c, &keyLen))
-    if(keyLen > UINT8_MAX) {
+    if (keyLen > UINT8_MAX) {
         return parser_unexpected_number_items;
     }
 
@@ -1279,27 +1233,27 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
     // Read Tx specifics params
     switch (v->type) {
-    case TX_PAYMENT:
-        CHECK_ERROR(_readTxPayment(c, v))
-        break;
-    case TX_KEYREG:
-        CHECK_ERROR(_readTxKeyreg(c, v))
-        break;
-    case TX_ASSET_XFER:
-        CHECK_ERROR(_readTxAssetXfer(c, v))
-        break;
-    case TX_ASSET_FREEZE:
-        CHECK_ERROR(_readTxAssetFreeze(c, v))
-        break;
-    case TX_ASSET_CONFIG:
-        CHECK_ERROR(_readTxAssetConfig(c, v))
-        break;
-    case TX_APPLICATION:
-        CHECK_ERROR(_readTxApplication(c, v))
-        break;
-    default:
-        return parser_unknown_transaction;
-        break;
+        case TX_PAYMENT:
+            CHECK_ERROR(_readTxPayment(c, v))
+            break;
+        case TX_KEYREG:
+            CHECK_ERROR(_readTxKeyreg(c, v))
+            break;
+        case TX_ASSET_XFER:
+            CHECK_ERROR(_readTxAssetXfer(c, v))
+            break;
+        case TX_ASSET_FREEZE:
+            CHECK_ERROR(_readTxAssetFreeze(c, v))
+            break;
+        case TX_ASSET_CONFIG:
+            CHECK_ERROR(_readTxAssetConfig(c, v))
+            break;
+        case TX_APPLICATION:
+            CHECK_ERROR(_readTxApplication(c, v))
+            break;
+        default:
+            return parser_unknown_transaction;
+            break;
     }
 
     num_items = common_num_items + tx_num_items + 1;
@@ -1308,8 +1262,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v)
 
 #if !defined(LEDGER_SPECIFIC)
 #include "crypto.h"
-static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrary_data_t *v) {
     uint32_t serializedPathLen = sizeof(uint32_t) * HDPATH_LEN_DEFAULT;
     memcpy(hdPath, c->buffer, serializedPathLen);
 
@@ -1323,13 +1276,12 @@ static parser_error_t _readSerializedHdPath(parser_context_t *c, parser_arbitrar
 }
 #endif
 
-parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v)
-{
-    #if !defined(LEDGER_SPECIFIC)
+parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t *v) {
+#if !defined(LEDGER_SPECIFIC)
     // For cpp_test, the path needs to be read here
     CHECK_ERROR(_readSerializedHdPath(c, v))
-    #endif
-    num_items++; // hdPath, read on process_chunk
+#endif
+    num_items++;  // hdPath, read on process_chunk
     CHECK_ERROR(_readSigner(c, v))
     CHECK_ERROR(_readScope(c))
     CHECK_ERROR(_readEncoding(c))
@@ -1340,18 +1292,16 @@ parser_error_t _read_arbitrary_data(parser_context_t *c, parser_arbitrary_data_t
     return parser_ok;
 }
 
-static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *v) {
     v->signerBuffer = c->buffer + c->offset;
 
-    
     uint8_t raw_pubkey[PK_LEN_25519];
-    #if defined(LEDGER_SPECIFIC)
+#if defined(LEDGER_SPECIFIC)
     zxerr_t err = crypto_extractPublicKey(raw_pubkey, PK_LEN_25519);
     if (err != zxerr_ok) {
         return parser_invalid_signer;
     }
-    #else
+#else
     // in cpp_test we cannot compute the pubkey from the hdPath
     const char *pubkeyAcc0 = "1eccfd1ec05e4125fae690cec2a77839a9a36235dd6e2eafba79ca25c0da60f8";
     const char *pubkeyAcc123 = "0dfdbcdb8eebed628cfb4ef70207b86fd0deddca78e90e8c59d6f441e383b377";
@@ -1361,7 +1311,7 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
     } else {
         hexstr_to_array(raw_pubkey, PK_LEN_25519, pubkeyAcc123, strlen(pubkeyAcc123));
     }
-    #endif
+#endif
 
     if (memcmp(raw_pubkey, v->signerBuffer, PK_LEN_25519) != 0) {
         return parser_invalid_signer;
@@ -1374,11 +1324,10 @@ static parser_error_t _readSigner(parser_context_t *c, parser_arbitrary_data_t *
     return parser_ok;
 }
 
-static parser_error_t _readScope(parser_context_t *c)
-{
+static parser_error_t _readScope(parser_context_t *c) {
     uint8_t scope = 0;
     CHECK_ERROR(_readUInt8(c, &scope))
-    
+
     if (scope != SCOPE_AUTH) {
         return parser_invalid_scope;
     }
@@ -1386,11 +1335,10 @@ static parser_error_t _readScope(parser_context_t *c)
     return parser_ok;
 }
 
-static parser_error_t _readEncoding(parser_context_t *c)
-{
+static parser_error_t _readEncoding(parser_context_t *c) {
     uint8_t encoding = 0;
     CHECK_ERROR(_readUInt8(c, &encoding))
-    
+
     if (encoding != ENCODING_BASE64) {
         return parser_invalid_encoding;
     }
@@ -1398,23 +1346,21 @@ static parser_error_t _readEncoding(parser_context_t *c)
     return parser_ok;
 }
 
-static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readData(parser_context_t *c, parser_arbitrary_data_t *v) {
     size_t dataLen = 0;
-    CHECK_ERROR(_readUInt16(c, (uint16_t*)&dataLen))
+    CHECK_ERROR(_readUInt16(c, (uint16_t *)&dataLen))
     v->dataLen = dataLen;
     v->dataBuffer = c->buffer + c->offset;
 
-    CHECK_ERROR(parser_json_parse((const char*)c->buffer + c->offset, dataLen, c, &num_json_items))
+    CHECK_ERROR(parser_json_parse((const char *)c->buffer + c->offset, dataLen, c, &num_json_items))
     num_items += num_json_items;
 
-    CHECK_ERROR(parser_json_check_canonical((const char*)v->dataBuffer, v->dataLen))
+    CHECK_ERROR(parser_json_check_canonical((const char *)v->dataBuffer, v->dataLen))
 
     return parser_ok;
 }
 
-static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *v) {
     uint16_t domainLen = 0;
     CHECK_ERROR(_readUInt16(c, &domainLen))
     v->domainLen = domainLen;
@@ -1439,8 +1385,7 @@ static parser_error_t _readDomain(parser_context_t *c, parser_arbitrary_data_t *
     return parser_ok;
 }
 
-static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_t *v) {
     uint16_t requestIdLen = 0;
     CHECK_ERROR(_readUInt16(c, &requestIdLen))
 
@@ -1465,10 +1410,9 @@ static parser_error_t _readRequestId(parser_context_t *c, parser_arbitrary_data_
     return parser_ok;
 }
 
-static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v)
-{
+static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t *v) {
     size_t authDataLen = 0;
-    CHECK_ERROR(_readUInt16(c, (uint16_t*)&authDataLen))
+    CHECK_ERROR(_readUInt16(c, (uint16_t *)&authDataLen))
     uint32_t startOffset = c->offset;
     v->authDataLen = (uint16_t)authDataLen;
 
@@ -1498,7 +1442,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
     // read flags
     flags_t flags;
     MEMZERO(&flags, sizeof(flags_t));
-    CHECK_ERROR(_readUInt8(c, (uint8_t*)&flags))
+    CHECK_ERROR(_readUInt8(c, (uint8_t *)&flags))
 
     // read signCount
     uint32_t signCount;
@@ -1529,7 +1473,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
         if (!credential_public_key.found_alg) {
             return parser_failed_domain_auth;
         }
-        
+
         const uint8_t *next_byte = cbor_value_get_next_byte(&value);
         size_t bytesConsumed = 0;
 
@@ -1538,7 +1482,7 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
         }
 
         bytesConsumed = next_byte - (c->buffer + c->offset);
-            
+
         // Advance the parser as many bytes as were consumed by the CBOR parser
         CTX_CHECK_AND_ADVANCE(c, bytesConsumed)
     }
@@ -1550,13 +1494,13 @@ static parser_error_t _readAuthData(parser_context_t *c, parser_arbitrary_data_t
 
         const uint8_t *next_byte = cbor_value_get_next_byte(&value);
         size_t bytesConsumed = 0;
-        
+
         if (next_byte < (c->buffer + c->offset)) {
             return parser_failed_domain_auth;
         }
 
         bytesConsumed = next_byte - (c->buffer + c->offset);
-            
+
         // Advance the parser as many bytes as were consumed by the CBOR parser
         CTX_CHECK_AND_ADVANCE(c, bytesConsumed)
     }
@@ -1574,7 +1518,7 @@ static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, cbor_value
     if (cbor_value_is_integer(key)) {
         int keyValue = 0;
         CHECK_ERROR(cbor_value_get_int(key, &keyValue))
-        
+
         if (keyValue == KEY_VALUE_CRV) {
             int valueValue = 0;
             if (cbor_value_is_text_string(value) || cbor_value_is_byte_string(value)) {
@@ -1715,17 +1659,18 @@ static parser_error_t checkCredentialPublicKeyItem(cbor_value_t *key, cbor_value
                     }
                     credential_public_key.found_alg = true;
                     credential_public_key.alg = valueValue;
-                break;
+                    break;
                 default:
                     return parser_failed_domain_auth;
             }
         }
-    
+
         // Key is "key_ops"
         else if (keyValue == KEY_VALUE_KEY_OPS) {
             // Value is an array and must contain "sign" and "verify" when using ECDSA
             // RFC8152 - Section 8.1 : https://datatracker.ietf.org/doc/html/rfc8152#section-8.1
-            if (credential_public_key.alg == ES256 || credential_public_key.alg == ES384 || credential_public_key.alg == ES512 || credential_public_key.alg == EDDSA) {
+            if (credential_public_key.alg == ES256 || credential_public_key.alg == ES384 ||
+                credential_public_key.alg == ES512 || credential_public_key.alg == EDDSA) {
                 int values[30];
                 size_t count = 0;
                 bool found_sign = false;
@@ -1759,25 +1704,13 @@ static parser_error_t checkExtensionsItem(cbor_value_t *key, __Z_UNUSED cbor_val
     return parser_ok;
 }
 
-uint8_t _getNumItems()
-{
-    return num_items;
-}
+uint8_t _getNumItems() { return num_items; }
 
-uint8_t _getCommonNumItems()
-{
-    return common_num_items;
-}
+uint8_t _getCommonNumItems() { return common_num_items; }
 
-uint8_t _getTxNumItems()
-{
-    return tx_num_items;
-}
+uint8_t _getTxNumItems() { return tx_num_items; }
 
-uint8_t _getNumJsonItems()
-{
-    return num_json_items;
-}
+uint8_t _getNumJsonItems() { return num_json_items; }
 
 uint16_t parser_mapParserErrorToSW(parser_error_t err) {
     switch (err) {
@@ -1828,7 +1761,7 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "item query returned no results";
         case parser_missing_field:
             return "missing field";
-//////
+            //////
         case parser_display_idx_out_of_range:
             return "display index out of range";
         case parser_display_page_out_of_range:
@@ -1959,21 +1892,23 @@ const char *parser_getMsgPackTypeDescription(uint8_t type) {
 parser_error_t parser_jsonGetNthKey(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen) {
     uint16_t token_index = 0;
     CHECK_ERROR(parser_json_object_get_nth_key(0, displayIdx, &token_index));
-    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char*)ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outKey, outKeyLen));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char *)ctx->parser_arbitrary_data_obj->dataBuffer, token_index,
+                                                 outKey, outKeyLen));
     return parser_ok;
 }
 
 parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx, char *outVal, uint16_t outValLen) {
     uint16_t token_index = 0;
     CHECK_ERROR(parser_json_object_get_nth_value(0, displayIdx, &token_index));
-    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char*)ctx->parser_arbitrary_data_obj->dataBuffer, token_index, outVal, outValLen));
+    CHECK_ERROR(parser_getJsonItemFromTokenIndex((const char *)ctx->parser_arbitrary_data_obj->dataBuffer, token_index,
+                                                 outVal, outValLen));
 
     // Remove backslashes from JSON string values
     // This is needed because we don't want to display backslashes in the UI
     uint16_t writePos = 0;
     uint16_t readPos = 0;
     uint16_t currentLen = strlen(outVal);
-    
+
     while (readPos < currentLen) {
         if (outVal[readPos] == '\\') {
             // Skip the backslash
@@ -1985,7 +1920,7 @@ parser_error_t parser_jsonGetNthValue(parser_context_t *ctx, uint8_t displayIdx,
             readPos++;
         }
     }
-    
+
     // Add null terminator at the new end of string
     outVal[writePos] = '\0';
 

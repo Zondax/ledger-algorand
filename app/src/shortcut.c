@@ -26,8 +26,8 @@
 
 void shortcut_toggle() {
 #ifdef SHORTCUT_MODE_ENABLED
-  app_mode_set_shortcut(!app_mode_shortcut());
-  view_idle_show(0, NULL);
+    app_mode_set_shortcut(!app_mode_shortcut());
+    view_idle_show(0, NULL);
 #endif
 }
 
@@ -38,28 +38,27 @@ static const char *shortcutMessage =
     "field.";
 
 zxerr_t shortcut_getNumItems(uint8_t *num_items) {
-  zemu_log_stack("shortcut_getNumItems\n");
-  *num_items = 1;
-  return zxerr_ok;
+    zemu_log_stack("shortcut_getNumItems\n");
+    *num_items = 1;
+    return zxerr_ok;
 }
 
-zxerr_t shortcut_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen,
-                      char *outVal, uint16_t outValLen, uint8_t pageIdx,
-                      uint8_t *pageCount) {
-  if (displayIdx != 0) {
-    return zxerr_no_data;
-  }
+zxerr_t shortcut_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
+                         uint8_t pageIdx, uint8_t *pageCount) {
+    if (displayIdx != 0) {
+        return zxerr_no_data;
+    }
 
-  snprintf(outKey, outKeyLen, "Warning!");
+    snprintf(outKey, outKeyLen, "Warning!");
 
-  pageString(outVal, outValLen, (const char*)PIC(shortcutMessage), pageIdx, pageCount);
-  return zxerr_ok;
+    pageString(outVal, outValLen, (const char *)PIC(shortcutMessage), pageIdx, pageCount);
+    return zxerr_ok;
 }
 
 zxerr_t shortcut_enabled() {
 #ifdef SHORTCUT_MODE_ENABLED
-  view_review_init(shortcut_getItem, shortcut_getNumItems, shortcut_toggle);
-  view_review_show(REVIEW_UI);
+    view_review_init(shortcut_getItem, shortcut_getNumItems, shortcut_toggle);
+    view_review_show(REVIEW_UI);
 #endif
-  return zxerr_ok;
+    return zxerr_ok;
 }
