@@ -1,4 +1,4 @@
-name: CodeQL
+name: Lint and format 💅
 
 on:
   workflow_dispatch:
@@ -7,12 +7,9 @@ on:
     branches:
       - main
       - develop
-      - master
-      - dev
 
 jobs:
-  codeql:
-    uses: Zondax/_workflows/.github/workflows/_ledger_codeql.yml@v3
+  ledger-lint:
+    uses: Zondax/_workflows/.github/workflows/_ledger_lint.yml@v3
     with:
       runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
-      has-nanos: false

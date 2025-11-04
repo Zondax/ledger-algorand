@@ -14,7 +14,5 @@ jobs:
     uses: Zondax/_workflows/.github/workflows/_ledger_main.yml@v3
     with:
       runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
+      node-version: "22"
       has-rust: false
-      has-nanos: false
-      node-version: '22'
-      
